@@ -78,3 +78,15 @@ test('works offline after the first visit', async ({ page, context }, info) => {
   await page.goto('/ajustes');
   await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
 });
+
+test('returning to Inicio from Ajustes with a view transition', async ({ page }, info) => {
+  // Playwright's WebKit build for Windows crashes intermittently (~20%) on this exact
+  // transition; not reproduced in Chromium. Verify on a real iPhone before trusting the skip.
+  test.skip(info.project.name === 'iphone-15', 'WebKit-on-Windows crash, see CLAUDE.local.md');
+  await page.goto('/ajustes');
+  await page
+    .getByRole('navigation', { name: 'Principal' })
+    .getByRole('link', { name: 'Inicio' })
+    .click();
+  await expect(page.getByText('Tu saldo')).toBeVisible();
+});

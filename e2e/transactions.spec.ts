@@ -155,7 +155,7 @@ test('going back from the detail does not duplicate history', async ({ page }) =
   await addExpense(page, '700', 'Ropa');
   await page.getByRole('link', { name: /Ropa/ }).click();
   await expect(page).toHaveURL(/\/movimientos\/.+/);
-  await page.getByRole('main').getByRole('link', { name: 'Movimientos' }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Volver' }).click();
   await expect(page).toHaveURL(/\/movimientos$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
@@ -166,7 +166,7 @@ test('detail opened directly goes back to the list without stacking history', as
   await addExpense(page, '800', 'Hogar');
   const href = await page.getByRole('link', { name: /Hogar/ }).getAttribute('href');
   await page.goto(href!);
-  await page.getByRole('main').getByRole('link', { name: 'Movimientos' }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Volver' }).click();
   await expect(page).toHaveURL(/\/movimientos$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/movimientos$/); // the earlier list entry, not the detail
