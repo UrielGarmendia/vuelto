@@ -1,5 +1,6 @@
 import { toast } from '../../ui/toast';
 import { setDeleted } from './queries';
+import { useTxSheet } from './store';
 
 export async function deleteWithUndo(id: string): Promise<void> {
   try {
@@ -14,3 +15,7 @@ export async function deleteWithUndo(id: string): Promise<void> {
     onClick: () => void setDeleted(id, 0),
   });
 }
+
+/** Stable handlers for memoized rows. */
+export const deleteTx = (id: string) => void deleteWithUndo(id);
+export const editTx = (id: string) => useTxSheet.getState().openEdit(id);

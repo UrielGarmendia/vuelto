@@ -5,16 +5,12 @@ import type { Account, Category, Transaction } from '../../db/types';
 import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { spring, staggerMs } from '../../ui/motion';
-import { deleteWithUndo } from './actions';
+import { deleteTx, editTx } from './actions';
 import { groupByDay } from './queries';
-import { useTxSheet } from './store';
 import { TxRow } from './TxRow';
 
 // Entrance stagger plays once per app session, not on every tab switch.
 let hasStaggered = false;
-
-const onDelete = (id: string) => void deleteWithUndo(id);
-const onEdit = (id: string) => useTxSheet.getState().openEdit(id);
 
 interface Props {
   transactions: Transaction[];
@@ -93,8 +89,8 @@ export function TransactionList({ transactions, categories, accounts }: Props) {
                 tx={row.tx}
                 category={row.tx.categoryId ? categories.get(row.tx.categoryId) : undefined}
                 account={accounts.get(row.tx.accountId)}
-                onDelete={onDelete}
-                onEdit={onEdit}
+                onDelete={deleteTx}
+                onEdit={editTx}
               />
             )}
           </m.div>
