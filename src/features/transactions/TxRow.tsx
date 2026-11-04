@@ -68,7 +68,6 @@ export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEd
       >
         <Link
           to={`/movimientos/${tx.id}`}
-          state={{ fromList: true }}
           viewTransition
           draggable={false}
           onPointerDown={() => (dragged.current = false)}

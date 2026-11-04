@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Pencil, SearchX, Trash2 } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Pencil, SearchX, Trash2 } from 'lucide-react';
+import { useParams } from 'react-router';
 import { db } from '../../db/db';
 import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
+import { BackLink } from '../../ui/BackLink';
+import { useGoBack } from '../../ui/useGoBack';
 import { CategoryIcon } from '../../ui/CategoryIcon';
 import { EmptyState } from '../../ui/EmptyState';
 import { deleteWithUndo } from './actions';
@@ -12,32 +14,13 @@ import { useCatalog } from './useCatalog';
 
 export function TransactionDetailPage() {
   const { id = '' } = useParams();
-  const navigate = useNavigate();
   const openEdit = useTxSheet((s) => s.openEdit);
   const { categories, accounts } = useCatalog();
   // `null` = loaded but missing, `undefined` = still loading.
   const tx = useLiveQuery(async () => (await db.transactions.get(id)) ?? null, [id]);
 
-  // Opened from the list: going back pops history so the list entry isn't duplicated.
-  // Opened directly (shared link, reload): replace instead, so there's nothing to pop.
-  const fromList = (useLocation().state as { fromList?: boolean } | null)?.fromList === true;
-  const goBack = () =>
-    fromList ? navigate(-1) : navigate('/movimientos', { replace: true, viewTransition: true });
-
-  const back = (
-    <Link
-      to="/movimientos"
-      replace
-      viewTransition
-      onClick={(e) => {
-        e.preventDefault();
-        void goBack();
-      }}
-      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-sm pr-3 text-[15px] font-medium text-accent-ink"
-    >
-      <ChevronLeft aria-hidden className="size-5" /> Movimientos
-    </Link>
-  );
+  const goBack = useGoBack('/movimientos');
+  const back = <BackLink to="/movimientos" />;
 
   if (tx === undefined) return <div className="px-5 pt-3">{back}</div>;
   if (tx === null || tx.deleted) {
