@@ -3,7 +3,8 @@ import type { Transition } from 'motion/react';
 export const spring = {
   snappy: { type: 'spring', stiffness: 500, damping: 35 },
   sheet: { type: 'spring', stiffness: 380, damping: 36 },
-  number: { type: 'spring', stiffness: 120, damping: 20 },
+  // Critically damped: a money figure must never overshoot past its real value.
+  number: { type: 'spring', stiffness: 170, damping: 27 },
 } satisfies Record<string, Transition>;
 
 export const duration = { fast: 0.15, base: 0.22, slow: 0.32 } as const;
