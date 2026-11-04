@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { ChevronRight, Monitor, Moon, Sun, Tags, WalletCards } from 'lucide-react';
+import { Link } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePrefs, type Theme } from '../../app/prefs';
@@ -25,6 +26,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function SettingsPage() {
   const { theme, setTheme, reduceMotion, setReduceMotion } = usePrefs();
   const persisted = useLiveQuery(() => db.kv.get('storagePersisted'));
+  const counts = useLiveQuery(async () => ({
+    categories: await db.categories.filter((c) => !c.deleted && !c.archived).count(),
+    accounts: await db.accounts.filter((a) => !a.deleted && !a.archived).count(),
+  }));
 
   return (
     <>
@@ -72,6 +77,37 @@ export function SettingsPage() {
             className="relative h-7 w-12 shrink-0 rounded-full bg-surface-2 transition-colors peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-ink after:absolute after:top-0.5 after:left-0.5 after:size-6 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"
           />
         </label>
+      </Section>
+
+      <Section title="Tus datos">
+        <nav aria-label="Datos" className="divide-y divide-line">
+          {[
+            {
+              to: '/ajustes/categorias',
+              label: 'Categorías',
+              icon: Tags,
+              count: counts?.categories,
+            },
+            {
+              to: '/ajustes/cuentas',
+              label: 'Cuentas',
+              icon: WalletCards,
+              count: counts?.accounts,
+            },
+          ].map(({ to, label, icon: Icon, count }) => (
+            <Link
+              key={to}
+              to={to}
+              viewTransition
+              className="flex min-h-14 items-center gap-3 px-4 active:bg-surface-2"
+            >
+              <Icon aria-hidden className="size-5 text-muted" />
+              <span className="flex-1 text-[15px]">{label}</span>
+              {count !== undefined && <span className="tabular text-sm text-muted">{count}</span>}
+              <ChevronRight aria-hidden className="size-4 text-muted" />
+            </Link>
+          ))}
+        </nav>
       </Section>
 
       <Section title="Almacenamiento">
