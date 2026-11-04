@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { db } from '../../db/db';
 import { usePrefs, type Theme } from '../../app/prefs';
 import { PageHeader } from '../../ui/PageHeader';
+import { BackupSection } from './BackupSection';
 
 const themes: { value: Theme; label: string; icon: LucideIcon }[] = [
   { value: 'light', label: 'Claro', icon: Sun },
@@ -119,6 +120,10 @@ export function SettingsPage() {
             {persisted === undefined ? '…' : persisted.value ? 'Sí, persistente' : 'No garantizado'}
           </span>
         </div>
+      </Section>
+
+      <Section title="Backup">
+        <BackupSection />
       </Section>
     </>
   );
