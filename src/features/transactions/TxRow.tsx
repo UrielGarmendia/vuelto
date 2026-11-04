@@ -115,7 +115,7 @@ function SwipeActions({ x }: { x: MotionValue<number> }) {
       <m.div
         aria-hidden
         style={{ opacity: deleteOpacity }}
-        className="absolute inset-0 flex items-center justify-end bg-expense pr-6 text-white"
+        className="absolute inset-0 flex items-center justify-end bg-expense pr-6 text-white dark:text-bg"
       >
         <m.span style={{ scale: deleteScale }}>
           <Trash2 className="size-5" />
