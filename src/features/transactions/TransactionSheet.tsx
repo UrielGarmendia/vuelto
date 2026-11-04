@@ -80,14 +80,23 @@ function TxForm({
   onDone: () => void;
 }) {
   const lastUsed = useLastUsed();
+  // Remembered ids may point to something archived or gone (e.g. after a restore).
+  const usable = (id: string | undefined, type: Kind) =>
+    categories.some((c) => c.id === id && c.type === type) ? id : undefined;
   const [type, setType] = useState<Kind>(editing?.type === 'income' ? 'income' : 'expense');
   const [amount, setAmount] = useState(() =>
     editing ? centsToAmountInput(editing.amountCents) : '',
   );
   const [categoryId, setCategoryId] = useState(
-    editing ? editing.categoryId : lastUsed.expenseCategoryId,
+    editing ? editing.categoryId : usable(lastUsed.expenseCategoryId, 'expense'),
   );
-  const [accountId, setAccountId] = useState(editing ? editing.accountId : lastUsed.accountId);
+  const [accountId, setAccountId] = useState(
+    editing
+      ? editing.accountId
+      : accounts.some((a) => a.id === lastUsed.accountId)
+        ? lastUsed.accountId
+        : undefined,
+  );
   const [date, setDate] = useState(() => editing?.date ?? todayISO());
   const [note, setNote] = useState(editing?.note ?? '');
   const [showNote, setShowNote] = useState(!!editing?.note);
@@ -100,7 +109,9 @@ function TxForm({
 
   function switchType(next: Kind) {
     setType(next);
-    setCategoryId(next === 'expense' ? lastUsed.expenseCategoryId : lastUsed.incomeCategoryId);
+    setCategoryId(
+      usable(next === 'expense' ? lastUsed.expenseCategoryId : lastUsed.incomeCategoryId, next),
+    );
   }
 
   async function save() {
