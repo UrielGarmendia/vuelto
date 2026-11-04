@@ -1,6 +1,7 @@
 import { ChartPie, House, ReceiptText, Plus, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router';
+import { useTxSheet } from '../features/transactions/store';
 
 const tabs: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Inicio', icon: House },
@@ -32,8 +33,10 @@ function Tab({ to, label, icon: Icon }: (typeof tabs)[number]) {
 }
 
 export function TabBar() {
+  const openNew = useTxSheet((s) => s.openNew);
   return (
     <nav
+      id="tabbar"
       aria-label="Principal"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 pb-safe backdrop-blur-xl"
     >
@@ -41,12 +44,11 @@ export function TabBar() {
         <Tab {...tabs[0]!} />
         <Tab {...tabs[1]!} />
         <div className="flex flex-1 justify-center">
-          {/* Opens the new-transaction sheet in phase 2. */}
           <button
             type="button"
-            disabled
+            onClick={openNew}
             aria-label="Cargar movimiento"
-            className="grid size-14 -translate-y-1 place-items-center rounded-full bg-accent text-on-accent shadow-[0_8px_20px_-6px_rgb(217_101_59/0.6)] active:scale-95"
+            className="grid size-14 -translate-y-1 place-items-center rounded-full bg-accent text-on-accent shadow-[0_8px_20px_-6px_rgb(217_101_59/0.6)] transition-transform active:scale-95"
           >
             <Plus aria-hidden className="size-7" strokeWidth={2.25} />
           </button>
