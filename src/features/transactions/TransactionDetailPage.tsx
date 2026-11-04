@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Pencil, SearchX, Trash2 } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { db } from '../../db/db';
 import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
@@ -18,10 +18,21 @@ export function TransactionDetailPage() {
   // `null` = loaded but missing, `undefined` = still loading.
   const tx = useLiveQuery(async () => (await db.transactions.get(id)) ?? null, [id]);
 
+  // Opened from the list: going back pops history so the list entry isn't duplicated.
+  // Opened directly (shared link, reload): replace instead, so there's nothing to pop.
+  const fromList = (useLocation().state as { fromList?: boolean } | null)?.fromList === true;
+  const goBack = () =>
+    fromList ? navigate(-1) : navigate('/movimientos', { replace: true, viewTransition: true });
+
   const back = (
     <Link
       to="/movimientos"
+      replace
       viewTransition
+      onClick={(e) => {
+        e.preventDefault();
+        void goBack();
+      }}
       className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-sm pr-3 text-[15px] font-medium text-accent-ink"
     >
       <ChevronLeft aria-hidden className="size-5" /> Movimientos
@@ -89,7 +100,7 @@ export function TransactionDetailPage() {
           type="button"
           onClick={async () => {
             await deleteWithUndo(tx.id);
-            navigate('/movimientos', { viewTransition: true });
+            void goBack();
           }}
           className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-surface font-semibold text-expense shadow-soft"
         >

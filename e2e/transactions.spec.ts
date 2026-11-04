@@ -144,3 +144,29 @@ for (const theme of ['light', 'dark'] as const) {
     await page.screenshot({ path: `${dir}/detalle-${theme}.png` });
   });
 }
+
+test('going back from the detail does not duplicate history', async ({ page }) => {
+  await page.goto('/');
+  await page
+    .getByRole('navigation', { name: 'Principal' })
+    .getByRole('link', { name: 'Movimientos' })
+    .click();
+  await addExpense(page, '700', 'Ropa');
+  await page.getByRole('link', { name: /Ropa/ }).click();
+  await expect(page).toHaveURL(/\/movimientos\/.+/);
+  await page.getByRole('main').getByRole('link', { name: 'Movimientos' }).click();
+  await expect(page).toHaveURL(/\/movimientos$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test('detail opened directly goes back to the list without stacking history', async ({ page }) => {
+  await page.goto('/movimientos');
+  await addExpense(page, '800', 'Hogar');
+  const href = await page.getByRole('link', { name: /Hogar/ }).getAttribute('href');
+  await page.goto(href!);
+  await page.getByRole('main').getByRole('link', { name: 'Movimientos' }).click();
+  await expect(page).toHaveURL(/\/movimientos$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/movimientos$/); // the earlier list entry, not the detail
+});
