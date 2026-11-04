@@ -76,7 +76,7 @@ export function Sheet({ open, onOpenChange, title, children }: Props) {
             >
               <m.div
                 tabIndex={-1}
-                className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[94dvh] max-w-lg flex-col rounded-t-[28px] bg-bg pb-safe shadow-[0_-8px_40px_-12px_rgb(0_0_0/0.25)] outline-none"
+                className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[94dvh] max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-[28px] bg-bg pb-safe shadow-[0_-8px_40px_-12px_rgb(0_0_0/0.25)] outline-none"
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}

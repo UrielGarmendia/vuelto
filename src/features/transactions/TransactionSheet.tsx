@@ -188,8 +188,9 @@ function TxForm({
   return (
     <>
       {header}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {/* Categories keep a usable height; on short screens the whole sheet scrolls instead. */}
+      <div className="flex flex-1 flex-col">
+        <div className="min-h-[9.5rem] flex-1 overflow-y-auto overscroll-contain">
           <CategoryGrid
             categories={visibleCategories}
             selected={categoryId}

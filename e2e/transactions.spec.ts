@@ -97,7 +97,8 @@ test('swipe left deletes, swipe right opens the editor', async ({ page }, info) 
   await page.mouse.move(box.x + box.width / 2 - 200, y, { steps: 10 });
   await page.mouse.up();
   await expect(row).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Deshacer' })).toBeVisible();
+  await page.getByRole('button', { name: 'Deshacer' }).click();
+  await expect(row).toBeVisible();
 });
 
 test('physical keyboard types the amount and Enter saves', async ({ page }) => {
@@ -169,4 +170,14 @@ test('detail opened directly goes back to the list without stacking history', as
   await expect(page).toHaveURL(/\/movimientos$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/movimientos$/); // the earlier list entry, not the detail
+});
+
+test('categories stay reachable in a short viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 430 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Cargar movimiento' }).click();
+  const cat = page.getByRole('dialog').getByRole('radio', { name: 'Supermercado' });
+  await cat.scrollIntoViewIfNeeded();
+  await expect(cat).toBeVisible();
+  expect((await cat.boundingBox())!.height).toBeGreaterThan(40);
 });
