@@ -1,53 +1,5 @@
-import {
-  Briefcase,
-  Building2,
-  Bus,
-  CircleDashed,
-  Coins,
-  Fuel,
-  Gift,
-  GraduationCap,
-  HeartPulse,
-  House,
-  Landmark,
-  Laptop,
-  Lightbulb,
-  PartyPopper,
-  PawPrint,
-  Repeat,
-  Shirt,
-  ShoppingCart,
-  Sofa,
-  Stethoscope,
-  Utensils,
-  Wifi,
-  type LucideIcon,
-} from 'lucide-react';
-
-// Explicit map so only these icons end up in the bundle.
-const categoryIcons: Record<string, LucideIcon> = {
-  'shopping-cart': ShoppingCart,
-  utensils: Utensils,
-  bus: Bus,
-  fuel: Fuel,
-  house: House,
-  'building-2': Building2,
-  lightbulb: Lightbulb,
-  wifi: Wifi,
-  'heart-pulse': HeartPulse,
-  stethoscope: Stethoscope,
-  'graduation-cap': GraduationCap,
-  shirt: Shirt,
-  'party-popper': PartyPopper,
-  repeat: Repeat,
-  gift: Gift,
-  'paw-print': PawPrint,
-  sofa: Sofa,
-  landmark: Landmark,
-  briefcase: Briefcase,
-  laptop: Laptop,
-  coins: Coins,
-};
+import { CircleDashed } from 'lucide-react';
+import { categoryIcons } from './icons';
 
 interface Props {
   icon?: string;
