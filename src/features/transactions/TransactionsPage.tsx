@@ -1,8 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, SearchX } from 'lucide-react';
+import { useMemo } from 'react';
+import { todayISO } from '../../lib/dates';
 import { EmptyState } from '../../ui/EmptyState';
 import { PageHeader } from '../../ui/PageHeader';
 import { Skeleton } from '../../ui/Skeleton';
+import { FilterBar } from './FilterBar';
+import { filterTransactions, useFilters } from './filters';
 import { listTransactions } from './queries';
 import { useTxSheet } from './store';
 import { TransactionList } from './TransactionList';
@@ -12,6 +16,22 @@ export function TransactionsPage() {
   const transactions = useLiveQuery(() => listTransactions(), []);
   const catalog = useCatalog();
   const openNew = useTxSheet((s) => s.openNew);
+  const filters = useFilters();
+  const filtered = useMemo(
+    () => transactions && filterTransactions(transactions, filters, catalog.categories, todayISO()),
+    [transactions, filters, catalog.categories],
+  );
+  const pickable = useMemo(
+    () => ({
+      categories: [...catalog.categories.values()]
+        .filter((c) => !c.deleted && !c.archived)
+        .sort((a, b) => a.order - b.order),
+      accounts: [...catalog.accounts.values()]
+        .filter((a) => !a.deleted && !a.archived)
+        .sort((a, b) => a.order - b.order),
+    }),
+    [catalog],
+  );
 
   return (
     <>
@@ -35,11 +55,32 @@ export function TransactionsPage() {
           Cada gasto e ingreso que cargues va a aparecer acá, agrupado por día.
         </EmptyState>
       ) : (
-        <TransactionList
-          transactions={transactions}
-          categories={catalog.categories}
-          accounts={catalog.accounts}
-        />
+        <>
+          <FilterBar categories={pickable.categories} accounts={pickable.accounts} />
+          {filtered!.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              title="Nada por acá"
+              action={
+                <button
+                  type="button"
+                  onClick={filters.reset}
+                  className="min-h-11 rounded-full bg-surface-2 px-5 text-sm font-semibold"
+                >
+                  Limpiar filtros
+                </button>
+              }
+            >
+              No hay movimientos que coincidan con la búsqueda o los filtros.
+            </EmptyState>
+          ) : (
+            <TransactionList
+              transactions={filtered!}
+              categories={catalog.categories}
+              accounts={catalog.accounts}
+            />
+          )}
+        </>
       )}
     </>
   );

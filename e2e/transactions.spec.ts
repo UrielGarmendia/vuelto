@@ -181,3 +181,28 @@ test('categories stay reachable in a short viewport', async ({ page }) => {
   await expect(cat).toBeVisible();
   expect((await cat.boundingBox())!.height).toBeGreaterThan(40);
 });
+
+test('searches and filters the list', async ({ page }) => {
+  await page.goto('/movimientos');
+  await addExpense(page, '1250', 'Supermercado', 'Chino de la esquina');
+  await addExpense(page, '800', 'Transporte', 'SUBE');
+  await addExpense(page, '3000', 'Salidas');
+  const rows = page.getByRole('main').getByRole('link');
+
+  await page.getByLabel('Buscar movimientos').fill('chino');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Supermercado');
+
+  await page.getByLabel('Buscar movimientos').fill('');
+  await page.getByLabel('Categoría', { exact: true }).selectOption({ label: 'Transporte' });
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('SUBE');
+
+  await page.getByRole('button', { name: 'Limpiar' }).click();
+  await expect(rows).toHaveCount(3);
+
+  await page.getByLabel('Buscar movimientos').fill('no existe');
+  await expect(page.getByText('Nada por acá')).toBeVisible();
+  await page.getByRole('button', { name: 'Limpiar filtros' }).click();
+  await expect(rows).toHaveCount(3);
+});
