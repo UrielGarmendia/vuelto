@@ -67,6 +67,44 @@
   }
 }
 
+/* Page behind an open sheet recedes (iOS style). The tab bar lives outside #app, so it gets
+   its own origin that maps to the same viewport point. */
+html {
+  transition: background-color var(--duration-slow) var(--ease-out);
+}
+#app,
+#tabbar {
+  transition:
+    transform var(--duration-slow) var(--ease-out),
+    border-radius var(--duration-slow) var(--ease-out);
+}
+html[data-sheet='open'] {
+  background: #000;
+}
+html[data-sheet='open'] #app {
+  transform: scale(0.94);
+  transform-origin: 50% var(--sheet-origin-y, 50vh);
+  border-radius: 20px;
+  overflow: clip;
+}
+html[data-sheet='open'] #tabbar {
+  /* Hidden under the overlay anyway; recomputing the blur while scaling is expensive. */
+  backdrop-filter: none;
+  background: var(--color-bg);
+  transform: scale(0.94);
+  transform-origin: 50% calc(100% - 50dvh);
+}
+html[data-reduce-motion='true'] #app,
+html[data-reduce-motion='true'] #tabbar {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #app,
+  #tabbar {
+    transition: none;
+  }
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }

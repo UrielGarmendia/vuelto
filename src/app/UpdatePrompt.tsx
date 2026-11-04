@@ -17,7 +17,7 @@ export function UpdatePrompt() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
           transition={spring.snappy}
-          className="fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-md bg-ink py-2 pr-2 pl-4 text-bg shadow-soft"
+          className="fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-md bg-ink py-2 pr-2 pl-4 text-bg shadow-soft dark:bg-raised dark:text-ink"
         >
           <p className="flex-1 text-sm font-medium">Hay una versión nueva</p>
           <button
