@@ -29,7 +29,7 @@ export interface Totals {
   creditDebtCents: number;
 }
 
-// shortcut: USD accounts are left out of the ARS total until currency conversion lands in phase 5.
+// USD accounts stay out of the ARS total until currency conversion exists (phase 5).
 export function totals(accounts: readonly Account[], balances: Map<string, number>): Totals {
   let balanceCents = 0;
   let creditDebtCents = 0;
