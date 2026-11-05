@@ -34,6 +34,9 @@ for (const theme of ['light', 'dark'] as const) {
 test('tab bar navigates between sections', async ({ page }) => {
   await setPrefs(page, { installDismissed: true });
   await page.goto('/');
+  // Playwright's WebKit for Windows crashes if a view transition starts in the first ~300 ms
+  // after boot (see CLAUDE.local.md); wait until the app has settled.
+  await expect(page.getByText('Tu saldo')).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Principal' });
   await nav.getByRole('link', { name: 'Ajustes' }).click();
   await expect(page).toHaveURL(/\/ajustes$/);
