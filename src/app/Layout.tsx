@@ -1,6 +1,13 @@
 import { LazyMotion, m, MotionConfig } from 'motion/react';
 import { lazy, Suspense, useEffect } from 'react';
-import { Navigate, Outlet, useLocation, useOutlet, useSearchParams } from 'react-router';
+import {
+  Navigate,
+  Outlet,
+  ScrollRestoration,
+  useLocation,
+  useOutlet,
+  useSearchParams,
+} from 'react-router';
 import { isOnboarded } from '../features/onboarding/onboarded';
 import { useTxSheet } from '../features/transactions/store';
 import { fade } from '../ui/motion';
@@ -29,6 +36,8 @@ export function Root() {
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
         <Outlet />
+        {/* New pages start at the top; back/forward returns to where you were. */}
+        <ScrollRestoration />
       </MotionConfig>
     </LazyMotion>
   );
