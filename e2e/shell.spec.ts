@@ -93,3 +93,25 @@ test('returning to Inicio from Ajustes with a view transition', async ({ page },
     .click();
   await expect(page.getByText('Tu saldo')).toBeVisible();
 });
+
+test('a new page starts at the top, going back restores the scroll', async ({ page }, info) => {
+  test.skip(
+    info.project.name === 'iphone-15',
+    'Known WebKit-on-Windows view transition crash on back',
+  );
+  await page.setViewportSize({ width: 390, height: 500 }); // make Ajustes scroll everywhere
+  await setPrefs(page, { installDismissed: true });
+  await page.goto('/ajustes');
+  await expect(page.getByRole('button', { name: 'Borrar todo' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Categorías/ })).toContainText('21');
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  const saved = await page.evaluate(() => window.scrollY);
+  // el.click() skips Playwright's scroll-into-view, which would change the position we save.
+  await page.getByRole('link', { name: /Categorías/ }).evaluate((el: HTMLElement) => el.click());
+  await expect(page.getByRole('heading', { name: 'Categorías' })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/ajustes$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(saved);
+});

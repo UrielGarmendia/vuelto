@@ -51,7 +51,27 @@ test('reorders categories with the keyboard and keeps the order', async ({ page 
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Space');
   await expect(items.nth(1)).toHaveAccessibleName('Supermercado');
-  await page.waitForTimeout(600); // debounced save
+  // Wait until the debounced save has reached IndexedDB, then reload.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string>((resolve) => {
+            const open = indexedDB.open('vuelto');
+            open.onsuccess = () => {
+              const req = open.result.transaction('categories').objectStore('categories').getAll();
+              req.onsuccess = () => {
+                const rows = (req.result as { name: string; order: number; type: string }[])
+                  .filter((c) => c.type === 'expense')
+                  .sort((a, b) => a.order - b.order);
+                open.result.close();
+                resolve(rows[0]?.name ?? '');
+              };
+            };
+          }),
+      ),
+    )
+    .toBe('Comida afuera');
   await page.reload();
   await expect(items.first()).toHaveAccessibleName('Comida afuera');
   await expect(items.nth(1)).toHaveAccessibleName('Supermercado');
