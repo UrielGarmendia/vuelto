@@ -1,6 +1,6 @@
 import { HandCoins, ShieldCheck, WifiOff } from 'lucide-react';
 import { m } from 'motion/react';
-import { Component, lazy, Suspense, useState, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { usePrefs } from '../../app/prefs';
 import { canUse3D } from '../../three/capability';
@@ -59,6 +59,17 @@ export function OnboardingPage() {
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   const [use3D] = useState(() => canUse3D(reduceMotion));
   const [coinReady, setCoinReady] = useState(false);
+  // Evaluating three.js is a long task; start it once the page is interactive.
+  const [load3D, setLoad3D] = useState(false);
+  useEffect(() => {
+    if (!use3D) return;
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(() => setLoad3D(true), { timeout: 2000 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => setLoad3D(true), 800);
+    return () => clearTimeout(id);
+  }, [use3D]);
 
   function start() {
     markOnboarded();
@@ -74,7 +85,7 @@ export function OnboardingPage() {
             <FlatCoin />
           </div>
         )}
-        {use3D && (
+        {load3D && (
           <Fallback2D>
             <Suspense fallback={null}>
               <CoinScene
