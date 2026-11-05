@@ -29,6 +29,17 @@
   --duration-fast: 150ms;
   --duration-base: 220ms;
   --duration-slow: 320ms;
+
+  --animate-float: float 4s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+      transform: translateY(-8px) rotate(3deg);
+    }
+  }
 }
 
 [data-theme='dark'] {
