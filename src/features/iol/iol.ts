@@ -94,18 +94,17 @@ export const iolProvider: ExternalAccountProvider = {
   async fetchSnapshot() {
     const account = await findIolAccount();
     if (!account?.external) throw new IolError('IOL no está conectado', true);
-    let blob = account.external.blob;
-    // Balance first: if IOL's token gets refreshed, the portfolio call uses the new blob.
-    const balance = await post('/api/iol/balance', { blob });
-    if (balance.blob) blob = balance.blob;
-    const portfolio = await post('/api/iol/portfolio', { blob });
-    if (portfolio.blob) blob = portfolio.blob;
-    if (blob !== account.external.blob)
-      await db.accounts.update(account.id, {
-        external: { ...account.external, blob },
-        updatedAt: Date.now(),
-        synced: 0,
-      });
+    const external = account.external;
+    // A refreshed connection is stored right away, so a later failure cannot lose it.
+    const keep = async (next?: string) => {
+      if (!next || next === external.blob) return;
+      external.blob = next;
+      await db.accounts.update(account.id, { external, updatedAt: Date.now(), synced: 0 });
+    };
+    const balance = await post('/api/iol/balance', { blob: external.blob });
+    await keep(balance.blob);
+    const portfolio = await post('/api/iol/portfolio', { blob: external.blob });
+    await keep(portfolio.blob);
     const snapshot: Snapshot = {
       provider: 'iol',
       cash: normalizeBalance(balance.data),

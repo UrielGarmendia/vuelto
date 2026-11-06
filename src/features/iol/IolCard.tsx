@@ -90,7 +90,7 @@ export function IolCard() {
             <Link2 aria-hidden className="size-4" /> Conectar IOL
           </button>
         ) : (
-          <p className="well mt-4 rounded-[14px] px-4 py-3 text-[13.5px] leading-snug text-muted">
+          <p className="mt-4 rounded-[14px] border border-line bg-flat-2 px-4 py-3 text-[13.5px] leading-snug text-muted">
             {availability() === 'ready' ? (
               <>
                 Para conectar IOL primero{' '}
@@ -174,7 +174,7 @@ export function IolCard() {
       )}
 
       {(status === 'error' || status === 'reconnect') && (
-        <div className="well mt-4 flex items-center gap-3 rounded-[14px] px-4 py-3">
+        <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-line bg-flat-2 px-4 py-3">
           <p className="flex-1 text-[13.5px] text-muted">{message}</p>
           {status === 'reconnect' && (
             <button
