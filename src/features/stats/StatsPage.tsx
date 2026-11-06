@@ -421,7 +421,7 @@ function MonthBars({
         </p>
       )}
       <svg
-        className="bars mt-3 block h-auto w-full"
+        className="bars mx-auto mt-3 block h-auto w-full max-w-[520px]"
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={`Gasto por mes. ${nameOf(last.month)}: ${formatMoney(last.cents)}`}

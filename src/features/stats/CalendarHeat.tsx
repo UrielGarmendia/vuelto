@@ -38,7 +38,11 @@ export function CalendarHeat({
               : 'Sin gastos'}
         </p>
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1.5" role="grid" aria-label="Gasto por día">
+      <div
+        className="mx-auto mt-3 grid max-w-[420px] grid-cols-7 gap-1.5"
+        role="grid"
+        aria-label="Gasto por día"
+      >
         {weekdays.map((w) => (
           <span key={w} role="columnheader" className="text-center text-[11px] text-faint">
             {w}

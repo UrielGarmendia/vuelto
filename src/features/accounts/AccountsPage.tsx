@@ -192,8 +192,13 @@ function AccountCard({
             >
               <Kind.icon className="size-4" />
             </span>
-            {Kind.label}
-            {a.currency !== 'ARS' && <span>· {a.currency}</span>}
+            {Kind.label !== a.name && Kind.label}
+            {a.currency !== 'ARS' && (
+              <span>
+                {Kind.label !== a.name ? '· ' : ''}
+                {a.currency}
+              </span>
+            )}
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[16px] font-semibold">{a.name}</span>

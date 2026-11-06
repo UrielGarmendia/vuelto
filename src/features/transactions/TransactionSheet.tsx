@@ -323,7 +323,7 @@ function TxForm({
         <div className="min-h-[9.5rem] flex-1 overflow-y-auto overscroll-contain">
           {!editing && templates.length > 0 && (
             <div
-              className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2"
+              className="no-scrollbar fade-x flex gap-2 overflow-x-auto px-4 pb-2"
               role="group"
               aria-label="Favoritos"
             >
@@ -374,7 +374,7 @@ function TxForm({
             />
           )}
 
-          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-2 pb-2">
+          <div className="no-scrollbar fade-x flex gap-2 overflow-x-auto px-4 pt-2 pb-2">
             <div
               className="well flex shrink-0 rounded-full p-1"
               role="radiogroup"
@@ -618,7 +618,7 @@ function CategoryGrid({
     <div
       role="radiogroup"
       aria-label="Categoría"
-      className="no-scrollbar grid snap-x auto-cols-[78px] grid-flow-col grid-rows-2 gap-x-1.5 gap-y-1.5 overflow-x-auto px-4 py-1.5"
+      className="no-scrollbar fade-x grid snap-x scroll-px-4 auto-cols-[78px] grid-flow-col grid-rows-2 gap-x-1.5 gap-y-1.5 overflow-x-auto px-4 py-1.5"
       // A mouse wheel scrolls the strip sideways (desktop has no swipe).
       onWheel={(e) => {
         if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;

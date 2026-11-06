@@ -85,7 +85,16 @@ export function AccountStack({
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13.5px] text-muted">{a.name}</span>
-                <Icon aria-hidden className="size-4 shrink-0 text-faint" />
+                {open || i === accounts.length - 1 ? (
+                  <Icon aria-hidden className="size-4 shrink-0 text-faint" />
+                ) : (
+                  // Covered cards only show their top strip: the balance goes there.
+                  <span
+                    className={`tabular shrink-0 text-[13.5px] font-semibold ${cents < 0 ? 'text-negative' : ''}`}
+                  >
+                    {signed(cents, a.currency)}
+                  </span>
+                )}
               </span>
               <span
                 className={`tabular truncate text-[19px] font-bold ${cents < 0 ? 'text-negative' : ''}`}

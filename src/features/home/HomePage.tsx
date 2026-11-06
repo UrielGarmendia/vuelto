@@ -150,9 +150,11 @@ export function HomePage() {
                 </>
               )}
             </p>
-            <p className="mt-2 text-center text-[12.5px] text-faint">
-              Tocá un día del dial para ver qué pasó.
-            </p>
+            {txs.length > 0 && (
+              <p className="mt-2 text-center text-[12.5px] text-faint">
+                Tocá un día del dial para ver qué pasó.
+              </p>
+            )}
           </>
         ) : (
           <DayList txs={dayTxs} catalog={catalog} onClose={() => setSelected(null)} />
@@ -181,7 +183,7 @@ export function HomePage() {
                 <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
               </p>
             )}
-            <dl className="mt-4 grid grid-cols-3 gap-2.5">
+            <dl className="mt-4 grid gap-1.5 @[20rem]:grid-cols-3 @[20rem]:gap-2.5">
               <Kpi label="Entró" cents={incomeCents} />
               <Kpi label="Salió" cents={expenseCents} />
               <Kpi label="Tarjeta" cents={creditDebtCents} />
@@ -192,7 +194,7 @@ export function HomePage() {
             <p className="mt-1 text-[13px] text-faint">
               Lo que tenés más lo invertido, menos la tarjeta.
             </p>
-            <dl className="mt-4 grid grid-cols-3 gap-2.5">
+            <dl className="mt-4 grid gap-1.5 @[20rem]:grid-cols-3 @[20rem]:gap-2.5">
               <Kpi label="Disponible" cents={available} />
               <Kpi label="Invertido" cents={invested} />
               <Kpi label="Tarjeta" cents={creditDebtCents} />
@@ -320,9 +322,12 @@ function headline(
 
 function Kpi({ label, cents }: { label: string; cents: number }) {
   return (
-    <div className="min-w-0">
+    // A row on narrow cards, a column from 320 px: amounts are never cut.
+    <div className="flex min-w-0 items-baseline justify-between gap-3 @[20rem]:block">
       <dt className="text-[12.5px] text-muted">{label}</dt>
-      <dd className="tabular mt-1 truncate text-[15px] font-semibold">{formatMoney(cents)}</dd>
+      <dd className="tabular text-[15px] font-semibold whitespace-nowrap @[20rem]:mt-1">
+        {formatMoney(cents)}
+      </dd>
     </div>
   );
 }

@@ -247,6 +247,17 @@ html[data-reduce-motion='true'] .rel::after {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Horizontal strips fade at the edges, so a cut item reads as "there is more". */
+@utility fade-x {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 14px,
+    #000 calc(100% - 28px),
+    transparent
+  );
+}
+
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {
