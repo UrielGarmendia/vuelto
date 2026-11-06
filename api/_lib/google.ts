@@ -26,8 +26,11 @@ export async function googleUser(
   );
   const info = (await res.json().catch(() => ({}))) as TokenInfo;
   if (!res.ok || !info.sub) throw new HttpError(401, 'Sesión de Google inválida');
-  if (info.azp !== clientId && info.aud !== clientId)
+  if (info.azp !== clientId && info.aud !== clientId) {
+    // Client ids are public; logging both makes a misconfigured deploy obvious in the logs.
+    console.error(`Google token issued to ${info.azp ?? info.aud}, expected ${clientId}`);
     throw new HttpError(401, 'La sesión de Google es de otra app');
+  }
   if (!info.exp || Number(info.exp) * 1000 < now)
     throw new HttpError(401, 'Sesión de Google vencida');
   return info.sub;

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { googleUser } from './google.js';
-import { HttpError } from './http.js';
+import { env, HttpError } from './http.js';
 import { blobFromTokens, withIol, type IolBlob } from './iol.js';
 import { ALLOWED_TOOLS, callTool, MCP_URL } from './mcp.js';
 import { seal, unseal } from './seal.js';
@@ -101,7 +101,39 @@ const req = (body?: unknown, token = 'g-token') =>
   });
 const later = String(Math.floor(Date.now() / 1000) + 600);
 
+// What oauth2.googleapis.com/tokeninfo?access_token= returns for a GIS token-client access token.
+const CLIENT = '123-abc.apps.googleusercontent.com';
+const realTokeninfo = () =>
+  tokeninfo({
+    azp: CLIENT,
+    aud: CLIENT,
+    sub: '110248495921238986420',
+    scope:
+      'https://www.googleapis.com/auth/drive.appdata openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    exp: later,
+    expires_in: '3599',
+    email: 'someone@gmail.com',
+    email_verified: 'true',
+    access_type: 'online',
+  });
+
 describe('googleUser', () => {
+  it('accepts the real tokeninfo response for an access token of our client', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => realTokeninfo());
+    expect(await googleUser(req(), CLIENT, fetcher)).toBe('110248495921238986420');
+    expect(fetcher.mock.calls[0]?.[0]).toBe(
+      'https://oauth2.googleapis.com/tokeninfo?access_token=g-token',
+    );
+  });
+
+  it('matches the client id even when the env value has a trailing newline', async () => {
+    vi.stubEnv('GOOGLE_CLIENT_ID', `${CLIENT}\n`);
+    const fetcher = vi.fn(async () => realTokeninfo());
+    expect(await googleUser(req(), env('GOOGLE_CLIENT_ID'), fetcher as typeof fetch)).toBe(
+      '110248495921238986420',
+    );
+  });
+
   it('accepts tokens issued to our client only, unexpired', async () => {
     const ok = vi.fn(async () => tokeninfo({ sub: 'u1', azp: 'google-client', exp: later }));
     expect(await googleUser(req(), 'google-client', ok as typeof fetch)).toBe('u1');

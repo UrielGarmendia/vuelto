@@ -25,7 +25,8 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
 }
 
 export function env(name: string): string {
-  const v = process.env[name];
+  // Values pasted into the Vercel dashboard can carry a trailing newline or space.
+  const v = process.env[name]?.trim();
   if (!v) throw new HttpError(503, `Falta configurar ${name}`);
   return v;
 }
