@@ -8,6 +8,9 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4173',
+    // Requests made through the service worker skip Playwright's routes (WebKit), so the
+    // dollar API mock would leak to the network; only the offline test turns it back on.
+    serviceWorkers: 'block',
     locale: 'es-AR',
     // Skip onboarding by default; onboarding.spec.ts starts from a clean state.
     storageState: {

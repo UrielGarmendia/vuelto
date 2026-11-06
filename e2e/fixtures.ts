@@ -1,9 +1,10 @@
 import { test as base } from '@playwright/test';
 
-/** Every test runs offline from the dollar API with fixed rates. */
+/** Every test runs offline from the dollar API with fixed rates. Routed on the context so
+ * requests that pass through the service worker are caught too. */
 export const test = base.extend({
-  page: async ({ page }, provide) => {
-    await page.route('https://dolarapi.com/**', (route) =>
+  context: async ({ context }, provide) => {
+    await context.route('https://dolarapi.com/**', (route) =>
       route.fulfill({
         json: [
           { casa: 'oficial', compra: 1000, venta: 1050 },
@@ -12,7 +13,7 @@ export const test = base.extend({
         ],
       }),
     );
-    await provide(page);
+    await provide(context);
   },
 });
 

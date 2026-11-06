@@ -73,14 +73,18 @@ test('install banner shows the right instructions per platform', async ({
   }
 });
 
-test('works offline after the first visit', async ({ page, context }) => {
-  await page.goto('/');
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await context.setOffline(true);
-  await page.reload();
-  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
-  await page.goto('/ajustes');
-  await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
+test.describe('with the service worker', () => {
+  test.use({ serviceWorkers: 'allow' });
+
+  test('works offline after the first visit', async ({ page, context }) => {
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
+    await page.goto('/ajustes');
+    await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
+  });
 });
 
 test('returns to Inicio from Ajustes', async ({ page }) => {
