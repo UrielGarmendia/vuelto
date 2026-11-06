@@ -6,6 +6,7 @@ import { db } from '../../db/db';
 import { usePrefs, type Theme } from '../../app/prefs';
 import { PageHeader } from '../../ui/PageHeader';
 import { BackupSection } from './BackupSection';
+import { viewTransitions } from '../../app/viewTransitions';
 
 const themes: { value: Theme; label: string; icon: LucideIcon }[] = [
   { value: 'light', label: 'Claro', icon: Sun },
@@ -99,7 +100,7 @@ export function SettingsPage() {
             <Link
               key={to}
               to={to}
-              viewTransition
+              viewTransition={viewTransitions}
               className="flex min-h-14 items-center gap-3 px-4 active:bg-surface-2"
             >
               <Icon aria-hidden className="size-5 text-muted" />

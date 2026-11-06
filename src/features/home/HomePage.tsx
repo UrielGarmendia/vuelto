@@ -17,6 +17,7 @@ import { useTxSheet } from '../transactions/store';
 import { TxRow } from '../transactions/TxRow';
 import { useCatalog } from '../transactions/useCatalog';
 import { accountBalances, dailySpending, monthTotals, topCategories, totals } from './summary';
+import { viewTransitions } from '../../app/viewTransitions';
 
 const monthName = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
 
@@ -145,7 +146,7 @@ export function HomePage() {
               </h2>
               <Link
                 to="/movimientos"
-                viewTransition
+                viewTransition={viewTransitions}
                 className="-mr-2 flex min-h-11 items-center gap-0.5 px-2 text-sm font-medium text-accent-ink"
               >
                 Ver todos <ChevronRight aria-hidden className="size-4" />

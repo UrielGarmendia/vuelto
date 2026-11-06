@@ -13,6 +13,7 @@ import type { Account, Category, Transaction } from '../../db/types';
 import { formatMoney } from '../../lib/money';
 import { CategoryIcon } from '../../ui/CategoryIcon';
 import { spring } from '../../ui/motion';
+import { viewTransitions } from '../../app/viewTransitions';
 
 const THRESHOLD = 96;
 
@@ -68,7 +69,7 @@ export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEd
       >
         <Link
           to={`/movimientos/${tx.id}`}
-          viewTransition
+          viewTransition={viewTransitions}
           draggable={false}
           onPointerDown={() => (dragged.current = false)}
           onClick={(e) => dragged.current && e.preventDefault()}

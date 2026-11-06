@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { viewTransitions } from '../app/viewTransitions';
 
 /**
  * Pops history when there is an in-app entry to return to (no duplicate entries); otherwise,
@@ -9,6 +10,6 @@ export function useGoBack(to: string) {
   return () => {
     const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
     if (idx > 0) void navigate(-1);
-    else void navigate(to, { replace: true, viewTransition: true });
+    else void navigate(to, { replace: true, viewTransition: viewTransitions });
   };
 }

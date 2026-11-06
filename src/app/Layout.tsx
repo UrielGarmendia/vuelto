@@ -16,6 +16,7 @@ import { InstallBanner } from './InstallBanner';
 import { useApplyPrefs, usePrefs } from './prefs';
 import { TabBar } from './TabBar';
 import { UpdatePrompt } from './UpdatePrompt';
+import { viewTransitions } from './viewTransitions';
 
 // Own chunk (Radix + form); it starts loading on first render, well before the first tap on +.
 const TransactionSheet = lazy(() =>
@@ -25,8 +26,6 @@ const TransactionSheet = lazy(() =>
 );
 
 const loadFeatures = () => import('../ui/motion-features').then((r) => r.default);
-
-const hasViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
 
 /** Wraps every route (tab layout and onboarding) with theme and motion settings. */
 export function Root() {
@@ -64,7 +63,7 @@ export function Layout() {
     <>
       <div id="app" className="mx-auto min-h-dvh max-w-lg bg-bg pt-safe">
         <main className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-          {hasViewTransitions ? (
+          {viewTransitions ? (
             outlet
           ) : (
             // Fallback for browsers without the View Transitions API.

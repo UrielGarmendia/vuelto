@@ -2,6 +2,7 @@ import { ChartPie, House, ReceiptText, Plus, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router';
 import { useTxSheet } from '../features/transactions/store';
+import { viewTransitions } from './viewTransitions';
 
 const tabs: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Inicio', icon: House },
@@ -15,7 +16,7 @@ function Tab({ to, label, icon: Icon }: (typeof tabs)[number]) {
     <NavLink
       to={to}
       end={to === '/'}
-      viewTransition
+      viewTransition={viewTransitions}
       className={({ isActive }) =>
         `flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-sm text-[11px] font-medium transition-colors duration-150 ${
           isActive ? 'text-ink' : 'text-muted'

@@ -1,6 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router';
 import { useGoBack } from './useGoBack';
+import { viewTransitions } from '../app/viewTransitions';
 
 export function BackLink({ to, label = 'Volver' }: { to: string; label?: string }) {
   const goBack = useGoBack(to);
@@ -8,7 +9,7 @@ export function BackLink({ to, label = 'Volver' }: { to: string; label?: string 
     <Link
       to={to}
       replace
-      viewTransition
+      viewTransition={viewTransitions}
       onClick={(e) => {
         e.preventDefault();
         goBack();
