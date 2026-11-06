@@ -114,7 +114,7 @@ test('a new page starts at the top, going back restores the scroll', async ({ pa
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(saved);
 });
 
-test('keyboard shortcuts: N opens a new movement, / jumps to search', async ({ page }) => {
+test('keyboard shortcuts: N opens a new movement, / and Ctrl+K search', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
   await page.keyboard.press('n');
@@ -125,8 +125,14 @@ test('keyboard shortcuts: N opens a new movement, / jumps to search', async ({ p
   await dialog.getByRole('button', { name: 'Guardar gasto' }).click();
   await expect(dialog).toBeHidden();
   await page.keyboard.press('/');
-  await expect(page).toHaveURL(/\/movimientos$/);
-  await expect(page.getByRole('searchbox', { name: 'Buscar movimientos' })).toBeFocused();
+  const search = page.getByRole('dialog', { name: 'Buscar' });
+  await search.getByLabel('Buscar en Vuelto').fill('super');
+  await expect(search.getByRole('option', { name: /Supermercado/ }).first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+k');
+  await search.getByLabel('Buscar en Vuelto').fill('estad');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/estadisticas$/);
 });
 
 test('privacy page is public and Google login explains why it is off', async ({ page }) => {

@@ -1,6 +1,5 @@
 import { ChartPie, House, ReceiptText, Settings, type LucideIcon } from 'lucide-react';
-import { useNavigate } from 'react-router';
-import { viewTransitions } from './viewTransitions';
+import { create } from 'zustand';
 
 export const sections: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Inicio', icon: House },
@@ -9,12 +8,8 @@ export const sections: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/ajustes', label: 'Ajustes', icon: Settings },
 ];
 
-/** Opens Movimientos with the search box focused (the `/` shortcut does the same). */
-export function useOpenSearch() {
-  const navigate = useNavigate();
-  return () =>
-    navigate('/movimientos', {
-      state: { focusSearch: Date.now() },
-      viewTransition: viewTransitions,
-    });
-}
+/** The global search box (Ctrl+K, / or the search button). */
+export const useSearch = create<{ open: boolean; set: (open: boolean) => void }>()((set) => ({
+  open: false,
+  set: (open) => set({ open }),
+}));

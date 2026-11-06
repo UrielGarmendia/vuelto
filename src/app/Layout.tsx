@@ -19,7 +19,8 @@ import { InstallBanner } from './InstallBanner';
 import { useApplyPrefs, usePrefs } from './prefs';
 import { Sidebar } from './Sidebar';
 import { TabBar } from './TabBar';
-import { useOpenSearch } from './nav';
+import { useSearch } from './nav';
+import { SearchPalette } from './SearchPalette';
 import { TopBar } from './TopBar';
 import { UpdatePrompt } from './UpdatePrompt';
 import { viewTransitions } from './viewTransitions';
@@ -93,6 +94,7 @@ export function Layout() {
       </div>
       {/* Fixed UI lives outside #app so scaling #app behind a sheet doesn't move it. */}
       <Sidebar />
+      <SearchPalette />
       <TabBar />
       <InstallBanner />
       <UpdatePrompt />
@@ -103,12 +105,16 @@ export function Layout() {
   );
 }
 
-/** Keyboard: N opens a new movement, / jumps to search. Esc is handled by whatever is open. */
+/** Keyboard: N opens a new movement; / or Ctrl+K search. Esc is handled by whatever is open. */
 function useShortcuts() {
-  const openSearch = useOpenSearch();
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const t = e.target as HTMLElement;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        useSearch.getState().set(!useSearch.getState().open);
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
       if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
       if (useTxSheet.getState().open) return;
@@ -117,7 +123,7 @@ function useShortcuts() {
         useTxSheet.getState().openNew();
       } else if (e.key === '/') {
         e.preventDefault();
-        openSearch();
+        useSearch.getState().set(true);
       }
     }
     window.addEventListener('keydown', onKeyDown);

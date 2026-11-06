@@ -2,11 +2,11 @@ import { CloudOff, Plus, Search } from 'lucide-react';
 import { useSync } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
 import { Wordmark } from '../ui/Wordmark';
-import { useOpenSearch } from './nav';
+import { useSearch } from './nav';
 
 export function TopBar() {
   const openNew = useTxSheet((s) => s.openNew);
-  const openSearch = useOpenSearch();
+  const openSearch = () => useSearch.getState().set(true);
   return (
     <div className="flex h-15 items-center justify-between gap-4 lg:h-16 lg:border-b lg:border-line">
       <Wordmark className="lg:hidden" />

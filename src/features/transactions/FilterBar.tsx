@@ -1,6 +1,4 @@
 import { ChevronDown, Search, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router';
 import type { Account, Category } from '../../db/types';
 import { isFiltering, useFilters, type Range } from './filters';
 
@@ -59,12 +57,6 @@ export function FilterBar({
 }) {
   const f = useFilters();
   const active = isFiltering(f);
-  const search = useRef<HTMLInputElement>(null);
-  const focusSearch = (useLocation().state as { focusSearch?: number } | null)?.focusSearch;
-  // The `/` shortcut and the search buttons land here with the box focused.
-  useEffect(() => {
-    if (focusSearch) search.current?.focus();
-  }, [focusSearch]);
 
   return (
     <div className="space-y-2.5 pb-1">
@@ -72,7 +64,6 @@ export function FilterBar({
         <label className="well flex min-h-[46px] items-center gap-2 rounded-full px-4 has-focus-visible:outline-2 has-focus-visible:outline-hue">
           <Search aria-hidden className="size-[17px] shrink-0 text-faint" />
           <input
-            ref={search}
             type="search"
             value={f.query}
             onChange={(e) => f.set({ query: e.target.value })}
