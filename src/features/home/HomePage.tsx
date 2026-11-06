@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronRight, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, withAllWidgets, type HomeWidget } from '../../app/prefs';
+import { GoalsWidget } from '../goals/GoalsWidget';
 import { db } from '../../db/db';
 import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
@@ -56,6 +57,7 @@ export function HomePage() {
   const catalog = useCatalog();
   const rates = useRates();
   const iol = useIol();
+  const widgets = withAllWidgets(usePrefs((s) => s.homeWidgets));
   const rateKind = usePrefs((s) => s.rateKind);
   const [selected, setSelected] = useState<number | null>(null);
   useMonthCelebration(txs, budgets);
@@ -93,6 +95,156 @@ export function HomePage() {
     ? txs.filter((t) => t.date === `${month}-${String(selected).padStart(2, '0')}`)
     : [];
 
+  const blocks: Record<HomeWidget, React.ReactNode> = {
+    dial: (
+      <section
+        aria-label="Cómo viene el mes"
+        className="relative isolate overflow-hidden rounded-[24px] bg-flat px-5 pt-3 pb-5"
+        style={
+          {
+            '--glow': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 16%, transparent)`,
+            '--glow-2': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 9%, transparent)`,
+          } as React.CSSProperties
+        }
+      >
+        <div aria-hidden className="dial-glow -z-10" />
+        <MonthDial
+          ticks={dialTicks(daily, day, baseline)}
+          daily={daily}
+          today={day}
+          monthName={monthName}
+          baseline={baseline}
+          summary={summary}
+          selected={selected}
+          onSelect={setSelected}
+        />
+        {selected === null ? (
+          <>
+            {baseline.mode === 'budget' && (
+              <p className="-mt-1 text-center text-[15px]">
+                Gastaste <b className="tabular">{formatMoney(expenseCents)}</b> de{' '}
+                {formatMoney(budget!)}
+              </p>
+            )}
+            {baseline.mode === 'average' && (
+              <p className="-mt-1 text-center text-[15px]">
+                Tu promedio es <b className="tabular">{formatMoney(round100(baseline.perDay!))}</b>{' '}
+                por día
+              </p>
+            )}
+            <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-center text-[13px] text-muted">
+              {baseline.mode === 'none' ? (
+                <span>Cargá unas semanas y vas a ver cómo viene cada día.</span>
+              ) : (
+                <>
+                  <span>
+                    <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-hue align-[2px]" />
+                    {baseline.mode === 'budget'
+                      ? 'dentro del presupuesto diario'
+                      : 'debajo de tu promedio'}
+                  </span>
+                  <span>
+                    <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-over align-[2px]" />
+                    día que te pasaste
+                  </span>
+                </>
+              )}
+            </p>
+            <p className="mt-2 text-center text-[12.5px] text-faint">
+              Tocá un día del dial para ver qué pasó.
+            </p>
+          </>
+        ) : (
+          <DayList txs={dayTxs} catalog={catalog} onClose={() => setSelected(null)} />
+        )}
+      </section>
+    ),
+    balance: (
+      <section
+        aria-labelledby="available-label"
+        className="rel rounded-[24px] p-[22px] [container-type:inline-size]"
+      >
+        <p id="available-label" className="text-[14px] text-muted">
+          {invested === undefined ? 'Disponible' : 'Patrimonio'}
+        </p>
+        <Odometer
+          cents={bigCents}
+          className="wide mt-1.5 leading-[1.05] font-extrabold"
+          // Long amounts shrink to fit the card instead of overflowing it.
+          style={{ fontSize: fitSize(formatMoney(bigCents), 52) }}
+        />
+        {invested === undefined ? (
+          <>
+            {creditDebtCents > 0 && (
+              <p className="mt-1 text-[13px] text-faint">
+                Después de pagar la tarjeta te quedan{' '}
+                <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
+              </p>
+            )}
+            <dl className="mt-4 grid grid-cols-3 gap-2.5">
+              <Kpi label="Entró" cents={incomeCents} />
+              <Kpi label="Salió" cents={expenseCents} />
+              <Kpi label="Tarjeta" cents={creditDebtCents} />
+            </dl>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-[13px] text-faint">
+              Lo que tenés más lo invertido, menos la tarjeta.
+            </p>
+            <dl className="mt-4 grid grid-cols-3 gap-2.5">
+              <Kpi label="Disponible" cents={available} />
+              <Kpi label="Invertido" cents={invested} />
+              <Kpi label="Tarjeta" cents={creditDebtCents} />
+            </dl>
+            <p className="mt-3 border-t border-line pt-3 text-[13px] text-muted">
+              Este mes entró <b className="tabular text-ink">{formatMoney(incomeCents)}</b> y salió{' '}
+              <b className="tabular text-ink">{formatMoney(expenseCents)}</b>.
+            </p>
+          </>
+        )}
+      </section>
+    ),
+    insight:
+      txs.length > 0 ? (
+        <InsightLine insight={pickInsight(txs, today)} catalog={catalog} month={month} />
+      ) : null,
+    accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
+    goals: <GoalsWidget />,
+    recent:
+      txs.length === 0 ? (
+        <FirstSteps />
+      ) : (
+        <section aria-labelledby="recent-label" className="rounded-[24px] bg-flat px-1 pt-4 pb-1">
+          <div className="flex items-center justify-between px-4 pb-1">
+            <h2 id="recent-label" className="text-[16px] font-semibold">
+              Últimos movimientos
+            </h2>
+            <Link
+              to="/movimientos"
+              viewTransition={viewTransitions}
+              className="-mr-2 flex min-h-11 items-center gap-0.5 px-2 text-[13.5px] font-medium text-hue"
+            >
+              Ver todos <ChevronRight aria-hidden className="size-4" />
+            </Link>
+          </div>
+          {txs.slice(0, 5).map((tx, i) => (
+            <TxRow
+              key={tx.id}
+              tx={tx}
+              category={tx.categoryId ? catalog.categories.get(tx.categoryId) : undefined}
+              account={catalog.accounts.get(tx.accountId)}
+              toAccount={tx.toAccountId ? catalog.accounts.get(tx.toAccountId) : undefined}
+              onDelete={deleteTx}
+              onEdit={editTx}
+              first={i === 0}
+              last={i === Math.min(4, txs.length - 1)}
+            />
+          ))}
+        </section>
+      ),
+  };
+
   return (
     <>
       <header className="pt-2">
@@ -102,157 +254,22 @@ export function HomePage() {
         </p>
       </header>
 
-      <div className="mt-4 grid items-start gap-4 md:grid-cols-[1.05fr_1fr] md:grid-rows-[auto_1fr]">
-        <section
-          aria-label="Cómo viene el mes"
-          className="relative isolate overflow-hidden rounded-[24px] bg-flat px-5 pt-3 pb-5"
-          style={
-            {
-              '--glow': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 16%, transparent)`,
-              '--glow-2': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 9%, transparent)`,
-            } as React.CSSProperties
-          }
-        >
-          <div aria-hidden className="dial-glow -z-10" />
-          <MonthDial
-            ticks={dialTicks(daily, day, baseline)}
-            daily={daily}
-            today={day}
-            monthName={monthName}
-            baseline={baseline}
-            summary={summary}
-            selected={selected}
-            onSelect={setSelected}
-          />
-          {selected === null ? (
-            <>
-              {baseline.mode === 'budget' && (
-                <p className="-mt-1 text-center text-[15px]">
-                  Gastaste <b className="tabular">{formatMoney(expenseCents)}</b> de{' '}
-                  {formatMoney(budget!)}
-                </p>
-              )}
-              {baseline.mode === 'average' && (
-                <p className="-mt-1 text-center text-[15px]">
-                  Tu promedio es{' '}
-                  <b className="tabular">{formatMoney(round100(baseline.perDay!))}</b> por día
-                </p>
-              )}
-              <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-center text-[13px] text-muted">
-                {baseline.mode === 'none' ? (
-                  <span>Cargá unas semanas y vas a ver cómo viene cada día.</span>
-                ) : (
-                  <>
-                    <span>
-                      <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-hue align-[2px]" />
-                      {baseline.mode === 'budget'
-                        ? 'dentro del presupuesto diario'
-                        : 'debajo de tu promedio'}
-                    </span>
-                    <span>
-                      <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-over align-[2px]" />
-                      día que te pasaste
-                    </span>
-                  </>
-                )}
-              </p>
-              <p className="mt-2 text-center text-[12.5px] text-faint">
-                Tocá un día del dial para ver qué pasó.
-              </p>
-            </>
-          ) : (
-            <DayList txs={dayTxs} catalog={catalog} onClose={() => setSelected(null)} />
-          )}
-        </section>
-
-        <div className="grid gap-4 md:col-start-2 md:row-span-2 md:row-start-1">
-          <section
-            aria-labelledby="available-label"
-            className="rel rounded-[24px] p-[22px] [container-type:inline-size]"
-          >
-            <p id="available-label" className="text-[14px] text-muted">
-              {invested === undefined ? 'Disponible' : 'Patrimonio'}
-            </p>
-            <Odometer
-              cents={bigCents}
-              className="wide mt-1.5 leading-[1.05] font-extrabold"
-              // Long amounts shrink to fit the card instead of overflowing it.
-              style={{ fontSize: fitSize(formatMoney(bigCents), 52) }}
-            />
-            {invested === undefined ? (
-              <>
-                {creditDebtCents > 0 && (
-                  <p className="mt-1 text-[13px] text-faint">
-                    Después de pagar la tarjeta te quedan{' '}
-                    <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
-                  </p>
-                )}
-                <dl className="mt-4 grid grid-cols-3 gap-2.5">
-                  <Kpi label="Entró" cents={incomeCents} />
-                  <Kpi label="Salió" cents={expenseCents} />
-                  <Kpi label="Tarjeta" cents={creditDebtCents} />
-                </dl>
-              </>
-            ) : (
-              <>
-                <p className="mt-1 text-[13px] text-faint">
-                  Lo que tenés más lo invertido, menos la tarjeta.
-                </p>
-                <dl className="mt-4 grid grid-cols-3 gap-2.5">
-                  <Kpi label="Disponible" cents={available} />
-                  <Kpi label="Invertido" cents={invested} />
-                  <Kpi label="Tarjeta" cents={creditDebtCents} />
-                </dl>
-                <p className="mt-3 border-t border-line pt-3 text-[13px] text-muted">
-                  Este mes entró <b className="tabular text-ink">{formatMoney(incomeCents)}</b> y
-                  salió <b className="tabular text-ink">{formatMoney(expenseCents)}</b>.
-                </p>
-              </>
-            )}
-          </section>
-
-          {txs.length > 0 && (
-            <InsightLine insight={pickInsight(txs, today)} catalog={catalog} month={month} />
-          )}
-
-          {accounts.length > 0 && <AccountStack accounts={accounts} balances={balances} />}
-        </div>
-
-        {txs.length === 0 ? (
-          <FirstSteps />
-        ) : (
-          <section
-            aria-labelledby="recent-label"
-            className="rounded-[24px] bg-flat px-1 pt-4 pb-1 md:col-start-1"
-          >
-            <div className="flex items-center justify-between px-4 pb-1">
-              <h2 id="recent-label" className="text-[16px] font-semibold">
-                Últimos movimientos
-              </h2>
-              <Link
-                to="/movimientos"
-                viewTransition={viewTransitions}
-                className="-mr-2 flex min-h-11 items-center gap-0.5 px-2 text-[13.5px] font-medium text-hue"
-              >
-                Ver todos <ChevronRight aria-hidden className="size-4" />
-              </Link>
-            </div>
-            {txs.slice(0, 5).map((tx, i) => (
-              <TxRow
-                key={tx.id}
-                tx={tx}
-                category={tx.categoryId ? catalog.categories.get(tx.categoryId) : undefined}
-                account={catalog.accounts.get(tx.accountId)}
-                toAccount={tx.toAccountId ? catalog.accounts.get(tx.toAccountId) : undefined}
-                onDelete={deleteTx}
-                onEdit={editTx}
-                first={i === 0}
-                last={i === Math.min(4, txs.length - 1)}
-              />
-            ))}
-          </section>
-        )}
+      <div className="mt-4 gap-4 md:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
+        {widgets
+          .filter((w) => w.visible)
+          .map((w) => (
+            <Fragment key={w.id}>{blocks[w.id]}</Fragment>
+          ))}
       </div>
+      <p className="pb-2 text-center">
+        <Link
+          to="/ajustes/inicio"
+          viewTransition={viewTransitions}
+          className="inline-flex min-h-11 items-center px-3 text-[13.5px] font-medium text-faint"
+        >
+          Personalizar Inicio
+        </Link>
+      </p>
     </>
   );
 }

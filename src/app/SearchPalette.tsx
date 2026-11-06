@@ -21,6 +21,7 @@ const pages = [
   { label: 'Categorías', to: '/ajustes/categorias' },
   { label: 'Cuentas', to: '/ajustes/cuentas' },
   { label: 'Recurrentes y favoritos', to: '/ajustes/recurrentes' },
+  { label: 'Metas de ahorro', to: '/ajustes/metas' },
   { label: 'Privacidad', to: '/privacidad' },
 ];
 

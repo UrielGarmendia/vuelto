@@ -1,5 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRight, Monitor, Moon, Repeat, Sun, Tags, Target, WalletCards } from 'lucide-react';
+import {
+  ChevronRight,
+  Monitor,
+  Moon,
+  PiggyBank,
+  Repeat,
+  Sun,
+  Tags,
+  Target,
+  WalletCards,
+} from 'lucide-react';
 import { GoogleSection } from '../sync/GoogleSection';
 import { DollarSection } from './DollarSection';
 import { Link } from 'react-router';
@@ -105,6 +115,12 @@ export function SettingsPage() {
                   to: '/ajustes/presupuestos',
                   label: 'Presupuestos',
                   icon: Target,
+                  count: undefined,
+                },
+                {
+                  to: '/ajustes/metas',
+                  label: 'Metas de ahorro',
+                  icon: PiggyBank,
                   count: undefined,
                 },
                 {
