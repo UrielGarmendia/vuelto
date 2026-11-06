@@ -7,6 +7,7 @@ import {
   NotebookPen,
   Repeat,
   Star,
+  Users,
   Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -29,7 +30,7 @@ import { toast } from '../../ui/toast';
 import { budgetsFor, crossedThreshold } from '../budgets/budgets';
 import { rateLabels, useRates } from '../currency/rates';
 import { createTransaction, updateGroup } from './create';
-import { saveTransaction, type TxDraft } from './queries';
+import { saveTransaction, splitShare, type TxDraft } from './queries';
 import type { Frequency } from './schedule';
 import { useLastUsed, useTxSheet } from './store';
 
@@ -126,7 +127,7 @@ function TxForm({
   const known = (id: string | undefined) => (accounts.some((a) => a.id === id) ? id : undefined);
   const [type, setType] = useState<TxType>(editing?.type ?? 'expense');
   const [amount, setAmount] = useState(() =>
-    editing ? centsToAmountInput(editing.amountCents) : '',
+    editing ? centsToAmountInput(editing.split?.totalCents ?? editing.amountCents) : '',
   );
   const [categoryId, setCategoryId] = useState(
     editing ? editing.categoryId : usable(lastUsed.expenseCategoryId, 'expense'),
@@ -142,6 +143,7 @@ function TxForm({
   const [repeat, setRepeat] = useState<Frequency | ''>('');
   const [favorite, setFavorite] = useState(false);
   const [applyAll, setApplyAll] = useState(false);
+  const [people, setPeople] = useState(editing?.split?.people ?? 1);
   const editingId = editing?.id;
 
   const visibleCategories = categories.filter((c) => c.type === type);
@@ -152,7 +154,10 @@ function TxForm({
   const destination = destinations.find((a) => a.id === toAccountId) ?? destinations[0];
   const currency = account?.currency ?? 'ARS';
   const rate = currency === 'USD' ? rates?.values[rateKind] : undefined;
-  const cents = amountInputToCents(amount);
+  const typed = amountInputToCents(amount);
+  const splitting = type === 'expense' && people > 1;
+  // While splitting, the keypad holds the whole bill and the movement keeps your part.
+  const cents = splitting ? splitShare(typed, people) : typed;
   const canSave = cents > 0 && !!account && (type === 'transfer' ? !!destination : !!categoryId);
   const canSplit = !editing && type === 'expense' && account?.kind === 'credit';
 
@@ -187,6 +192,7 @@ function TxForm({
       accountId: account.id,
       toAccountId: type === 'transfer' ? destination?.id : undefined,
       note,
+      split: splitting ? { totalCents: typed, people } : undefined,
     };
     try {
       if (editingId) {
@@ -291,6 +297,11 @@ function TxForm({
       {installments > 1 && canSplit && cents > 0 && (
         <p className="text-center text-[12.5px] text-faint">
           {installments} cuotas de {formatMoney(Math.trunc(cents / installments))}
+        </p>
+      )}
+      {splitting && typed > 0 && (
+        <p className="text-center text-[12.5px] text-faint">
+          Tu parte: {formatMoney(cents)} de {formatMoney(typed)} entre {people}
         </p>
       )}
       {editing?.installment && (
@@ -465,6 +476,25 @@ function TxForm({
               </label>
             )}
 
+            {type === 'expense' && (
+              <label className={`${chip} ${splitting ? 'text-hue' : ''}`}>
+                <Users aria-hidden className="size-4" />
+                <span>{splitting ? `Entre ${people}` : 'Dividir'}</span>
+                <select
+                  aria-label="Dividir"
+                  value={people}
+                  onChange={(e) => setPeople(Number(e.target.value))}
+                  className="absolute inset-0 opacity-0"
+                >
+                  {[1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
+                    <option key={n} value={n}>
+                      {n === 1 ? 'No dividir' : `Entre ${n} personas`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             {!showNote && (
               <button
                 type="button"
@@ -498,7 +528,7 @@ function TxForm({
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Nota (opcional)"
+                placeholder="Nota (opcional). Usá #etiquetas"
                 aria-label="Nota"
                 maxLength={140}
                 enterKeyHint="done"

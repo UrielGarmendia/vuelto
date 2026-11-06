@@ -5,7 +5,7 @@ export type TxDraft = Pick<
   Transaction,
   'type' | 'amountCents' | 'currency' | 'date' | 'categoryId' | 'accountId' | 'note'
 > &
-  Partial<Pick<Transaction, 'toAccountId' | 'rateAtDate'>>;
+  Partial<Pick<Transaction, 'toAccountId' | 'rateAtDate' | 'split'>>;
 
 export async function saveTransaction(
   draft: TxDraft,
@@ -20,12 +20,29 @@ export async function saveTransaction(
   }
   const note = draft.note?.trim() || undefined;
   if (id) {
-    await db.transactions.update(id, { ...draft, note, updatedAt: Date.now(), synced: 0 });
+    await db.transactions.update(id, {
+      ...draft,
+      note,
+      tags: tagsOf(note),
+      updatedAt: Date.now(),
+      synced: 0,
+    });
     return id;
   }
-  const tx: Transaction = { ...newMeta(), ...draft, note, tags: [] };
+  const tx: Transaction = { ...newMeta(), ...draft, note, tags: tagsOf(note) };
   await db.transactions.add(tx);
   return tx.id;
+}
+
+/** Your part of a shared expense; the rounding cents go to you. */
+export function splitShare(totalCents: number, people: number): number {
+  return Math.ceil(totalCents / people);
+}
+
+/** "Cena #viaje con #amigos" → ['viaje', 'amigos']: tags are written inline in the note. */
+export function tagsOf(note: string | undefined): string[] {
+  const found = (note ?? '').match(/#[\p{L}\p{N}_-]+/gu) ?? [];
+  return [...new Set(found.map((t) => t.slice(1).toLowerCase()))];
 }
 
 export function setDeleted(id: string, deleted: 0 | 1, db: VueltoDB = defaultDb) {

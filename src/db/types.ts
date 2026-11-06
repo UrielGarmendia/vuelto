@@ -26,6 +26,8 @@ export interface Transaction extends Meta {
   installment?: { groupId: string; number: number; total: number };
   recurringId?: string;
   receiptBlobId?: string;
+  /** A shared expense: `amountCents` is your part of `totalCents` among `people`. */
+  split?: { totalCents: number; people: number };
 }
 
 export interface Category extends Meta {

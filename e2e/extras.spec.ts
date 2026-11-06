@@ -34,3 +34,27 @@ test('Inicio can hide and reorder its blocks', async ({ page }) => {
   await expect(page.getByRole('region', { name: 'Cómo viene el mes' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Disponible' })).toBeVisible();
 });
+
+test('a shared expense keeps your part and tags filter the list', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/movimientos');
+  await page.getByRole('button', { name: 'Cargar movimiento' }).click();
+  const sheet = page.getByRole('dialog');
+  const pad = sheet.getByRole('group', { name: 'Teclado numérico' });
+  for (const d of '9000') await pad.getByRole('button', { name: d, exact: true }).click();
+  await sheet.getByRole('radio', { name: 'Comida afuera' }).click();
+  await sheet.getByLabel('Dividir').selectOption('3');
+  await expect(sheet).toContainText('Tu parte: $ 3.000 de $ 9.000 entre 3');
+  await sheet.getByRole('button', { name: 'Nota' }).click();
+  await sheet.getByLabel('Nota').fill('Asado #amigos');
+  await sheet.getByRole('button', { name: 'Guardar gasto' }).click();
+  await expect(sheet).toBeHidden();
+
+  const list = page.getByRole('region', { name: 'Lista de movimientos' });
+  await expect(list.getByRole('link').first()).toContainText('−$ 3.000');
+  await list.getByRole('link').first().click();
+  await expect(page.getByText('Tu parte de $ 9.000 entre 3')).toBeVisible();
+  await page.getByRole('button', { name: '#amigos' }).click();
+  await expect(page.getByRole('searchbox', { name: 'Buscar movimientos' })).toHaveValue('#amigos');
+  await expect(list.getByRole('link')).toHaveCount(1);
+});

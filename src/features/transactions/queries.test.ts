@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { VueltoDB } from '../../db/db';
-import { groupByDay, listTransactions, saveTransaction, setDeleted, type TxDraft } from './queries';
+import {
+  groupByDay,
+  listTransactions,
+  saveTransaction,
+  setDeleted,
+  splitShare,
+  tagsOf,
+  type TxDraft,
+} from './queries';
 
 let db: VueltoDB;
 let draft: TxDraft;
@@ -70,5 +78,20 @@ describe('groupByDay', () => {
 
   it('returns nothing for no transactions', () => {
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe('tagsOf', () => {
+  it('reads #tags from the note, once each, in lowercase', () => {
+    expect(tagsOf('Cena #Viaje con #amigos y #viaje')).toEqual(['viaje', 'amigos']);
+    expect(tagsOf('Año #vacaciones-2027 #ñandú')).toEqual(['vacaciones-2027', 'ñandú']);
+    expect(tagsOf(undefined)).toEqual([]);
+  });
+});
+
+describe('splitShare', () => {
+  it('rounds your part up to the cent', () => {
+    expect(splitShare(1000, 4)).toBe(250);
+    expect(splitShare(1000, 3)).toBe(334);
   });
 });

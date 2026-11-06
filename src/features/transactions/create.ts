@@ -1,6 +1,6 @@
 import { db as defaultDb, newMeta, type VueltoDB } from '../../db/db';
 import type { Recurring, Transaction } from '../../db/types';
-import { saveTransaction, type TxDraft } from './queries';
+import { saveTransaction, tagsOf, type TxDraft } from './queries';
 import { dueOccurrences, installmentPlan, nextOccurrence, type Frequency } from './schedule';
 
 export interface CreateOptions {
@@ -32,7 +32,7 @@ export async function createTransaction(
         ...clean(draft),
         amountCents: p.amountCents,
         date: p.date,
-        tags: [],
+        tags: tagsOf(draft.note),
         installment: { groupId, number: p.number, total: installments },
       })),
     );
@@ -50,7 +50,12 @@ export async function createTransaction(
     };
     await db.transaction('rw', db.recurring, db.transactions, async () => {
       await db.recurring.add(rule);
-      await db.transactions.add({ ...newMeta(), ...clean(draft), tags: [], recurringId: rule.id });
+      await db.transactions.add({
+        ...newMeta(),
+        ...clean(draft),
+        tags: tagsOf(draft.note),
+        recurringId: rule.id,
+      });
     });
     return;
   }
@@ -70,7 +75,7 @@ export async function runRecurring(today: string, db: VueltoDB = defaultDb): Pro
         ...(r.template as Omit<Transaction, keyof ReturnType<typeof newMeta>>),
         ...newMeta(),
         date,
-        tags: [],
+        tags: tagsOf(r.template.note),
         recurringId: r.id,
       }));
       await db.transactions.bulkAdd(rows);

@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pencil, SearchX, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { viewTransitions } from '../../app/viewTransitions';
+import { useFilters } from './filters';
 import { db } from '../../db/db';
 import type { Transaction } from '../../db/types';
 import { formatDay } from '../../lib/dates';
@@ -48,6 +50,8 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
   const openEdit = useTxSheet((s) => s.openEdit);
   const { categories, accounts } = useCatalog();
   const [confirmGroup, setConfirmGroup] = useState(false);
+  const filters = useFilters();
+  const navigate = useNavigate();
   const category = tx.categoryId ? categories.get(tx.categoryId) : undefined;
   const account = accounts.get(tx.accountId);
   const to = tx.toAccountId ? accounts.get(tx.toAccountId) : undefined;
@@ -70,6 +74,14 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
           [
             'En pesos',
             `${formatMoney(arsCents(tx))} (dólar a ${formatMoney(Math.round(tx.rateAtDate * 100))})`,
+          ] as [string, string],
+        ]
+      : []),
+    ...(tx.split
+      ? [
+          [
+            'Dividido',
+            `Tu parte de ${formatMoney(tx.split.totalCents, tx.currency)} entre ${tx.split.people}`,
           ] as [string, string],
         ]
       : []),
@@ -116,6 +128,26 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
           </div>
         ))}
       </dl>
+
+      {tx.tags.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2" aria-label="Etiquetas">
+          {tx.tags.map((t) => (
+            <li key={t}>
+              <button
+                type="button"
+                onClick={() => {
+                  filters.reset();
+                  filters.set({ query: `#${t}` });
+                  navigate('/movimientos', { viewTransition: viewTransitions });
+                }}
+                className="min-h-9 rounded-full bg-sunk px-3 text-[13px] font-medium text-hue"
+              >
+                #{t}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {confirmGroup ? (
         <div className="mt-4 grid gap-2.5" role="group" aria-label="Eliminar cuotas">
