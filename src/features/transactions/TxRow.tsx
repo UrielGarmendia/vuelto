@@ -23,6 +23,8 @@ interface Props {
   account?: Account;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  /** Destination of a transfer. */
+  toAccount?: Account;
   /** Position inside its group of rows: rounds the panel's corners and draws the dividers. */
   first?: boolean;
   last?: boolean;
@@ -39,6 +41,7 @@ export const TxRow = memo(function TxRow({
   tx,
   category,
   account,
+  toAccount,
   onDelete,
   onEdit,
   first = true,
@@ -107,13 +110,17 @@ export const TxRow = memo(function TxRow({
           {!first && (
             <span aria-hidden className="absolute top-0 right-4 left-[68px] h-px bg-line" />
           )}
-          <CategoryIcon icon={category?.icon} color={category?.color} />
+          {tx.type === 'transfer' ? (
+            <CategoryIcon icon="arrow-left-right" color="#8d9096" />
+          ) : (
+            <CategoryIcon icon={category?.icon} color={category?.color} />
+          )}
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium">
-              {category?.name ?? 'Sin categoría'}
+              {tx.type === 'transfer' ? 'Transferencia' : (category?.name ?? 'Sin categoría')}
             </span>
             <span className="block truncate text-[13px] text-faint">
-              {tx.note ? `${tx.note} · ${account?.name ?? ''}` : account?.name}
+              {rowDetail(tx, account, toAccount)}
             </span>
           </span>
           <span
@@ -128,6 +135,17 @@ export const TxRow = memo(function TxRow({
     </div>
   );
 });
+
+/** Note, account and what kind of movement it is, in one line. */
+function rowDetail(tx: Transaction, account?: Account, toAccount?: Account) {
+  const parts = [
+    tx.note,
+    tx.type === 'transfer' ? `${account?.name ?? '—'} → ${toAccount?.name ?? '—'}` : account?.name,
+    tx.installment && `cuota ${tx.installment.number}/${tx.installment.total}`,
+    tx.recurringId && 'se repite',
+  ];
+  return parts.filter(Boolean).join(' · ');
+}
 
 function SwipeActions({ x }: { x: MotionValue<number> }) {
   const deleteOpacity = useTransform(x, [-THRESHOLD, -24], [1, 0]);

@@ -9,7 +9,9 @@ import {
   useSearchParams,
 } from 'react-router';
 import { isOnboarded } from '../features/onboarding/onboarded';
+import { runRecurring } from '../features/transactions/create';
 import { useTxSheet } from '../features/transactions/store';
+import { todayISO } from '../lib/dates';
 import { fade } from '../ui/motion';
 import { Toaster } from '../ui/Toaster';
 import { InstallBanner } from './InstallBanner';
@@ -63,6 +65,7 @@ export function Layout() {
   }, [params, setParams]);
 
   useShortcuts();
+  useRecurring();
 
   return (
     <>
@@ -117,4 +120,17 @@ function useShortcuts() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   });
+}
+
+/** Repeating movements that came due are created when the app opens or comes back to the front. */
+function useRecurring() {
+  useEffect(() => {
+    const run = () => {
+      if (document.visibilityState !== 'visible') return;
+      runRecurring(todayISO()).catch((err) => console.error(err));
+    };
+    run();
+    document.addEventListener('visibilitychange', run);
+    return () => document.removeEventListener('visibilitychange', run);
+  }, []);
 }

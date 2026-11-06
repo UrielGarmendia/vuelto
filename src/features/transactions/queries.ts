@@ -4,7 +4,8 @@ import type { Transaction } from '../../db/types';
 export type TxDraft = Pick<
   Transaction,
   'type' | 'amountCents' | 'currency' | 'date' | 'categoryId' | 'accountId' | 'note'
->;
+> &
+  Partial<Pick<Transaction, 'toAccountId' | 'rateAtDate'>>;
 
 export async function saveTransaction(
   draft: TxDraft,
@@ -13,6 +14,9 @@ export async function saveTransaction(
 ): Promise<string> {
   if (!Number.isSafeInteger(draft.amountCents) || draft.amountCents <= 0) {
     throw new RangeError('Amount must be a positive integer of cents');
+  }
+  if (draft.type === 'transfer' && (!draft.toAccountId || draft.toAccountId === draft.accountId)) {
+    throw new RangeError('A transfer needs two different accounts');
   }
   const note = draft.note?.trim() || undefined;
   if (id) {

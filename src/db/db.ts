@@ -8,6 +8,7 @@ import type {
   Meta,
   Recurring,
   StoredBlob,
+  Template,
   Transaction,
 } from './types';
 import { seed } from './seed';
@@ -21,6 +22,7 @@ export class VueltoDB extends Dexie {
   goals!: EntityTable<Goal, 'id'>;
   blobs!: EntityTable<StoredBlob, 'id'>;
   kv!: EntityTable<KV, 'key'>;
+  templates!: EntityTable<Template, 'id'>;
 
   constructor(name = 'vuelto') {
     super(name);
@@ -35,6 +37,8 @@ export class VueltoDB extends Dexie {
       blobs: 'id',
       kv: 'key',
     });
+    // v2: one-tap templates for the entry sheet.
+    this.version(2).stores({ templates: 'id, order, synced, updatedAt' });
     this.on('populate', (tx) => seed(tx));
   }
 }

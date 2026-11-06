@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Baby,
   Banknote,
   Beer,
@@ -49,6 +50,7 @@ import {
 
 // Explicit map so only these icons end up in the bundle; keys are what the DB stores.
 export const categoryIcons: Record<string, LucideIcon> = {
+  'arrow-left-right': ArrowLeftRight,
   'shopping-cart': ShoppingCart,
   utensils: Utensils,
   pizza: Pizza,
@@ -118,6 +120,7 @@ export const palette: readonly { hex: string; name: string }[] = [
 
 /** Screen-reader names for the icon picker. */
 export const iconLabels: Record<string, string> = {
+  'arrow-left-right': 'Transferencia',
   'shopping-cart': 'Carrito',
   utensils: 'Cubiertos',
   pizza: 'Pizza',

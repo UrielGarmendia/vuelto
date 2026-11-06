@@ -1,8 +1,9 @@
 import type { Transaction } from '../../db/types';
+import { arsCents } from '../../lib/money';
 import { fromISODate } from '../../lib/dates';
 import { addMonths } from '../home/summary';
 
-const spending = (tx: Transaction) => !tx.deleted && tx.type === 'expense' && tx.currency === 'ARS';
+const spending = (tx: Transaction) => !tx.deleted && tx.type === 'expense';
 
 /** Spending per category within `month` (optionally only up to day `upTo`), biggest first. */
 export function categoryTotals(txs: readonly Transaction[], month: string, upTo = 31) {
@@ -10,7 +11,7 @@ export function categoryTotals(txs: readonly Transaction[], month: string, upTo 
   for (const tx of txs) {
     if (!spending(tx) || !tx.date.startsWith(month) || Number(tx.date.slice(8)) > upTo) continue;
     const id = tx.categoryId ?? '';
-    by.set(id, (by.get(id) ?? 0) + tx.amountCents);
+    by.set(id, (by.get(id) ?? 0) + arsCents(tx));
   }
   return [...by]
     .map(([categoryId, cents]) => ({ categoryId, cents }))
@@ -24,7 +25,7 @@ export function monthSeries(txs: readonly Transaction[], month: string, n = 12) 
   for (const tx of txs) {
     if (!spending(tx)) continue;
     const m = tx.date.slice(0, 7);
-    if (by.has(m)) by.set(m, by.get(m)! + tx.amountCents);
+    if (by.has(m)) by.set(m, by.get(m)! + arsCents(tx));
   }
   return months.map((m) => ({ month: m, cents: by.get(m)! }));
 }
@@ -37,7 +38,7 @@ export function weekdaySpending(txs: readonly Transaction[], month: string, last
     count[fromISODate(`${month}-${String(d).padStart(2, '0')}`).getDay()]!++;
   for (const tx of txs) {
     if (!spending(tx) || !tx.date.startsWith(month) || Number(tx.date.slice(8)) > lastDay) continue;
-    total[fromISODate(tx.date).getDay()]! += tx.amountCents;
+    total[fromISODate(tx.date).getDay()]! += arsCents(tx);
   }
   return total.map((t, i) => (count[i] ? Math.round(t / count[i]!) : 0));
 }

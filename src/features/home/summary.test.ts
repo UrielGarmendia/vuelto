@@ -57,13 +57,15 @@ describe('balances', () => {
     expect(b.get('card')).toBe(-2000);
   });
 
-  it('subtracts card debt from the total and reports it apart, ignoring USD for now', () => {
+  it('subtracts card debt from the total and reports it apart; USD needs a rate', () => {
     const b = new Map([
       ['cash', 12000],
       ['card', -2000],
       ['usd', 500],
     ]);
     expect(totals(accounts, b)).toEqual({ balanceCents: 10000, creditDebtCents: 2000 });
+    // With a rate, the dollar account joins the total in pesos.
+    expect(totals(accounts, b, 1200)).toEqual({ balanceCents: 610000, creditDebtCents: 2000 });
   });
 
   it('a card with positive balance is not debt', () => {

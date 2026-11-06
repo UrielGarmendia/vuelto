@@ -1,15 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronRight, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
+import { usePrefs } from '../../app/prefs';
 import { db } from '../../db/db';
-import type { Category, Transaction } from '../../db/types';
+import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { Odometer } from '../../ui/Odometer';
 import { Skeleton } from '../../ui/Skeleton';
-import { monthBudget } from '../budgets/budgets';
+import { closedWithin, monthBudget } from '../budgets/budgets';
+import { toast } from '../../ui/toast';
+import { useRates } from '../currency/rates';
 import { pickInsight, projectMonth, type Insight } from '../insights/insights';
 import { deleteTx, editTx } from '../transactions/actions';
 import { listTransactions } from '../transactions/queries';
@@ -49,7 +52,10 @@ export function HomePage() {
   );
   const budgets = useLiveQuery(() => db.budgets.toArray(), []);
   const catalog = useCatalog();
+  const rates = useRates();
+  const rateKind = usePrefs((s) => s.rateKind);
   const [selected, setSelected] = useState<number | null>(null);
+  useMonthCelebration(txs, budgets);
 
   if (!txs || !accounts || !budgets || !catalog.ready) return <HomeSkeleton />;
 
@@ -70,7 +76,7 @@ export function HomePage() {
     ? expenseCents + Math.max(0, pace.total - pace.upToDay)
     : projectMonth(expenseCents, day, n);
   const balances = accountBalances(accounts, txs);
-  const { balanceCents, creditDebtCents } = totals(accounts, balances);
+  const { balanceCents, creditDebtCents } = totals(accounts, balances, rates?.values[rateKind]);
   const available = balanceCents + creditDebtCents;
   const running =
     (baseline.mode === 'budget' && projected > budget!) ||
@@ -210,6 +216,7 @@ export function HomePage() {
                 tx={tx}
                 category={tx.categoryId ? catalog.categories.get(tx.categoryId) : undefined}
                 account={catalog.accounts.get(tx.accountId)}
+                toAccount={tx.toAccountId ? catalog.accounts.get(tx.toAccountId) : undefined}
                 onDelete={deleteTx}
                 onEdit={editTx}
                 first={i === 0}
@@ -356,6 +363,7 @@ function DayList({
           tx={tx}
           category={tx.categoryId ? catalog.categories.get(tx.categoryId) : undefined}
           account={catalog.accounts.get(tx.accountId)}
+          toAccount={tx.toAccountId ? catalog.accounts.get(tx.toAccountId) : undefined}
           onDelete={deleteTx}
           onEdit={editTx}
           first={i === 0}
@@ -399,4 +407,21 @@ function HomeSkeleton() {
       </div>
     </div>
   );
+}
+
+/** Once per month: a quiet note when the month that just ended stayed within its budget. */
+function useMonthCelebration(txs?: Transaction[], budgets?: Budget[]) {
+  useEffect(() => {
+    if (!txs || !budgets) return;
+    const prev = addMonths(todayISO().slice(0, 7), -1);
+    const key = `vuelto-celebrated-${prev}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      if (!closedWithin(budgets, monthTotals(txs, prev).expenseCents, prev)) return;
+      localStorage.setItem(key, '1');
+    } catch {
+      return;
+    }
+    toast(`Cerraste ${monthNameOf(prev)} dentro del presupuesto. Bien ahí.`);
+  }, [txs, budgets]);
 }

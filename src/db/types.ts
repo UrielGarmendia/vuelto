@@ -59,7 +59,21 @@ export interface Recurring extends Meta {
   template: Partial<Transaction>;
   frequency: 'weekly' | 'monthly' | 'yearly';
   nextDate: string;
+  /** Day of the month the rule was created on, so 31 Jan → 28 Feb → 31 Mar. */
+  anchorDay?: number;
   active: 0 | 1;
+}
+
+/** A saved movement that fills the sheet with one tap. */
+export interface Template extends Meta {
+  name: string;
+  type: TxType;
+  amountCents?: number;
+  categoryId?: string;
+  accountId: string;
+  toAccountId?: string;
+  note?: string;
+  order: number;
 }
 
 export interface Goal extends Meta {

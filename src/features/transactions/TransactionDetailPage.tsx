@@ -1,15 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pencil, SearchX, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { useParams } from 'react-router';
 import { db } from '../../db/db';
 import type { Transaction } from '../../db/types';
 import { formatDay } from '../../lib/dates';
-import { formatMoney } from '../../lib/money';
+import { arsCents, formatMoney } from '../../lib/money';
 import { BackLink } from '../../ui/BackLink';
 import { useGoBack } from '../../ui/useGoBack';
 import { CategoryIcon } from '../../ui/CategoryIcon';
 import { EmptyState } from '../../ui/EmptyState';
-import { deleteWithUndo } from './actions';
+import { deleteGroupWithUndo, deleteWithUndo } from './actions';
 import { useTxSheet } from './store';
 import { useCatalog } from './useCatalog';
 
@@ -46,15 +47,53 @@ export function TransactionDetailPage() {
 export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () => void }) {
   const openEdit = useTxSheet((s) => s.openEdit);
   const { categories, accounts } = useCatalog();
+  const [confirmGroup, setConfirmGroup] = useState(false);
   const category = tx.categoryId ? categories.get(tx.categoryId) : undefined;
   const account = accounts.get(tx.accountId);
-  const sign = tx.type === 'income' ? '+' : '−';
+  const to = tx.toAccountId ? accounts.get(tx.toAccountId) : undefined;
+  const sign = tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : '';
+  const isTransfer = tx.type === 'transfer';
+  const rows: [string, string][] = [
+    ['Tipo', isTransfer ? 'Transferencia' : tx.type === 'income' ? 'Ingreso' : 'Gasto'],
+    ['Fecha', formatDay(tx.date)],
+    ...((isTransfer
+      ? [
+          ['Desde', account?.name ?? '—'],
+          ['Hacia', to?.name ?? '—'],
+        ]
+      : [['Cuenta', account?.name ?? '—']]) as [string, string][]),
+    ...(tx.installment
+      ? [['Cuota', `${tx.installment.number} de ${tx.installment.total}`] as [string, string]]
+      : []),
+    ...(tx.currency === 'USD' && tx.rateAtDate
+      ? [
+          [
+            'En pesos',
+            `${formatMoney(arsCents(tx))} (dólar a ${formatMoney(Math.round(tx.rateAtDate * 100))})`,
+          ] as [string, string],
+        ]
+      : []),
+    ...(tx.recurringId ? [['Repetición', 'Se carga sola cada período'] as [string, string]] : []),
+    ...(tx.note ? [['Nota', tx.note] as [string, string]] : []),
+  ];
+
+  async function remove(all: boolean) {
+    if (all && tx.installment) await deleteGroupWithUndo(tx.installment.groupId);
+    else await deleteWithUndo(tx.id);
+    onDeleted?.();
+  }
 
   return (
     <div className="rel mt-3 rounded-[24px] p-[22px]">
       <div className="flex flex-col items-center pt-2 pb-5 text-center">
-        <CategoryIcon icon={category?.icon} color={category?.color} />
-        <h2 className="mt-3 text-[14px] text-muted">{category?.name ?? 'Sin categoría'}</h2>
+        {isTransfer ? (
+          <CategoryIcon icon="arrow-left-right" color="#8d9096" />
+        ) : (
+          <CategoryIcon icon={category?.icon} color={category?.color} />
+        )}
+        <h2 className="mt-3 text-[14px] text-muted">
+          {isTransfer ? 'Transferencia' : (category?.name ?? 'Sin categoría')}
+        </h2>
         <p
           className={`wide mt-1.5 max-w-full truncate text-[clamp(30px,9vw,40px)] leading-tight font-extrabold ${
             tx.type === 'income' ? 'text-positive' : ''
@@ -67,12 +106,7 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
       </div>
 
       <dl>
-        {[
-          ['Tipo', tx.type === 'income' ? 'Ingreso' : 'Gasto'],
-          ['Fecha', formatDay(tx.date)],
-          ['Cuenta', account?.name ?? '—'],
-          ...(tx.note ? [['Nota', tx.note]] : []),
-        ].map(([label, value]) => (
+        {rows.map(([label, value]) => (
           <div
             key={label}
             className="flex min-h-12 items-center justify-between gap-4 border-t border-line py-3"
@@ -83,25 +117,53 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
         ))}
       </dl>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => openEdit(tx.id)}
-          className="rel flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold"
-        >
-          <Pencil aria-hidden className="size-4" /> Editar
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            await deleteWithUndo(tx.id);
-            onDeleted?.();
-          }}
-          className="rel flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-negative"
-        >
-          <Trash2 aria-hidden className="size-4" /> Eliminar
-        </button>
-      </div>
+      {confirmGroup ? (
+        <div className="mt-4 grid gap-2.5" role="group" aria-label="Eliminar cuotas">
+          <p className="text-center text-[14px] text-muted">
+            ¿Eliminar solo esta cuota o la compra entera?
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => void remove(false)}
+              className="rel min-h-12 rounded-full text-[15px] font-semibold text-negative"
+            >
+              Solo esta
+            </button>
+            <button
+              type="button"
+              onClick={() => void remove(true)}
+              className="rel min-h-12 rounded-full text-[15px] font-semibold text-negative"
+            >
+              Todas las cuotas
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmGroup(false)}
+            className="min-h-11 text-[14px] font-medium text-hue"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => openEdit(tx.id)}
+            className="rel flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold"
+          >
+            <Pencil aria-hidden className="size-4" /> Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => (tx.installment ? setConfirmGroup(true) : void remove(false))}
+            className="rel flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold text-negative"
+          >
+            <Trash2 aria-hidden className="size-4" /> Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

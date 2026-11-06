@@ -2,12 +2,17 @@ import { useEffect } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { RateKind } from '../features/currency/rates';
+
 export type Theme = 'light' | 'dark' | 'system';
 
 interface Prefs {
   theme: Theme;
   reduceMotion: boolean;
   installDismissed: boolean;
+  /** Which dollar converts USD into pesos. */
+  rateKind: RateKind;
+  setRateKind: (rateKind: RateKind) => void;
   setTheme: (theme: Theme) => void;
   setReduceMotion: (reduceMotion: boolean) => void;
   dismissInstall: () => void;
@@ -20,6 +25,8 @@ export const usePrefs = create<Prefs>()(
       theme: 'system',
       reduceMotion: false,
       installDismissed: false,
+      rateKind: 'mep',
+      setRateKind: (rateKind) => set({ rateKind }),
       setTheme: (theme) => set({ theme }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       dismissInstall: () => set({ installDismissed: true }),

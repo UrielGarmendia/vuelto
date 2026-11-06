@@ -1,8 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarDays, ChevronDown, NotebookPen, Wallet } from 'lucide-react';
+import {
+  ArrowDown,
+  CalendarDays,
+  ChevronDown,
+  CreditCard,
+  NotebookPen,
+  Repeat,
+  Star,
+  Wallet,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { db } from '../../db/db';
-import type { Account, Category, Transaction } from '../../db/types';
+import { usePrefs } from '../../app/prefs';
+import { db, newMeta } from '../../db/db';
+import type { Account, Category, Template, Transaction, TxType } from '../../db/types';
 import {
   amountInputToCents,
   applyAmountKey,
@@ -11,16 +21,29 @@ import {
   type AmountKey,
 } from '../../lib/amountInput';
 import { addDays, formatShortDay, todayISO } from '../../lib/dates';
+import { arsCents, formatMoney } from '../../lib/money';
 import { CategoryIcon } from '../../ui/CategoryIcon';
 import { NumberPad } from '../../ui/NumberPad';
 import { Sheet, SheetDragZone } from '../../ui/Sheet';
 import { toast } from '../../ui/toast';
-import { saveTransaction } from './queries';
+import { budgetsFor, crossedThreshold } from '../budgets/budgets';
+import { rateLabels, useRates } from '../currency/rates';
+import { createTransaction, updateGroup } from './create';
+import { saveTransaction, type TxDraft } from './queries';
+import type { Frequency } from './schedule';
 import { useLastUsed, useTxSheet } from './store';
 
-type Kind = 'expense' | 'income';
-
 const keyMap: Record<string, AmountKey> = { ',': ',', '.': ',', Backspace: 'back' };
+const typeLabels: Record<TxType, string> = {
+  expense: 'Gasto',
+  income: 'Ingreso',
+  transfer: 'Transferencia',
+};
+const repeatLabels: Record<Frequency, string> = {
+  weekly: 'Cada semana',
+  monthly: 'Cada mes',
+  yearly: 'Cada año',
+};
 
 export function TransactionSheet() {
   const { open, editingId, session, close } = useTxSheet();
@@ -46,8 +69,20 @@ export function TransactionSheet() {
         .toArray(),
     [],
   );
+  const templates = useLiveQuery(
+    () =>
+      db.templates
+        .orderBy('order')
+        .filter((t) => !t.deleted)
+        .toArray(),
+    [],
+  );
   const ready =
-    editing !== undefined && (editing === null) === !editingId && !!categories && !!accounts;
+    editing !== undefined &&
+    (editing === null) === !editingId &&
+    !!categories &&
+    !!accounts &&
+    !!templates;
 
   return (
     <Sheet
@@ -61,6 +96,7 @@ export function TransactionSheet() {
           editing={editing ?? undefined}
           categories={categories}
           accounts={accounts}
+          templates={templates}
           onDone={close}
         />
       )}
@@ -72,18 +108,23 @@ function TxForm({
   editing,
   categories,
   accounts,
+  templates,
   onDone,
 }: {
   editing?: Transaction;
   categories: Category[];
   accounts: Account[];
+  templates: Template[];
   onDone: () => void;
 }) {
   const lastUsed = useLastUsed();
+  const rateKind = usePrefs((s) => s.rateKind);
+  const rates = useRates();
   // Remembered ids may point to something archived or gone (e.g. after a restore).
-  const usable = (id: string | undefined, type: Kind) =>
+  const usable = (id: string | undefined, type: TxType) =>
     categories.some((c) => c.id === id && c.type === type) ? id : undefined;
-  const [type, setType] = useState<Kind>(editing?.type === 'income' ? 'income' : 'expense');
+  const known = (id: string | undefined) => (accounts.some((a) => a.id === id) ? id : undefined);
+  const [type, setType] = useState<TxType>(editing?.type ?? 'expense');
   const [amount, setAmount] = useState(() =>
     editing ? centsToAmountInput(editing.amountCents) : '',
   );
@@ -91,56 +132,101 @@ function TxForm({
     editing ? editing.categoryId : usable(lastUsed.expenseCategoryId, 'expense'),
   );
   const [accountId, setAccountId] = useState(
-    editing
-      ? editing.accountId
-      : accounts.some((a) => a.id === lastUsed.accountId)
-        ? lastUsed.accountId
-        : undefined,
+    editing ? editing.accountId : known(lastUsed.accountId),
   );
+  const [toAccountId, setToAccountId] = useState(editing?.toAccountId);
   const [date, setDate] = useState(() => editing?.date ?? todayISO());
   const [note, setNote] = useState(editing?.note ?? '');
   const [showNote, setShowNote] = useState(!!editing?.note);
+  const [installments, setInstallments] = useState(1);
+  const [repeat, setRepeat] = useState<Frequency | ''>('');
+  const [favorite, setFavorite] = useState(false);
+  const [applyAll, setApplyAll] = useState(false);
   const editingId = editing?.id;
 
   const visibleCategories = categories.filter((c) => c.type === type);
-  const effectiveAccountId = accountId ?? accounts[0]?.id;
+  const account = accounts.find((a) => a.id === (accountId ?? accounts[0]?.id));
+  const destinations = accounts.filter(
+    (a) => a.id !== account?.id && a.currency === account?.currency,
+  );
+  const destination = destinations.find((a) => a.id === toAccountId) ?? destinations[0];
+  const currency = account?.currency ?? 'ARS';
+  const rate = currency === 'USD' ? rates?.values[rateKind] : undefined;
   const cents = amountInputToCents(amount);
-  const canSave = cents > 0 && !!categoryId && !!effectiveAccountId;
+  const canSave = cents > 0 && !!account && (type === 'transfer' ? !!destination : !!categoryId);
+  const canSplit = !editing && type === 'expense' && account?.kind === 'credit';
 
-  function switchType(next: Kind) {
+  function switchType(next: TxType) {
     setType(next);
-    setCategoryId(
-      usable(next === 'expense' ? lastUsed.expenseCategoryId : lastUsed.incomeCategoryId, next),
-    );
+    if (next !== 'transfer')
+      setCategoryId(
+        usable(next === 'expense' ? lastUsed.expenseCategoryId : lastUsed.incomeCategoryId, next),
+      );
+  }
+
+  function applyTemplate(t: Template) {
+    setType(t.type);
+    if (t.amountCents) setAmount(centsToAmountInput(t.amountCents));
+    setCategoryId(t.categoryId);
+    setAccountId(known(t.accountId));
+    setToAccountId(t.toAccountId);
+    setNote(t.note ?? '');
+    setShowNote(!!t.note);
   }
 
   async function save() {
-    if (!canSave) return;
+    if (!canSave || !account) return;
+    const draft: TxDraft = {
+      type,
+      amountCents: cents,
+      currency,
+      // The dollar of the day is kept with the movement, so its peso value never drifts.
+      rateAtDate: currency === 'USD' ? (editing?.rateAtDate ?? rate) : undefined,
+      date,
+      categoryId: type === 'transfer' ? undefined : categoryId,
+      accountId: account.id,
+      toAccountId: type === 'transfer' ? destination?.id : undefined,
+      note,
+    };
     try {
-      await saveTransaction(
-        {
-          type,
-          amountCents: cents,
-          currency: 'ARS',
-          date,
-          categoryId,
-          accountId: effectiveAccountId!,
-          note,
-        },
-        editingId,
-      );
+      if (editingId) {
+        await saveTransaction(draft, editingId);
+        if (applyAll && editing?.installment)
+          await updateGroup(editing.installment.groupId, {
+            categoryId: draft.categoryId,
+            accountId: draft.accountId,
+            note,
+          });
+      } else {
+        await createTransaction(draft, {
+          installments: canSplit ? installments : 1,
+          repeat: repeat || undefined,
+        });
+        if (favorite) await saveTemplate(draft, categories);
+      }
     } catch (err) {
       console.error(err);
       toast('No se pudo guardar. Probá de nuevo.');
       return;
     }
     lastUsed.remember({
-      [type === 'expense' ? 'expenseCategoryId' : 'incomeCategoryId']: categoryId,
-      accountId: effectiveAccountId,
+      ...(type === 'transfer'
+        ? {}
+        : { [type === 'expense' ? 'expenseCategoryId' : 'incomeCategoryId']: categoryId }),
+      accountId: account.id,
     });
     onDone();
+    const budgetNote =
+      type === 'expense' && !editingId && categoryId
+        ? await budgetMessage(categoryId, date, arsCents(draft), categories)
+        : null;
     toast(
-      editingId ? 'Cambios guardados' : type === 'expense' ? 'Gasto guardado' : 'Ingreso guardado',
+      budgetNote ??
+        (editingId
+          ? 'Cambios guardados'
+          : installments > 1 && canSplit
+            ? `Compra en ${installments} cuotas guardada`
+            : `${typeLabels[type]} guardad${type === 'transfer' ? 'a' : 'o'}`),
     );
   }
 
@@ -162,39 +248,61 @@ function TxForm({
   const today = todayISO();
   const yesterday = addDays(today, -1);
   const isOtherDay = date !== today && date !== yesterday;
+  const symbol = currency === 'USD' ? 'US$' : '$';
 
   const header = (
-    <SheetDragZone className="px-5 pb-3">
+    <SheetDragZone className="px-4 pb-3">
       <div
-        className="well mx-auto grid w-56 grid-cols-2 gap-1 rounded-full p-[5px]"
+        className="well mx-auto grid w-full max-w-[340px] grid-cols-3 gap-1 rounded-full p-[5px]"
         role="radiogroup"
         aria-label="Tipo"
       >
-        {(['expense', 'income'] as const).map((k) => (
+        {(['expense', 'income', 'transfer'] as const).map((k) => (
           <button
             key={k}
             type="button"
             role="radio"
             aria-checked={type === k}
+            disabled={!!editing?.installment && k !== 'expense'}
             onClick={() => switchType(k)}
-            className={`min-h-9 rounded-full text-[14px] text-muted transition-colors aria-checked:font-semibold aria-checked:text-ink ${type === k ? 'rel' : ''}`}
+            className={`min-h-9 rounded-full px-1 text-[13.5px] text-muted transition-colors disabled:opacity-40 aria-checked:font-semibold aria-checked:text-ink ${type === k ? 'rel' : ''}`}
           >
-            {k === 'expense' ? 'Gasto' : 'Ingreso'}
+            {typeLabels[k]}
           </button>
         ))}
       </div>
       <p
         aria-live="polite"
-        aria-label={`Monto: ${formatAmountInput(amount)} pesos`}
+        aria-label={`Monto: ${formatAmountInput(amount)} ${currency === 'USD' ? 'dólares' : 'pesos'}`}
         className={`wide mt-5 mb-1 truncate text-center text-[clamp(40px,13vw,56px)] leading-none font-extrabold ${
           amount ? (type === 'income' ? 'text-positive' : 'text-ink') : 'text-faint'
         }`}
       >
-        <span className="mr-1.5 align-[0.5em] text-[0.45em] font-medium text-muted">$</span>
+        <span className="mr-1.5 align-[0.5em] text-[0.45em] font-medium text-muted">{symbol}</span>
         {formatAmountInput(amount)}
       </p>
+      {currency === 'USD' && (
+        <p className="text-center text-[12.5px] text-faint">
+          {rate
+            ? `≈ ${formatMoney(Math.round(cents * rate))} al dólar ${rateLabels[rateKind]} (${formatMoney(Math.round(rate * 100))})`
+            : 'Sin cotización todavía: no va a sumar a los totales en pesos.'}
+        </p>
+      )}
+      {installments > 1 && canSplit && cents > 0 && (
+        <p className="text-center text-[12.5px] text-faint">
+          {installments} cuotas de {formatMoney(Math.trunc(cents / installments))}
+        </p>
+      )}
+      {editing?.installment && (
+        <p className="text-center text-[12.5px] text-faint">
+          Cuota {editing.installment.number} de {editing.installment.total}
+        </p>
+      )}
     </SheetDragZone>
   );
+
+  const chip =
+    'well relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pr-3 pl-3.5 text-[13.5px] font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue';
 
   return (
     <>
@@ -202,11 +310,58 @@ function TxForm({
       {/* Categories keep a usable height; on short screens the whole sheet scrolls instead. */}
       <div className="flex flex-1 flex-col">
         <div className="min-h-[9.5rem] flex-1 overflow-y-auto overscroll-contain">
-          <CategoryGrid
-            categories={visibleCategories}
-            selected={categoryId}
-            onSelect={setCategoryId}
-          />
+          {!editing && templates.length > 0 && (
+            <div
+              className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-2"
+              role="group"
+              aria-label="Favoritos"
+            >
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => applyTemplate(t)}
+                  className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-flat px-3 text-[13px]"
+                >
+                  <Star aria-hidden className="size-3.5 fill-current text-over" />
+                  {t.name}
+                  {t.amountCents ? (
+                    <span className="tabular text-faint">{formatMoney(t.amountCents)}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {type === 'transfer' ? (
+            <div className="grid gap-2 px-4 py-1.5">
+              <AccountSelect
+                label="Desde"
+                value={account?.id}
+                accounts={accounts}
+                onChange={setAccountId}
+              />
+              <ArrowDown aria-hidden className="mx-auto size-4 text-faint" />
+              {destinations.length ? (
+                <AccountSelect
+                  label="Hacia"
+                  value={destination?.id}
+                  accounts={destinations}
+                  onChange={setToAccountId}
+                />
+              ) : (
+                <p className="rounded-[16px] bg-flat px-4 py-3 text-[13.5px] text-muted">
+                  Para transferir hace falta otra cuenta en la misma moneda.
+                </p>
+              )}
+            </div>
+          ) : (
+            <CategoryGrid
+              categories={visibleCategories}
+              selected={categoryId}
+              onSelect={setCategoryId}
+            />
+          )}
 
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-2 pb-2">
             <div
@@ -247,23 +402,68 @@ function TxForm({
               </label>
             </div>
 
-            <label className="well relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pr-3 pl-3.5 text-[13.5px] font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue">
-              <Wallet aria-hidden className="size-4 text-muted" />
-              <span>{accounts.find((a) => a.id === effectiveAccountId)?.name ?? 'Cuenta'}</span>
-              <ChevronDown aria-hidden className="size-4 text-muted" />
-              <select
-                aria-label="Cuenta"
-                value={effectiveAccountId ?? ''}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="absolute inset-0 opacity-0"
-              >
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {type !== 'transfer' && (
+              <label className={chip}>
+                <Wallet aria-hidden className="size-4 text-muted" />
+                <span>{account?.name ?? 'Cuenta'}</span>
+                <ChevronDown aria-hidden className="size-4 text-muted" />
+                <select
+                  aria-label="Cuenta"
+                  value={account?.id ?? ''}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  className="absolute inset-0 opacity-0"
+                >
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                      {a.currency !== 'ARS' ? ` (${a.currency})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {canSplit && (
+              <label className={`${chip} ${installments > 1 ? 'text-hue' : ''}`}>
+                <CreditCard aria-hidden className="size-4" />
+                <span>{installments > 1 ? `${installments} cuotas` : 'Cuotas'}</span>
+                <select
+                  aria-label="Cuotas"
+                  value={installments}
+                  onChange={(e) => {
+                    setInstallments(Number(e.target.value));
+                    setRepeat('');
+                  }}
+                  className="absolute inset-0 opacity-0"
+                >
+                  {[1, 2, 3, 6, 9, 12, 18, 24].map((n) => (
+                    <option key={n} value={n}>
+                      {n === 1 ? 'Sin cuotas' : `${n} cuotas`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {!editing && installments === 1 && (
+              <label className={`${chip} ${repeat ? 'text-hue' : ''}`}>
+                <Repeat aria-hidden className="size-4" />
+                <span>{repeat ? repeatLabels[repeat] : 'Repetir'}</span>
+                <select
+                  aria-label="Repetir"
+                  value={repeat}
+                  onChange={(e) => setRepeat(e.target.value as Frequency | '')}
+                  className="absolute inset-0 opacity-0"
+                >
+                  <option value="">No repetir</option>
+                  {(Object.keys(repeatLabels) as Frequency[]).map((f) => (
+                    <option key={f} value={f}>
+                      {repeatLabels[f]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             {!showNote && (
               <button
@@ -274,10 +474,25 @@ function TxForm({
                 <NotebookPen aria-hidden className="size-4 text-muted" /> Nota
               </button>
             )}
+
+            {!editing && (
+              <button
+                type="button"
+                aria-pressed={favorite}
+                onClick={() => setFavorite(!favorite)}
+                className="well flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-medium aria-pressed:text-over"
+              >
+                <Star
+                  aria-hidden
+                  className={`size-4 ${favorite ? 'fill-current' : 'text-muted'}`}
+                />
+                Favorito
+              </button>
+            )}
           </div>
 
           {showNote && (
-            <div className="px-5 pb-2">
+            <div className="px-4 pb-2">
               <input
                 autoFocus={!editing}
                 type="text"
@@ -290,6 +505,18 @@ function TxForm({
                 className="well min-h-11 w-full rounded-[14px] px-4 text-[16px] placeholder:text-faint focus-visible:outline-2 focus-visible:outline-hue"
               />
             </div>
+          )}
+
+          {editing?.installment && (
+            <label className="mx-4 mb-2 flex min-h-11 items-center gap-3 text-[13.5px]">
+              <input
+                type="checkbox"
+                checked={applyAll}
+                onChange={(e) => setApplyAll(e.target.checked)}
+                className="size-5 accent-[var(--color-hue)]"
+              />
+              Aplicar categoría, cuenta y nota a todas las cuotas
+            </label>
           )}
         </div>
 
@@ -305,11 +532,46 @@ function TxForm({
               ? 'Guardar cambios'
               : type === 'expense'
                 ? 'Guardar gasto'
-                : 'Guardar ingreso'}
+                : type === 'income'
+                  ? 'Guardar ingreso'
+                  : 'Guardar transferencia'}
           </button>
         </div>
       </div>
     </>
+  );
+}
+
+function AccountSelect({
+  label,
+  value,
+  accounts,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  accounts: Account[];
+  onChange: (id: string) => void;
+}) {
+  const current = accounts.find((a) => a.id === value);
+  return (
+    <label className="relative flex min-h-[52px] items-center gap-3 rounded-[16px] bg-flat px-4 has-focus-visible:outline-2 has-focus-visible:outline-hue">
+      <span className="w-12 text-[13px] text-muted">{label}</span>
+      <span className="flex-1 truncate text-[15px] font-semibold">{current?.name ?? '—'}</span>
+      <ChevronDown aria-hidden className="size-4 text-muted" />
+      <select
+        aria-label={label}
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0"
+      >
+        {accounts.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -349,4 +611,47 @@ function CategoryGrid({
       ))}
     </div>
   );
+}
+
+/** Saves the movement as a one-tap favorite, named after its note or category. */
+async function saveTemplate(draft: TxDraft, categories: Category[]) {
+  const order = (await db.templates.count()) + 1;
+  await db.templates.add({
+    ...newMeta(),
+    name:
+      draft.note?.trim() ||
+      categories.find((c) => c.id === draft.categoryId)?.name ||
+      typeLabels[draft.type],
+    type: draft.type,
+    amountCents: draft.amountCents,
+    categoryId: draft.categoryId,
+    accountId: draft.accountId,
+    toAccountId: draft.toAccountId,
+    note: draft.note?.trim() || undefined,
+    order,
+  });
+}
+
+/** "Llegaste al 80 % de Supermercado" when this expense crossed a threshold of its budget. */
+async function budgetMessage(
+  categoryId: string,
+  date: string,
+  addedCents: number,
+  categories: Category[],
+): Promise<string | null> {
+  const month = date.slice(0, 7);
+  const budget = budgetsFor(await db.budgets.toArray(), month).get(categoryId);
+  if (!budget) return null;
+  const rows = await db.transactions
+    .where('[categoryId+date]')
+    .between([categoryId, `${month}-01`], [categoryId, `${month}-31`], true, true)
+    .toArray();
+  const after = rows
+    .filter((t) => !t.deleted && t.type === 'expense')
+    .reduce((a, t) => a + arsCents(t), 0);
+  const name = categories.find((c) => c.id === categoryId)?.name ?? 'esta categoría';
+  const hit = crossedThreshold(after - addedCents, after, budget);
+  if (hit === 100) return `Te pasaste del presupuesto de ${name}`;
+  if (hit === 80) return `Llegaste al 80 % del presupuesto de ${name}`;
+  return null;
 }

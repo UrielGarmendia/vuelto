@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 async function add(page: Page, kind: 'Gasto' | 'Ingreso', digits: string, category: string) {
   await page.getByRole('button', { name: 'Cargar movimiento' }).click();

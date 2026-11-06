@@ -45,3 +45,11 @@ export function formatDay(iso: string, now = new Date()): string {
 export function formatShortDay(iso: string): string {
   return short.format(fromISODate(iso));
 }
+
+/** Same day `n` months later, clamped to the month's last day (31 Jan + 1 → 28/29 Feb). */
+export function addMonthsISO(iso: string, n: number, day = Number(iso.slice(8))): string {
+  const [y, m] = iso.split('-').map(Number);
+  const first = new Date(y!, m! - 1 + n, 1);
+  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  return toISODate(new Date(first.getFullYear(), first.getMonth(), Math.min(day, last)));
+}

@@ -1,8 +1,9 @@
 import type { Transaction } from '../../db/types';
+import { arsCents } from '../../lib/money';
 import { addDays, fromISODate } from '../../lib/dates';
 import { addMonths, daysInMonth } from '../home/summary';
 
-const counts = (tx: Transaction) => !tx.deleted && tx.type === 'expense' && tx.currency === 'ARS';
+const counts = (tx: Transaction) => !tx.deleted && tx.type === 'expense';
 
 export interface CategoryShift {
   categoryId: string;
@@ -22,9 +23,9 @@ export function categoryShifts(txs: readonly Transaction[], today: string): Cate
   for (const tx of txs) {
     if (!counts(tx) || !tx.categoryId) continue;
     if (tx.date.startsWith(month) && tx.date <= today)
-      now.set(tx.categoryId, (now.get(tx.categoryId) ?? 0) + tx.amountCents);
+      now.set(tx.categoryId, (now.get(tx.categoryId) ?? 0) + arsCents(tx));
     else if (tx.date.startsWith(prev) && tx.date <= cut)
-      before.set(tx.categoryId, (before.get(tx.categoryId) ?? 0) + tx.amountCents);
+      before.set(tx.categoryId, (before.get(tx.categoryId) ?? 0) + arsCents(tx));
   }
   return [...before]
     .map(([categoryId, beforeCents]) => {
@@ -50,7 +51,7 @@ export function weekdayPeak(txs: readonly Transaction[], today: string, weeks = 
   const byDay = Array<number>(7).fill(0);
   for (const tx of txs) {
     if (!counts(tx) || tx.date < from || tx.date > today) continue;
-    byDay[fromISODate(tx.date).getDay()]! += tx.amountCents;
+    byDay[fromISODate(tx.date).getDay()]! += arsCents(tx);
   }
   const total = byDay.reduce((a, b) => a + b, 0);
   if (total === 0) return null;

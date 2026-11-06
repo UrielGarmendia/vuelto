@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRight, Monitor, Moon, Sun, Tags, WalletCards } from 'lucide-react';
+import { ChevronRight, Monitor, Moon, Repeat, Sun, Tags, Target, WalletCards } from 'lucide-react';
+import { DollarSection } from './DollarSection';
 import { Link } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '../../db/db';
@@ -96,6 +97,18 @@ export function SettingsPage() {
                   icon: WalletCards,
                   count: counts?.accounts,
                 },
+                {
+                  to: '/ajustes/presupuestos',
+                  label: 'Presupuestos',
+                  icon: Target,
+                  count: undefined,
+                },
+                {
+                  to: '/ajustes/recurrentes',
+                  label: 'Recurrentes y favoritos',
+                  icon: Repeat,
+                  count: undefined,
+                },
               ].map(({ to, label, icon: Icon, count }) => (
                 <Link
                   key={to}
@@ -115,6 +128,9 @@ export function SettingsPage() {
           </Section>
         </div>
         <div className="grid gap-6">
+          <Section title="Dólar">
+            <DollarSection />
+          </Section>
           <Section title="Almacenamiento">
             <div className="flex min-h-14 items-center justify-between gap-4 px-4">
               <span className="text-[15px]">Datos protegidos</span>

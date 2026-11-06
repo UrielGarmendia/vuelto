@@ -1,4 +1,5 @@
 import type { Account, Transaction } from '../../db/types';
+import { arsCents } from '../../lib/money';
 
 /** Balance per account: initial + income − expense, with transfers moving money between accounts. */
 export function accountBalances(
@@ -28,13 +29,18 @@ export interface Totals {
   creditDebtCents: number;
 }
 
-// USD accounts stay out of the ARS total until currency conversion exists (phase 5).
-export function totals(accounts: readonly Account[], balances: Map<string, number>): Totals {
+/** In pesos; dollar accounts convert at `usdRate` (ARS per dollar) and are left out without one. */
+export function totals(
+  accounts: readonly Account[],
+  balances: Map<string, number>,
+  usdRate?: number,
+): Totals {
   let balanceCents = 0;
   let creditDebtCents = 0;
   for (const a of accounts) {
-    if (a.deleted || a.currency !== 'ARS') continue;
-    const b = balances.get(a.id) ?? 0;
+    if (a.deleted || (a.currency !== 'ARS' && !usdRate)) continue;
+    const raw = balances.get(a.id) ?? 0;
+    const b = a.currency === 'ARS' ? raw : Math.round(raw * usdRate!);
     balanceCents += b;
     if (a.kind === 'credit' && b < 0) creditDebtCents -= b;
   }
@@ -45,9 +51,9 @@ export function monthTotals(txs: readonly Transaction[], month: string) {
   let expenseCents = 0;
   let incomeCents = 0;
   for (const tx of txs) {
-    if (tx.deleted || !tx.date.startsWith(month) || tx.currency !== 'ARS') continue;
-    if (tx.type === 'expense') expenseCents += tx.amountCents;
-    else if (tx.type === 'income') incomeCents += tx.amountCents;
+    if (tx.deleted || !tx.date.startsWith(month)) continue;
+    if (tx.type === 'expense') expenseCents += arsCents(tx);
+    else if (tx.type === 'income') incomeCents += arsCents(tx);
   }
   return { expenseCents, incomeCents };
 }
@@ -69,9 +75,9 @@ export function addMonths(month: string, n: number): string {
 export function monthDaily(txs: readonly Transaction[], month: string): number[] {
   const series = Array<number>(daysInMonth(month)).fill(0);
   for (const tx of txs) {
-    if (tx.deleted || tx.type !== 'expense' || tx.currency !== 'ARS') continue;
+    if (tx.deleted || tx.type !== 'expense') continue;
     if (!tx.date.startsWith(month)) continue;
-    series[Number(tx.date.slice(8)) - 1]! += tx.amountCents;
+    series[Number(tx.date.slice(8)) - 1]! += arsCents(tx);
   }
   return series;
 }
@@ -81,9 +87,9 @@ export function pastMonths(txs: readonly Transaction[], month: string, n: number
   const months = Array.from({ length: n }, (_, i) => addMonths(month, -(i + 1)));
   const spent = new Map(months.map((m) => [m, 0]));
   for (const tx of txs) {
-    if (tx.deleted || tx.type !== 'expense' || tx.currency !== 'ARS') continue;
+    if (tx.deleted || tx.type !== 'expense') continue;
     const m = tx.date.slice(0, 7);
-    if (spent.has(m)) spent.set(m, spent.get(m)! + tx.amountCents);
+    if (spent.has(m)) spent.set(m, spent.get(m)! + arsCents(tx));
   }
   return months.map((m) => ({ month: m, days: daysInMonth(m), spentCents: spent.get(m)! }));
 }
@@ -97,11 +103,11 @@ export function pastPace(txs: readonly Transaction[], month: string, day: number
   const months = Array.from({ length: 12 }, (_, i) => addMonths(month, -(i + 1)));
   const sums = new Map(months.map((m) => [m, { upTo: 0, total: 0 }]));
   for (const tx of txs) {
-    if (tx.deleted || tx.type !== 'expense' || tx.currency !== 'ARS') continue;
+    if (tx.deleted || tx.type !== 'expense') continue;
     const s = sums.get(tx.date.slice(0, 7));
     if (!s) continue;
-    s.total += tx.amountCents;
-    if (Number(tx.date.slice(8)) <= day) s.upTo += tx.amountCents;
+    s.total += arsCents(tx);
+    if (Number(tx.date.slice(8)) <= day) s.upTo += arsCents(tx);
   }
   const used = months
     .map((m) => sums.get(m)!)

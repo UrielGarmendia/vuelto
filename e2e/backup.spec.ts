@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {

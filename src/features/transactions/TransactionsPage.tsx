@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ReceiptText, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { formatMoney } from '../../lib/money';
+import { arsCents, formatMoney } from '../../lib/money';
 import { TxDetail } from './TransactionDetailPage';
 import type { Transaction } from '../../db/types';
 import { todayISO } from '../../lib/dates';
@@ -94,7 +94,7 @@ export function TransactionsPage() {
               </section>
               {current && (
                 <aside aria-label="Detalle" className="sticky top-6 hidden lg:block">
-                  <TxDetail tx={current} />
+                  <TxDetail key={current.id} tx={current} />
                 </aside>
               )}
             </div>
@@ -127,9 +127,8 @@ function Summary({ txs }: { txs: Transaction[] }) {
   let income = 0;
   let expense = 0;
   for (const t of txs) {
-    if (t.currency !== 'ARS') continue;
-    if (t.type === 'income') income += t.amountCents;
-    else if (t.type === 'expense') expense += t.amountCents;
+    if (t.type === 'income') income += arsCents(t);
+    else if (t.type === 'expense') expense += arsCents(t);
   }
   return (
     <p className="mt-1 text-[15px] leading-snug text-muted">

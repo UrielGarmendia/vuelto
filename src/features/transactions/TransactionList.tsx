@@ -91,6 +91,7 @@ export function TransactionList({ transactions, categories, accounts, currentId,
                 tx={row.tx}
                 category={row.tx.categoryId ? categories.get(row.tx.categoryId) : undefined}
                 account={accounts.get(row.tx.accountId)}
+                toAccount={row.tx.toAccountId ? accounts.get(row.tx.toAccountId) : undefined}
                 onDelete={deleteTx}
                 onEdit={editTx}
                 first={rows[item.index - 1]?.kind !== 'tx'}

@@ -68,3 +68,9 @@ export function splitInstallments(totalCents: number, n: number): number[] {
   parts[n - 1] = totalCents - base * (n - 1);
   return parts;
 }
+
+/** A movement's amount in pesos: USD converts at the rate it was saved with. */
+export function arsCents(tx: { amountCents: number; currency: Currency; rateAtDate?: number }) {
+  if (tx.currency === 'ARS') return tx.amountCents;
+  return tx.rateAtDate ? Math.round(tx.amountCents * tx.rateAtDate) : 0;
+}

@@ -56,6 +56,20 @@ export const router = createBrowserRouter([
                 Component: m.AccountsPage,
               })),
           },
+          {
+            path: 'ajustes/presupuestos',
+            lazy: () =>
+              import('../features/budgets/BudgetsPage').then((m) => ({
+                Component: m.BudgetsPage,
+              })),
+          },
+          {
+            path: 'ajustes/recurrentes',
+            lazy: () =>
+              import('../features/transactions/RepeatsPage').then((m) => ({
+                Component: m.RepeatsPage,
+              })),
+          },
           { path: '*', element: <HomePage /> },
         ],
       },
