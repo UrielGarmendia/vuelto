@@ -8,3 +8,4 @@ playwright-report
 e2e/__screenshots__
 .vercel
 .taste-skill
+*.tsbuildinfo
