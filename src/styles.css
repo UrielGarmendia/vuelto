@@ -76,12 +76,12 @@
   --color-line: #d9dde3;
   --color-ink: #0b0c0e;
   --color-muted: #4c5260;
-  --color-faint: #5f6573;
-  --color-hue: #2a679f;
+  --color-faint: #555b68;
+  --color-hue: #245b8d;
   --color-on-hue: #ffffff;
-  --color-over: #995c00;
-  --color-positive: #1b7a33;
-  --color-negative: #c42b2b;
+  --color-over: #855000;
+  --color-positive: #17692b;
+  --color-negative: #ad2323;
   --color-idle: #d3d7dd;
   --rise: 6px 7px 16px #c4cad3, -6px -6px 14px #ffffff;
   --press: inset 4px 4px 9px #c4cad3, inset -4px -4px 9px #ffffff;
