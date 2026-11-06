@@ -1,4 +1,5 @@
 import { db as defaultDb, newMeta, type VueltoDB } from '../../db/db';
+import { fromISODate } from '../../lib/dates';
 import type { Recurring, Transaction } from '../../db/types';
 import { saveTransaction, tagsOf, type TxDraft } from './queries';
 import { dueOccurrences, installmentPlan, nextOccurrence, type Frequency } from './schedule';
@@ -52,6 +53,7 @@ export async function createTransaction(
       await db.recurring.add(rule);
       await db.transactions.add({
         ...newMeta(),
+        id: occurrenceId(rule.id, draft.date),
         ...clean(draft),
         tags: tagsOf(draft.note),
         recurringId: rule.id,
@@ -61,6 +63,9 @@ export async function createTransaction(
   }
   await saveTransaction(draft, undefined, db);
 }
+
+/** One id per rule and date, the same on every device. */
+export const occurrenceId = (ruleId: string, date: string) => `${ruleId}:${date}`;
 
 /** Creates the movements of every active rule that came due; runs when the app opens. */
 export async function runRecurring(today: string, db: VueltoDB = defaultDb): Promise<number> {
@@ -73,14 +78,21 @@ export async function runRecurring(today: string, db: VueltoDB = defaultDb): Pro
       const { due, next } = dueOccurrences(r.nextDate, r.frequency, anchor, today);
       const rows: Transaction[] = due.map((date) => ({
         ...(r.template as Omit<Transaction, keyof ReturnType<typeof newMeta>>),
-        ...newMeta(),
+        // Same id and an old timestamp on every device: copies made before a sync collapse
+        // into one, and any real edit or deletion of the occurrence wins over them.
+        ...newMeta(fromISODate(date).getTime()),
+        id: occurrenceId(r.id, date),
         date,
         tags: tagsOf(r.template.note),
         recurringId: r.id,
       }));
-      await db.transactions.bulkAdd(rows);
+      const existing = new Set(
+        (await db.transactions.bulkGet(rows.map((t) => t.id))).filter(Boolean).map((t) => t!.id),
+      );
+      const fresh = rows.filter((t) => !existing.has(t.id));
+      await db.transactions.bulkAdd(fresh);
       await db.recurring.update(r.id, { nextDate: next, updatedAt: Date.now(), synced: 0 });
-      created += rows.length;
+      created += fresh.length;
     }
     return created;
   });

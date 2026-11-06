@@ -69,4 +69,19 @@ describe('createTransaction', () => {
       createTransaction({ ...draft, type: 'transfer', toAccountId: 'a' }, {}, db),
     ).rejects.toThrow(RangeError);
   });
+
+  it('two devices generating the same occurrence end up with one copy, and edits win', async () => {
+    await createTransaction({ ...draft, date: '2026-09-30' }, { repeat: 'monthly' }, db);
+    const rule = (await db.recurring.toArray())[0]!;
+    await runRecurring('2026-10-30', db);
+    const id = `${rule.id}:2026-10-30`;
+    await db.transactions.update(id, { note: 'editado', updatedAt: Date.now() });
+    // Another device that has not synced yet makes its own copy of the same occurrence.
+    const other = new VueltoDB(`create-other-${crypto.randomUUID()}`);
+    await other.recurring.add({ ...rule, nextDate: '2026-10-30' });
+    await runRecurring('2026-10-30', other);
+    const theirs = (await other.transactions.get(id))!;
+    expect(theirs.updatedAt).toBeLessThan((await db.transactions.get(id))!.updatedAt);
+    await other.delete();
+  });
 });
