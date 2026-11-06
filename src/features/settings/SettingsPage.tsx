@@ -16,11 +16,9 @@ const themes: { value: Theme; label: string; icon: LucideIcon }[] = [
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="px-5 pt-6">
-      <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
-        {title}
-      </h2>
-      <div className="rounded-md bg-flat">{children}</div>
+    <section>
+      <h2 className="mb-2 px-1 text-[13px] font-semibold text-muted">{title}</h2>
+      <div className="overflow-hidden rounded-[22px] bg-flat">{children}</div>
     </section>
   );
 }
@@ -36,96 +34,107 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title="Ajustes" />
+      <div className="grid items-start gap-6 pt-2 lg:grid-cols-2">
+        <div className="grid gap-6">
+          <Section title="Apariencia">
+            <fieldset className="p-3">
+              <legend className="sr-only">Tema</legend>
+              <div className="well grid grid-cols-3 gap-1 rounded-full p-[5px]">
+                {themes.map(({ value, label, icon: Icon }) => (
+                  <label
+                    key={value}
+                    data-on={theme === value}
+                    className={`flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-full text-[14px] text-muted transition-colors has-checked:font-semibold has-checked:text-ink has-focus-visible:outline-2 has-focus-visible:outline-hue ${theme === value ? 'rel' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="theme"
+                      value={value}
+                      checked={theme === value}
+                      onChange={() => setTheme(value)}
+                      className="sr-only"
+                    />
+                    <Icon aria-hidden className="size-4" />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="flex min-h-14 cursor-pointer items-center justify-between gap-4 border-t border-line px-4 py-3">
+              <span>
+                <span className="block text-[15px]">Reducir animaciones</span>
+                <span className="block text-[13px] text-faint">
+                  Reemplaza movimientos por fundidos cortos
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={reduceMotion}
+                onChange={(e) => setReduceMotion(e.target.checked)}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden
+                className="well relative h-8 w-[52px] shrink-0 rounded-full transition-colors peer-checked:bg-hue peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-hue after:absolute after:top-1 after:left-1 after:size-6 after:rounded-full after:bg-[linear-gradient(145deg,var(--color-face-a),var(--color-face-b))] after:shadow-[var(--rise)] after:transition-transform after:duration-300 after:ease-[var(--ease-spring)] peer-checked:after:translate-x-5"
+              />
+            </label>
+          </Section>
 
-      <Section title="Apariencia">
-        <fieldset className="p-2">
-          <legend className="sr-only">Tema</legend>
-          <div className="grid grid-cols-3 gap-1 rounded-sm bg-flat-2 p-1">
-            {themes.map(({ value, label, icon: Icon }) => (
-              <label
-                key={value}
-                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-sm font-medium text-muted transition-colors has-checked:bg-flat-2 has-checked:text-ink has-checked: has-focus-visible:outline-2 has-focus-visible:outline-hue"
-              >
-                <input
-                  type="radio"
-                  name="theme"
-                  value={value}
-                  checked={theme === value}
-                  onChange={() => setTheme(value)}
-                  className="sr-only"
-                />
-                <Icon aria-hidden className="size-4" />
-                {label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <label className="flex min-h-14 cursor-pointer items-center justify-between gap-4 border-t border-line px-4 py-3">
-          <span>
-            <span className="block text-[15px]">Reducir animaciones</span>
-            <span className="block text-xs text-muted">
-              Reemplaza movimientos por fundidos cortos
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={reduceMotion}
-            onChange={(e) => setReduceMotion(e.target.checked)}
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden
-            className="relative h-7 w-12 shrink-0 rounded-full bg-flat-2 transition-colors peer-checked:bg-hue peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-hue after:absolute after:top-0.5 after:left-0.5 after:size-6 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"
-          />
-        </label>
-      </Section>
-
-      <Section title="Tus datos">
-        <nav aria-label="Datos" className="divide-y divide-line">
-          {[
-            {
-              to: '/ajustes/categorias',
-              label: 'Categorías',
-              icon: Tags,
-              count: counts?.categories,
-            },
-            {
-              to: '/ajustes/cuentas',
-              label: 'Cuentas',
-              icon: WalletCards,
-              count: counts?.accounts,
-            },
-          ].map(({ to, label, icon: Icon, count }) => (
-            <Link
-              key={to}
-              to={to}
-              viewTransition={viewTransitions}
-              className="flex min-h-14 items-center gap-3 px-4 active:bg-flat-2"
-            >
-              <Icon aria-hidden className="size-5 text-muted" />
-              <span className="flex-1 text-[15px]">{label}</span>
-              {count !== undefined && <span className="tabular text-sm text-muted">{count}</span>}
-              <ChevronRight aria-hidden className="size-4 text-muted" />
-            </Link>
-          ))}
-        </nav>
-      </Section>
-
-      <Section title="Almacenamiento">
-        <div className="flex min-h-14 items-center justify-between gap-4 px-4">
-          <span className="text-[15px]">Datos protegidos</span>
-          <span
-            className={`text-sm font-medium ${persisted?.value ? 'text-positive' : 'text-muted'}`}
-          >
-            {persisted === undefined ? '…' : persisted.value ? 'Sí, persistente' : 'No garantizado'}
-          </span>
+          <Section title="Tus datos">
+            <nav aria-label="Datos" className="divide-y divide-line">
+              {[
+                {
+                  to: '/ajustes/categorias',
+                  label: 'Categorías',
+                  icon: Tags,
+                  count: counts?.categories,
+                },
+                {
+                  to: '/ajustes/cuentas',
+                  label: 'Cuentas',
+                  icon: WalletCards,
+                  count: counts?.accounts,
+                },
+              ].map(({ to, label, icon: Icon, count }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  viewTransition={viewTransitions}
+                  className="hoverable flex min-h-14 items-center gap-3 px-4 active:bg-flat-2"
+                >
+                  <Icon aria-hidden className="size-5 text-muted" />
+                  <span className="flex-1 text-[15px]">{label}</span>
+                  {count !== undefined && (
+                    <span className="tabular text-sm text-muted">{count}</span>
+                  )}
+                  <ChevronRight aria-hidden className="size-4 text-muted" />
+                </Link>
+              ))}
+            </nav>
+          </Section>
         </div>
-      </Section>
+        <div className="grid gap-6">
+          <Section title="Almacenamiento">
+            <div className="flex min-h-14 items-center justify-between gap-4 px-4">
+              <span className="text-[15px]">Datos protegidos</span>
+              <span
+                className={`text-sm font-medium ${persisted?.value ? 'text-positive' : 'text-muted'}`}
+              >
+                {persisted === undefined
+                  ? '…'
+                  : persisted.value
+                    ? 'Sí, persistente'
+                    : 'No garantizado'}
+              </span>
+            </div>
+          </Section>
 
-      <Section title="Backup">
-        <BackupSection />
-      </Section>
+          <Section title="Backup">
+            <BackupSection />
+          </Section>
+        </div>
+      </div>
     </>
   );
 }

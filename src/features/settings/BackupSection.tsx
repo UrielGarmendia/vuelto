@@ -34,14 +34,14 @@ function Row({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left active:bg-flat-2 ${
+      className={`hoverable flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left active:bg-flat-2 ${
         danger ? 'text-negative' : ''
       }`}
     >
       <Icon aria-hidden className={`size-5 shrink-0 ${danger ? '' : 'text-muted'}`} />
       <span className="flex-1">
         <span className="block text-[15px]">{label}</span>
-        {hint && <span className="block text-xs text-muted">{hint}</span>}
+        {hint && <span className="block text-[13px] text-faint">{hint}</span>}
       </span>
     </button>
   );
@@ -194,7 +194,7 @@ export function BackupSection() {
           type="button"
           disabled={busy}
           onClick={() => void confirmRestore()}
-          className="min-h-12 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
+          className="rel go min-h-[52px] rounded-[18px] font-bold"
         >
           Restaurar
         </button>
@@ -221,14 +221,14 @@ export function BackupSection() {
             onChange={(e) => setTyped(e.target.value)}
             autoComplete="off"
             autoCapitalize="characters"
-            className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
+            className="well min-h-12 w-full rounded-[14px] px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
           />
         </label>
         <button
           type="button"
           disabled={busy || typed.trim().toUpperCase() !== CONFIRM_WORD}
           onClick={() => void confirmWipe()}
-          className="min-h-12 rounded-md bg-negative font-semibold text-white disabled:opacity-40 dark:text-ground"
+          className="min-h-[52px] rounded-[18px] bg-negative font-bold text-white disabled:opacity-40 dark:text-ground"
         >
           Borrar todo
         </button>

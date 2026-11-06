@@ -12,7 +12,7 @@ import { BackLink } from '../../ui/BackLink';
 import { accountBalances } from '../home/summary';
 import { useOrder } from '../categories/useOrder';
 import { AccountSheet } from './AccountSheet';
-import { accountKinds, textOn } from './kinds';
+import { accountKinds } from './kinds';
 
 export function AccountsPage() {
   const [sheet, setSheet] = useState<{ open: boolean; account?: Account; session: number }>({
@@ -41,10 +41,10 @@ export function AccountsPage() {
     setSheet((s) => ({ open: true, account, session: s.session + 1 }));
 
   return (
-    <div className="px-5 pt-3">
+    <div className="mx-auto max-w-[720px] pt-1">
       <BackLink to="/ajustes" label="Ajustes" />
-      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Cuentas</h1>
-      <p id="accounts-hint" className="mt-4 mb-2 px-1 text-xs text-muted">
+      <h1 className="mt-2 text-[22px] font-bold">Cuentas</h1>
+      <p id="accounts-hint" className="mt-2 mb-3 text-[13.5px] text-faint">
         Tocá una cuenta para editarla. Arrastrá desde la manija para reordenar (con teclado: Enter
         edita, Espacio agarra y las flechas mueven).
       </p>
@@ -53,7 +53,7 @@ export function AccountsPage() {
         axis="y"
         values={ids}
         onReorder={onReorder}
-        className="space-y-3"
+        className="grid gap-4 sm:grid-cols-2"
         aria-describedby="accounts-hint"
       >
         {ids.map((id) => {
@@ -72,20 +72,17 @@ export function AccountsPage() {
       <button
         type="button"
         onClick={() => open()}
-        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-flat-2 font-semibold"
+        className="rel mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] font-semibold"
       >
         <Plus aria-hidden className="size-4" /> Nueva cuenta
       </button>
 
       {archived.length > 0 && (
         <section aria-labelledby="archived-accounts" className="mt-8">
-          <h2
-            id="archived-accounts"
-            className="mb-2 px-1 text-xs font-semibold text-muted uppercase"
-          >
+          <h2 id="archived-accounts" className="mb-2 px-1 text-[13px] font-semibold text-muted">
             Archivadas
           </h2>
-          <ul className="divide-y divide-line rounded-md bg-flat">
+          <ul className="divide-y divide-line rounded-[22px] bg-flat">
             {archived.map((a) => (
               <li key={a.id} className="flex min-h-14 items-center gap-3 px-4 opacity-70">
                 <span
@@ -134,7 +131,6 @@ function AccountCard({
   const rotateX = useSpring(0, { stiffness: 300, damping: 30 });
   const rotateY = useSpring(0, { stiffness: 300, damping: 30 });
   const Kind = accountKinds[a.kind];
-  const fg = textOn(a.color);
 
   // Tilt follows the pointer (or finger) across the card, iOS Wallet style.
   function tilt(e: PointerEvent<HTMLElement>) {
@@ -160,39 +156,47 @@ function AccountCard({
       className="list-none [perspective:800px]"
     >
       <m.div
-        style={{ rotateX, rotateY, backgroundColor: a.color, color: fg }}
+        style={{ rotateX, rotateY }}
         onPointerMove={tilt}
         onPointerLeave={reset}
         onPointerCancel={reset}
-        className="relative overflow-hidden rounded-[22px]"
+        className="rel rounded-[22px]"
       >
-        {/* Sheen that makes the tilt read as a physical card. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-black/15"
-        />
         <button
           type="button"
           tabIndex={-1}
           onClick={onOpen}
-          className="relative flex aspect-[1.9] w-full flex-col justify-between p-5 text-left"
+          className="relative flex aspect-[2.1] w-full flex-col justify-between rounded-[22px] p-5 text-left [container-type:inline-size]"
         >
-          <span className="flex items-center gap-2 text-sm font-medium opacity-85">
-            <Kind.icon aria-hidden className="size-4" />
+          <span className="flex items-center gap-2.5 text-[13.5px] text-muted">
+            <span
+              aria-hidden
+              className="grid size-8 place-items-center rounded-[10px]"
+              style={{
+                color: a.color,
+                backgroundColor: `color-mix(in oklab, ${a.color} 20%, transparent)`,
+              }}
+            >
+              <Kind.icon className="size-4" />
+            </span>
             {Kind.label}
-            {a.currency !== 'ARS' && <span className="ml-1">· {a.currency}</span>}
+            {a.currency !== 'ARS' && <span>· {a.currency}</span>}
           </span>
-          <span>
-            <span className="block text-[17px] font-semibold">{a.name}</span>
-            <span className="tabular mt-0.5 block text-[28px] leading-tight font-semibold tracking-tight">
-              {formatMoney(balance, a.currency)}
+          <span className="min-w-0">
+            <span className="block truncate text-[16px] font-semibold">{a.name}</span>
+            <span
+              className={`wide mt-1 block truncate leading-tight font-extrabold ${balance < 0 ? 'text-negative' : ''}`}
+              style={{ fontSize: 'min(30px, 9cqw)' }}
+            >
+              {balance < 0 ? '−' : ''}
+              {formatMoney(Math.abs(balance), a.currency)}
             </span>
           </span>
         </button>
         <span
           aria-hidden
           onPointerDown={(e) => controls.start(e)}
-          className="absolute top-2 right-2 grid size-11 cursor-grab touch-none place-items-center opacity-70"
+          className="absolute top-2 right-2 grid size-11 cursor-grab touch-none place-items-center text-faint"
         >
           <GripVertical className="size-5" />
         </span>

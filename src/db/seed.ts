@@ -45,7 +45,7 @@ const accounts: Seed<Account>[] = [
     kind: 'credit',
     currency: 'ARS',
     initialBalanceCents: 0,
-    color: '#1C1A17',
+    color: '#7A6BC2',
   },
 ];
 

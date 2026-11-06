@@ -39,14 +39,14 @@ export function CategoriesPage() {
     setSheet((s) => ({ open: true, category, session: s.session + 1 }));
 
   return (
-    <div className="px-5 pt-3">
+    <div className="mx-auto max-w-[720px] pt-1">
       <BackLink to="/ajustes" label="Ajustes" />
-      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Categorías</h1>
+      <h1 className="mt-2 text-[22px] font-bold">Categorías</h1>
 
       <div
         role="radiogroup"
         aria-label="Tipo de categoría"
-        className="mt-4 grid grid-cols-2 rounded-full bg-flat-2 p-1"
+        className="well mt-4 grid max-w-xs grid-cols-2 gap-1 rounded-full p-[5px]"
       >
         {(['expense', 'income'] as const).map((k) => (
           <button
@@ -55,14 +55,14 @@ export function CategoriesPage() {
             role="radio"
             aria-checked={type === k}
             onClick={() => setType(k)}
-            className="min-h-10 rounded-full text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink"
+            className={`min-h-9 rounded-full text-[14px] text-muted aria-checked:font-semibold aria-checked:text-ink ${type === k ? 'rel' : ''}`}
           >
             {k === 'expense' ? 'Gastos' : 'Ingresos'}
           </button>
         ))}
       </div>
 
-      <p id="reorder-hint" className="mt-4 mb-2 px-1 text-xs text-muted">
+      <p id="reorder-hint" className="mt-4 mb-3 text-[13.5px] text-faint">
         Arrastrá desde la manija para reordenar. Con teclado: Enter para editar, Espacio para
         agarrar y flechas para mover.
       </p>
@@ -70,7 +70,7 @@ export function CategoriesPage() {
         axis="y"
         values={ids}
         onReorder={onReorder}
-        className="divide-y divide-line overflow-hidden rounded-md bg-flat"
+        className="divide-y divide-line overflow-hidden rounded-[22px] bg-flat"
         aria-describedby="reorder-hint"
       >
         {ids.map((id) => {
@@ -82,17 +82,17 @@ export function CategoriesPage() {
       <button
         type="button"
         onClick={() => open()}
-        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-flat-2 font-semibold"
+        className="rel mt-5 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] font-semibold"
       >
         <Plus aria-hidden className="size-4" /> Nueva categoría
       </button>
 
       {archived.length > 0 && (
         <section aria-labelledby="archived-label" className="mt-8">
-          <h2 id="archived-label" className="mb-2 px-1 text-xs font-semibold text-muted uppercase">
+          <h2 id="archived-label" className="mb-2 px-1 text-[13px] font-semibold text-muted">
             Archivadas
           </h2>
-          <ul className="divide-y divide-line rounded-md bg-flat">
+          <ul className="divide-y divide-line rounded-[22px] bg-flat">
             {archived.map((c) => (
               <li key={c.id} className="flex min-h-14 items-center gap-3 px-4 opacity-70">
                 <CategoryIcon icon={c.icon} color={c.color} size="sm" />
