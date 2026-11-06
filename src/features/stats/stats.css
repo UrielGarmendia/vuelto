@@ -1,0 +1,49 @@
+.donut path {
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    opacity 200ms ease-out;
+  cursor: pointer;
+}
+/* Arcs sweep in once, one after another. */
+.donut path {
+  animation: donut-in 640ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes donut-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) rotate(-8deg);
+  }
+}
+.donut svg {
+  transform-origin: center;
+}
+.donut path {
+  transform-origin: 150px 150px;
+}
+.bars rect.bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bar-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+.bars text {
+  fill: var(--color-faint);
+  font-size: 11px;
+  font-family: var(--font-sans);
+}
+@media (prefers-reduced-motion: reduce) {
+  .donut path,
+  .bars rect.bar {
+    animation: none;
+    transition: none;
+  }
+}
+html[data-reduce-motion='true'] .donut path,
+html[data-reduce-motion='true'] .bars rect.bar {
+  animation: none;
+  transition: none;
+}
