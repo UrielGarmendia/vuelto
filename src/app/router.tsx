@@ -7,15 +7,6 @@ export const router = createBrowserRouter([
   {
     element: <Root />,
     children: [
-      // Design lab: registered only in development, so production builds never include it.
-      ...(import.meta.env.DEV
-        ? [
-            {
-              path: 'lab',
-              lazy: () => import('../lab/LabPage').then((m) => ({ Component: m.LabPage })),
-            },
-          ]
-        : []),
       {
         path: 'bienvenida',
         lazy: () =>

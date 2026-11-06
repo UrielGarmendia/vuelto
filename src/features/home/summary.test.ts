@@ -3,13 +3,11 @@ import type { Account, Transaction } from '../../db/types';
 import {
   accountBalances,
   addMonths,
-  dailySpending,
   daysInMonth,
   monthDaily,
   monthTotals,
   pastMonths,
   pastPace,
-  topCategories,
   totals,
 } from './summary';
 
@@ -111,18 +109,6 @@ describe('month and series', () => {
 
   it('totals a month', () => {
     expect(monthTotals(txs, '2026-11')).toEqual({ expenseCents: 450, incomeCents: 1000 });
-  });
-
-  it('builds a daily spending series ending today', () => {
-    const s = dailySpending(txs, '2026-11-03', 5);
-    expect(s).toEqual([0, 70, 100, 0, 350]); // 30 Oct … 3 Nov
-  });
-
-  it('ranks top categories of the month', () => {
-    expect(topCategories(txs, '2026-11')).toEqual([
-      { categoryId: 'b', cents: 300 },
-      { categoryId: 'a', cents: 150 },
-    ]);
   });
 });
 

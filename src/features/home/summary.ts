@@ -1,5 +1,4 @@
 import type { Account, Transaction } from '../../db/types';
-import { addDays } from '../../lib/dates';
 
 /** Balance per account: initial + income − expense, with transfers moving money between accounts. */
 export function accountBalances(
@@ -51,33 +50,6 @@ export function monthTotals(txs: readonly Transaction[], month: string) {
     else if (tx.type === 'income') incomeCents += tx.amountCents;
   }
   return { expenseCents, incomeCents };
-}
-
-/** Spending per day for the `days` days ending on `endISO` (oldest first). */
-export function dailySpending(txs: readonly Transaction[], endISO: string, days = 30): number[] {
-  const start = addDays(endISO, -(days - 1));
-  const index = new Map(Array.from({ length: days }, (_, i) => [addDays(start, i), i]));
-  const series = Array<number>(days).fill(0);
-  for (const tx of txs) {
-    if (tx.deleted || tx.type !== 'expense' || tx.currency !== 'ARS') continue;
-    const i = index.get(tx.date);
-    if (i !== undefined) series[i]! += tx.amountCents;
-  }
-  return series;
-}
-
-export function topCategories(txs: readonly Transaction[], month: string, n = 3) {
-  const byCat = new Map<string, number>();
-  for (const tx of txs) {
-    if (tx.deleted || tx.type !== 'expense' || !tx.categoryId || !tx.date.startsWith(month))
-      continue;
-    if (tx.currency !== 'ARS') continue;
-    byCat.set(tx.categoryId, (byCat.get(tx.categoryId) ?? 0) + tx.amountCents);
-  }
-  return [...byCat]
-    .map(([categoryId, cents]) => ({ categoryId, cents }))
-    .sort((a, b) => b.cents - a.cents)
-    .slice(0, n);
 }
 
 /** "2026-11" → 30. */
