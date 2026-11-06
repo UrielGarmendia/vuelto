@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 
 // Design lab (development only): three directions for Inicio and the entry sheet.
+const Mix = lazy(() => import('./d/Mix'));
+
 const directions = {
+  d: { name: 'D · Noche con relieve', Component: Mix },
   a: { name: 'A · Relieve', Component: lazy(() => import('./a/Relieve')) },
   b: { name: 'B · Ticket', Component: lazy(() => import('./b/Ticket')) },
   c: { name: 'C · Noche', Component: lazy(() => import('./c/Noche')) },
@@ -14,11 +17,16 @@ const FONTS =
 
 export function LabPage() {
   const [params, setParams] = useSearchParams();
-  const d = (params.get('d') ?? 'a') as Dir;
+  const d = (params.get('d') ?? 'd') as Dir;
   const t = params.get('t') === 'dark' ? 'dark' : 'light';
-  const v = params.get('v') === 'sheet' ? 'sheet' : 'home';
+  const rawView = params.get('v');
+  const v = rawView === 'sheet' || rawView === 'list' || rawView === 'stats' ? rawView : 'home';
+  const dial =
+    (['budget', 'avg', 'none'] as const).find((x) => x === params.get('dial')) ?? 'budget';
   const bare = params.has('bare');
-  const { Component } = directions[d] ?? directions.a;
+  // A, B and C share one signature; D (the mix) takes its own props below.
+  const Other = (d === 'd' || !directions[d] ? directions.a : directions[d])
+    .Component as typeof directions.a.Component;
 
   useEffect(() => {
     const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: FONTS });
@@ -35,7 +43,11 @@ export function LabPage() {
   return (
     <>
       <Suspense>
-        <Component key={`${d}-${t}-${v}`} theme={t} view={v} />
+        {d === 'd' ? (
+          <Mix key={`${t}-${v}-${dial}`} theme={t} view={v} dial={dial} seg={params.get('seg')} />
+        ) : (
+          <Other key={`${d}-${t}-${v}`} theme={t} view={v === 'sheet' ? 'sheet' : 'home'} />
+        )}
       </Suspense>
       {!bare && (
         <div
@@ -68,12 +80,15 @@ export function LabPage() {
           >
             {t === 'dark' ? 'Oscuro' : 'Claro'}
           </button>
-          <button
-            onClick={() => set('v', v === 'sheet' ? 'home' : 'sheet')}
-            style={{ padding: '4px 8px' }}
-          >
-            {v === 'sheet' ? 'Sheet' : 'Inicio'}
-          </button>
+          {(['home', 'sheet', 'list', 'stats'] as const).map((x) => (
+            <button
+              key={x}
+              onClick={() => set('v', x)}
+              style={{ padding: '4px 8px', opacity: v === x ? 1 : 0.6 }}
+            >
+              {{ home: 'Inicio', sheet: 'Sheet', list: 'Movimientos', stats: 'Estadísticas' }[x]}
+            </button>
+          ))}
         </div>
       )}
     </>

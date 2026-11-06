@@ -145,8 +145,21 @@ export const txs: LabTx[] = [
   { day: 22, kind: 'expense', cat: 'comida', note: 'Almuerzo', amount: $(14500), account: 'mp' },
 ];
 
-/** October, per category, for the month-over-month insight. */
-export const lastMonth: Record<string, number> = { comida: $(74300), super: $(181200) };
+/** October, per category, for the month-over-month comparisons. */
+export const lastMonth: Record<string, number> = {
+  alquiler: $(520000),
+  super: $(181200),
+  prepaga: $(154000),
+  expensas: $(95000),
+  comida: $(74300),
+  nafta: $(52000),
+  servicios: $(41500),
+  celular: $(38900),
+  salidas: $(31000),
+  transporte: $(26000),
+  suscripciones: $(19300),
+  salud: $(18800),
+};
 export const budget = $(1500000);
 
 // Derived figures: every total on screen comes from the rows above.
@@ -196,6 +209,21 @@ export const insight = {
 };
 
 export const recent = [...txs].reverse().slice(0, 5);
+
+/** Spending of the eleven previous months, oldest first; October comes from its categories. */
+export const history: { label: string; days: number; cents: number }[] = [
+  { label: 'dic', days: 31, cents: $(1180000) },
+  { label: 'ene', days: 31, cents: $(1050000) },
+  { label: 'feb', days: 28, cents: $(980000) },
+  { label: 'mar', days: 31, cents: $(1120000) },
+  { label: 'abr', days: 30, cents: $(1150000) },
+  { label: 'may', days: 31, cents: $(1210000) },
+  { label: 'jun', days: 30, cents: $(1190000) },
+  { label: 'jul', days: 31, cents: $(1330000) },
+  { label: 'ago', days: 31, cents: $(1290000) },
+  { label: 'sep', days: 30, cents: $(1360000) },
+  { label: 'oct', days: 31, cents: Object.values(lastMonth).reduce((a, b) => a + b, 0) },
+];
 
 /** Running total of spending at the end of each day of the month. */
 export const cumulative = daily.reduce<number[]>((acc, c) => [...acc, (acc.at(-1) ?? 0) + c], []);
