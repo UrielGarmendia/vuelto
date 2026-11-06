@@ -1,4 +1,5 @@
-import { Plus, Search } from 'lucide-react';
+import { CloudOff, Plus, Search } from 'lucide-react';
+import { useSync } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
 import { Wordmark } from '../ui/Wordmark';
 import { useOpenSearch } from './nav';
@@ -17,6 +18,7 @@ export function TopBar() {
         <Search aria-hidden className="size-4" /> Buscar movimientos
         <kbd className="ml-auto font-sans text-[12px]">/</kbd>
       </button>
+      <Reconnect />
       <button
         type="button"
         onClick={openSearch}
@@ -34,5 +36,21 @@ export function TopBar() {
         <Plus aria-hidden className="size-[17px]" strokeWidth={2.4} /> Cargar
       </button>
     </div>
+  );
+}
+
+/** Discreet: only when the Google session expired and a tap is needed to renew it. */
+function Reconnect() {
+  const status = useSync((s) => s.status);
+  const reconnect = useSync((s) => s.reconnect);
+  if (status !== 'reconnect') return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void reconnect().catch(() => undefined)}
+      className="ml-auto flex min-h-9 items-center gap-1.5 rounded-full bg-flat px-3 text-[12.5px] font-medium text-muted"
+    >
+      <CloudOff aria-hidden className="size-3.5 text-over" /> Reconectar con Google
+    </button>
   );
 }

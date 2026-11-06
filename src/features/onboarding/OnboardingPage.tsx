@@ -2,6 +2,9 @@ import { HandCoins, ShieldCheck, WifiOff } from 'lucide-react';
 import { m } from 'motion/react';
 import { useNavigate } from 'react-router';
 import { ease, spring } from '../../ui/motion';
+import { availability } from '../sync/google';
+import { useSync } from '../sync/useSync';
+import { toast } from '../../ui/toast';
 import { markOnboarded } from './onboarded';
 
 const points = [
@@ -105,13 +108,31 @@ export function OnboardingPage() {
         ))}
       </ul>
 
-      <button
-        type="button"
-        onClick={start}
-        className="rel go mt-auto min-h-[58px] w-full rounded-[20px] text-[17px] font-bold"
-      >
-        Empezar
-      </button>
+      <div className="mt-auto grid gap-2 pt-8">
+        <button
+          type="button"
+          onClick={start}
+          className="rel go min-h-[58px] w-full rounded-[20px] text-[17px] font-bold"
+        >
+          Empezar
+        </button>
+        {availability() === 'ready' && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await useSync.getState().signIn();
+                start();
+              } catch {
+                toast('Google no respondió. Podés iniciar sesión después desde Ajustes.');
+              }
+            }}
+            className="min-h-12 text-[15px] font-semibold text-hue"
+          >
+            Ya uso Vuelto: iniciar sesión con Google
+          </button>
+        )}
+      </div>
     </main>
   );
 }

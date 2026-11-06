@@ -128,3 +128,12 @@ test('keyboard shortcuts: N opens a new movement, / jumps to search', async ({ p
   await expect(page).toHaveURL(/\/movimientos$/);
   await expect(page.getByRole('searchbox', { name: 'Buscar movimientos' })).toBeFocused();
 });
+
+test('privacy page is public and Google login explains why it is off', async ({ page }) => {
+  await page.goto('/privacidad');
+  await expect(page.getByRole('heading', { name: 'Privacidad', level: 1 })).toBeVisible();
+  await expect(page.getByText(/drive\.appdata/)).toBeVisible();
+  await page.goto('/ajustes');
+  await expect(page.getByText(/todavía no está configurado/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar sesión con Google' })).toHaveCount(0);
+});

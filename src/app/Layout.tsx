@@ -10,6 +10,7 @@ import {
 } from 'react-router';
 import { isOnboarded } from '../features/onboarding/onboarded';
 import { runRecurring } from '../features/transactions/create';
+import { useSyncTriggers } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
 import { todayISO } from '../lib/dates';
 import { fade } from '../ui/motion';
@@ -40,6 +41,8 @@ export function Root() {
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
         <Outlet />
+        {/* Outside #app (fixed UI) and above every route, onboarding included. */}
+        <Toaster />
         {/* New pages start at the top; back/forward returns to where you were. */}
         <ScrollRestoration />
       </MotionConfig>
@@ -66,6 +69,7 @@ export function Layout() {
 
   useShortcuts();
   useRecurring();
+  useSyncTriggers();
 
   return (
     <>
@@ -92,7 +96,6 @@ export function Layout() {
       <TabBar />
       <InstallBanner />
       <UpdatePrompt />
-      <Toaster />
       <Suspense>
         <TransactionSheet />
       </Suspense>

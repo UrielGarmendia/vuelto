@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronRight, Monitor, Moon, Repeat, Sun, Tags, Target, WalletCards } from 'lucide-react';
+import { GoogleSection } from '../sync/GoogleSection';
 import { DollarSection } from './DollarSection';
 import { Link } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
@@ -37,6 +38,9 @@ export function SettingsPage() {
       <PageHeader title="Ajustes" />
       <div className="grid items-start gap-6 pt-2 lg:grid-cols-2">
         <div className="grid gap-6">
+          <Section title="Cuenta">
+            <GoogleSection />
+          </Section>
           <Section title="Apariencia">
             <fieldset className="p-3">
               <legend className="sr-only">Tema</legend>

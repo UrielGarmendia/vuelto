@@ -8,6 +8,11 @@ export const router = createBrowserRouter([
     element: <Root />,
     children: [
       {
+        path: 'privacidad',
+        lazy: () =>
+          import('../features/privacy/PrivacyPage').then((m) => ({ Component: m.PrivacyPage })),
+      },
+      {
         path: 'bienvenida',
         lazy: () =>
           import('../features/onboarding/OnboardingPage').then((m) => ({
