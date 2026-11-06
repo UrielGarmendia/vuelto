@@ -75,8 +75,7 @@ test('deletes from the detail and restores with undo', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Regalos/ })).toBeVisible();
 });
 
-test('swipe left deletes, swipe right opens the editor', async ({ page }, info) => {
-  test.skip(info.project.name === 'iphone-15', 'Mouse drag emulation is covered on Chromium');
+test('swipe left deletes, swipe right opens the editor', async ({ page }) => {
   await page.goto('/movimientos');
   await addExpense(page, '100', 'Mascotas');
   const row = page.getByRole('link', { name: /Mascotas/ });

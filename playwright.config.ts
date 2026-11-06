@@ -18,20 +18,24 @@ export default defineConfig({
       ],
     },
   },
+  // No device is primary: engines, input types and sizes are covered equally.
   projects: [
     {
-      name: 'iphone-15',
-      use: { ...devices['iPhone 15'] },
-      // Playwright's WebKit build for Windows intermittently crashes the tab during view
-      // transitions that involve Inicio (never seen in Chromium). Retries keep the suite usable;
-      // crashes still show up as "flaky" in the report. Pending check on a real iPhone.
-      retries: 2,
+      name: 'phone-webkit',
+      use: { ...devices['iPhone 15'], viewport: { width: 390, height: 844 } },
     },
-    { name: 'pixel-7', use: { ...devices['Pixel 7'] } },
     {
-      // Small low-end Android.
-      name: 'android-360',
+      name: 'phone-android',
+      use: { ...devices['Pixel 7'], viewport: { width: 412, height: 915 } },
+    },
+    {
+      name: 'phone-small',
       use: { ...devices['Pixel 7'], viewport: { width: 360, height: 780 }, deviceScaleFactor: 2 },
+    },
+    { name: 'tablet', use: { ...devices['iPad Pro 11'], viewport: { width: 820, height: 1180 } } },
+    {
+      name: 'desktop',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
   ],
   webServer: {

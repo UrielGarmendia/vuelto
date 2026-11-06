@@ -34,9 +34,7 @@ for (const theme of ['light', 'dark'] as const) {
 test('tab bar navigates between sections', async ({ page }) => {
   await setPrefs(page, { installDismissed: true });
   await page.goto('/');
-  // Playwright's WebKit for Windows crashes if a view transition starts in the first ~300 ms
-  // after boot (see CLAUDE.local.md); wait until the app has settled.
-  await expect(page.getByText('Tu saldo')).toBeVisible();
+  // Tap right away: a tab tap during boot used to crash WebKit with view transitions.
   const nav = page.getByRole('navigation', { name: 'Principal' });
   await nav.getByRole('link', { name: 'Ajustes' }).click();
   await expect(page).toHaveURL(/\/ajustes$/);
@@ -54,10 +52,14 @@ test('theme choice persists across reloads', async ({ page }) => {
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#141210');
 });
 
-test('install banner shows the right instructions per platform', async ({ page }, info) => {
+test('install banner shows the right instructions per platform', async ({
+  page,
+  browserName,
+}, info) => {
   await page.goto('/');
   const banner = page.getByRole('complementary', { name: 'Instalá Vuelto' });
-  if (info.project.name === 'iphone-15') {
+  // The WebKit projects emulate iOS/iPadOS, which only offer Share → Add to Home Screen.
+  if (browserName === 'webkit') {
     await expect(banner).toContainText('Agregar a inicio');
     await expect(banner).toHaveCSS('opacity', '1');
     await expect(banner.getByRole('button', { name: 'Instalar' })).toHaveCount(0);
@@ -71,8 +73,7 @@ test('install banner shows the right instructions per platform', async ({ page }
   }
 });
 
-test('works offline after the first visit', async ({ page, context }, info) => {
-  test.skip(info.project.name === 'iphone-15', 'Playwright WebKit does not run service workers');
+test('works offline after the first visit', async ({ page, context }) => {
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
@@ -82,10 +83,7 @@ test('works offline after the first visit', async ({ page, context }, info) => {
   await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
 });
 
-test('returning to Inicio from Ajustes with a view transition', async ({ page }, info) => {
-  // Playwright's WebKit build for Windows crashes intermittently (~20%) on this exact
-  // transition; not reproduced in Chromium. Verify on a real iPhone before trusting the skip.
-  test.skip(info.project.name === 'iphone-15', 'WebKit-on-Windows crash, see CLAUDE.local.md');
+test('returns to Inicio from Ajustes', async ({ page }) => {
   await page.goto('/ajustes');
   await page
     .getByRole('navigation', { name: 'Principal' })
@@ -94,11 +92,7 @@ test('returning to Inicio from Ajustes with a view transition', async ({ page },
   await expect(page.getByText('Tu saldo')).toBeVisible();
 });
 
-test('a new page starts at the top, going back restores the scroll', async ({ page }, info) => {
-  test.skip(
-    info.project.name === 'iphone-15',
-    'Known WebKit-on-Windows view transition crash on back',
-  );
+test('a new page starts at the top, going back restores the scroll', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 500 }); // make Ajustes scroll everywhere
   await setPrefs(page, { installDismissed: true });
   await page.goto('/ajustes');
