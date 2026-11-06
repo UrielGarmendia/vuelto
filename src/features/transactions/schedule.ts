@@ -36,3 +36,10 @@ export function dueOccurrences(
   }
   return { due, next: d };
 }
+
+/** What a repeating amount costs per month (weeks average 52 a year). */
+export function monthlyCost(amountCents: number, frequency: Frequency): number {
+  if (frequency === 'monthly') return amountCents;
+  if (frequency === 'yearly') return Math.round(amountCents / 12);
+  return Math.round((amountCents * 52) / 12);
+}

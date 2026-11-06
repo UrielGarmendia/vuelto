@@ -3,7 +3,8 @@ import { Star, Trash2 } from 'lucide-react';
 import { db } from '../../db/db';
 import type { Recurring, Template } from '../../db/types';
 import { formatShortDay } from '../../lib/dates';
-import { formatMoney } from '../../lib/money';
+import { arsCents, formatMoney } from '../../lib/money';
+import { monthlyCost } from './schedule';
 import { BackLink } from '../../ui/BackLink';
 import { CategoryIcon } from '../../ui/CategoryIcon';
 import { toast } from '../../ui/toast';
@@ -27,11 +28,39 @@ export function RepeatsPage() {
     [],
   );
   const catalog = useCatalog();
+  // Subscriptions and fixed costs, as a monthly figure (pesos and dollars at their saved rate).
+  const subscriptions = (rules ?? [])
+    .filter((r) => r.active && r.template.type === 'expense')
+    .reduce(
+      (a, r) =>
+        a +
+        monthlyCost(
+          arsCents({
+            amountCents: r.template.amountCents ?? 0,
+            currency: r.template.currency ?? 'ARS',
+            rateAtDate: r.template.rateAtDate,
+          }),
+          r.frequency,
+        ),
+      0,
+    );
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
       <BackLink to="/ajustes" label="Ajustes" />
       <h1 className="mt-2 text-[22px] font-bold">Recurrentes y favoritos</h1>
+      {subscriptions > 0 && (
+        <section aria-label="Lo que se va solo" className="rel mt-4 rounded-[22px] p-5">
+          <p className="text-[13.5px] text-muted">Tus gastos que se repiten suman</p>
+          <p className="wide mt-1 text-[28px] leading-tight font-extrabold">
+            {formatMoney(subscriptions)}
+            <span className="font-sans text-[15px] font-medium text-muted"> por mes</span>
+          </p>
+          <p className="mt-1 text-[13.5px] text-faint">
+            {formatMoney(subscriptions * 12)} por año, contando los activos.
+          </p>
+        </section>
+      )}
 
       <section aria-labelledby="rules-label" className="mt-5">
         <h2 id="rules-label" className="mb-2 px-1 text-[13px] font-semibold text-muted">

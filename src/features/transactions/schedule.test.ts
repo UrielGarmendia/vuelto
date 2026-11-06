@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addMonthsISO } from '../../lib/dates';
-import { dueOccurrences, installmentPlan, nextOccurrence } from './schedule';
+import { dueOccurrences, installmentPlan, monthlyCost, nextOccurrence } from './schedule';
 
 describe('addMonthsISO', () => {
   it('clamps to the end of shorter months and keeps the anchor day', () => {
@@ -33,5 +33,13 @@ describe('recurring', () => {
       next: '2026-12-10',
     });
     expect(dueOccurrences('2026-12-01', 'monthly', 1, '2026-11-10').due).toEqual([]);
+  });
+});
+
+describe('monthlyCost', () => {
+  it('brings every frequency to a month', () => {
+    expect(monthlyCost(1200, 'monthly')).toBe(1200);
+    expect(monthlyCost(12000, 'yearly')).toBe(1000);
+    expect(monthlyCost(300, 'weekly')).toBe(1300);
   });
 });

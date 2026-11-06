@@ -8,7 +8,8 @@ import { formatMoney } from '../../lib/money';
 import { EmptyState } from '../../ui/EmptyState';
 import { PageHeader } from '../../ui/PageHeader';
 import { Skeleton } from '../../ui/Skeleton';
-import { addMonths, daysInMonth, pastPace } from '../home/summary';
+import { addMonths, daysInMonth, monthDaily, pastPace } from '../home/summary';
+import { CalendarHeat } from './CalendarHeat';
 import { projectMonth } from '../insights/insights';
 import { useFilters } from '../transactions/filters';
 import { listTransactions } from '../transactions/queries';
@@ -178,6 +179,7 @@ export function StatsPage() {
                 name={name}
               />
             </div>
+            <CalendarHeat month={month} daily={monthDaily(txs, month)} lastDay={elapsed} />
             <WeekdayBars values={weekdaySpending(txs, month, elapsed)} />
           </>
         ) : (
@@ -481,7 +483,7 @@ function WeekdayBars({ values }: { values: number[] }) {
   const max = Math.max(...values, 1);
   const peak = values.indexOf(Math.max(...values));
   return (
-    <section aria-labelledby="weekday-label" className="rounded-[24px] bg-flat p-5 lg:col-span-2">
+    <section aria-labelledby="weekday-label" className="rounded-[24px] bg-flat p-5">
       <div className="flex items-baseline justify-between">
         <h2 id="weekday-label" className="text-[16px] font-semibold">
           Por día de la semana
