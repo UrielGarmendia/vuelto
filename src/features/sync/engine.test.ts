@@ -113,4 +113,24 @@ describe('syncAll', () => {
     expect((await a.transactions.get(id))!.note).toBe('editado');
     expect((await a.transactions.get(id))!.synced).toBe(0);
   });
+
+  it('keeps a change pending when the upload fails, and uploads it next time', async () => {
+    const { drive, files } = fakeDrive();
+    const a = await device();
+    await expense(a, 'café');
+    await syncAll(drive, a);
+    const id = await expense(a, 'nafta');
+    const broken: Drive = {
+      ...drive,
+      update: async () => {
+        throw new Error('network');
+      },
+    };
+    await expect(syncAll(broken, a)).rejects.toThrow('network');
+    expect((await a.transactions.get(id))!.synced).toBe(0);
+    await syncAll(drive, a);
+    expect((await a.transactions.get(id))!.synced).toBe(1);
+    const body = [...files.values()].find((f) => f.name === 'vuelto-tx-2026.json')!.body;
+    expect(body).toContain('nafta');
+  });
 });

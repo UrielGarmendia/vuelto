@@ -57,8 +57,12 @@ async function localTables(db: VueltoDB, file: string): Promise<Tables> {
   };
 }
 
-/** Stores merged rows unless the local copy changed while the sync was in flight. */
-async function apply(db: VueltoDB, merged: Tables) {
+/**
+ * Stores merged rows. Before the upload only what Drive brought (newer than the device) is
+ * written; once Drive has the merge, the device's own rows are marked synced. A row edited
+ * while the sync was in flight is left alone either way.
+ */
+async function apply(db: VueltoDB, merged: Tables, uploaded: boolean) {
   const names = Object.keys(merged);
   await db.transaction('rw', names, async () => {
     for (const name of names) {
@@ -71,7 +75,10 @@ async function apply(db: VueltoDB, merged: Tables) {
       );
       await table.bulkPut(
         rows
-          .filter((r) => (current.get(r.id)?.updatedAt ?? -1) <= r.updatedAt)
+          .filter((r) => {
+            const mine = current.get(r.id)?.updatedAt ?? -1;
+            return uploaded ? mine <= r.updatedAt : mine < r.updatedAt;
+          })
           .map((r) => ({ ...r, synced: 1 })),
       );
     }
@@ -91,16 +98,25 @@ async function syncFile(drive: Drive, db: VueltoDB, name: string, remote?: Drive
     const merged: Tables = Object.fromEntries(
       names.map((n) => [n, mergeRecords(local[n]!.map(strip), theirs[n]!)]),
     );
-    await apply(db, merged);
-    if (file && same(merged, theirs)) return file.version;
+    await apply(db, merged, false);
+    if (file && same(merged, theirs)) {
+      await apply(db, merged, true);
+      return file.version;
+    }
     const body = { app: 'vuelto', version: 1, tables: merged };
-    if (!file) return (await drive.create(name, body)).version;
+    if (!file) {
+      const created = await drive.create(name, body);
+      await apply(db, merged, true);
+      return created.version;
+    }
     // Someone wrote since we read: start over with their version.
     if ((await drive.version(file.id)) !== file.version) {
       file = { ...file, version: await drive.version(file.id) };
       continue;
     }
-    return (await drive.update(file.id, body)).version;
+    const updated = await drive.update(file.id, body);
+    await apply(db, merged, true);
+    return updated.version;
   }
   throw new Error(`${name} kept changing on another device`);
 }

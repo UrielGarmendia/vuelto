@@ -64,7 +64,7 @@ export function GoogleSection() {
             Iniciar sesión con Google
           </button>
         ) : (
-          <p className="well mt-4 rounded-[14px] px-4 py-3 text-[13.5px] leading-snug text-muted">
+          <p className="mt-4 rounded-[14px] border border-line bg-flat-2 px-4 py-3 text-[13.5px] leading-snug text-muted">
             <CloudOff aria-hidden className="mr-1.5 inline size-4 align-[-3px]" />
             {state === 'no-client'
               ? 'El inicio de sesión con Google todavía no está configurado en esta instalación. La app funciona igual, solo en este dispositivo.'
