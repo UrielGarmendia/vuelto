@@ -1,7 +1,7 @@
-import { env, HttpError, json } from './http';
-import { googleUser } from './google';
-import { callTool, McpAuthError, type AllowedTool } from './mcp';
-import { seal, SealError, unseal } from './seal';
+import { env, HttpError, json } from './http.js';
+import { googleUser } from './google.js';
+import { callTool, McpAuthError, type AllowedTool } from './mcp.js';
+import { seal, SealError, unseal } from './seal.js';
 
 export const AUTHORIZE_URL = 'https://mcp.invertironline.com/authorize';
 const TOKEN_URL = 'https://mcp.invertironline.com/token';

@@ -1,4 +1,4 @@
-import { HttpError } from './http';
+import { HttpError } from './http.js';
 
 /**
  * Read-only on purpose. Anything that could trade, move money or change the account

@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { googleUser } from './google';
-import { HttpError } from './http';
-import { blobFromTokens, withIol, type IolBlob } from './iol';
-import { ALLOWED_TOOLS, callTool, MCP_URL } from './mcp';
-import { seal, unseal } from './seal';
+import { googleUser } from './google.js';
+import { HttpError } from './http.js';
+import { blobFromTokens, withIol, type IolBlob } from './iol.js';
+import { ALLOWED_TOOLS, callTool, MCP_URL } from './mcp.js';
+import { seal, unseal } from './seal.js';
 
 const KEY = Buffer.alloc(32, 7).toString('base64');
 const OTHER_KEY = Buffer.alloc(32, 9).toString('base64');

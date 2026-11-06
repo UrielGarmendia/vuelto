@@ -1,8 +1,8 @@
-import { googleUser } from '../_lib/google';
-import { env, handle, HttpError, json } from '../_lib/http';
-import { AUTHORIZE_URL, redirectUri } from '../_lib/iol';
-import { challenge, verifier } from '../_lib/pkce';
-import { seal } from '../_lib/seal';
+import { googleUser } from '../_lib/google.js';
+import { env, handle, HttpError, json } from '../_lib/http.js';
+import { AUTHORIZE_URL, redirectUri } from '../_lib/iol.js';
+import { challenge, verifier } from '../_lib/pkce.js';
+import { seal } from '../_lib/seal.js';
 
 /** Step 1: returns IOL's authorize URL. The PKCE verifier and the Google user travel sealed in
  * `state`, so the callback can trust them without the server storing anything. */

@@ -1,6 +1,6 @@
-import { env } from '../_lib/http';
-import { blobFromTokens, exchangeCode } from '../_lib/iol';
-import { unseal } from '../_lib/seal';
+import { env } from '../_lib/http.js';
+import { blobFromTokens, exchangeCode } from '../_lib/iol.js';
+import { unseal } from '../_lib/seal.js';
 
 const back = (fragment: string) =>
   new Response(null, { status: 302, headers: { Location: `/ajustes/cuentas#${fragment}` } });
