@@ -109,3 +109,18 @@ test('a new page starts at the top, going back restores the scroll', async ({ pa
   await expect(page).toHaveURL(/\/ajustes$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(saved);
 });
+
+test('keyboard shortcuts: N opens a new movement, / jumps to search', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
+  await page.keyboard.press('n');
+  const dialog = page.getByRole('dialog', { name: 'Nuevo movimiento' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '5', exact: true }).click();
+  await dialog.getByRole('radio', { name: 'Supermercado' }).click();
+  await dialog.getByRole('button', { name: 'Guardar gasto' }).click();
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('/');
+  await expect(page).toHaveURL(/\/movimientos$/);
+  await expect(page.getByRole('searchbox', { name: 'Buscar movimientos' })).toBeFocused();
+});

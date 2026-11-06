@@ -33,6 +33,15 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(
       page.getByRole('region', { name: 'Últimos movimientos' }).getByRole('link'),
     ).toHaveCount(5);
+
+    // Picking today on the dial lists that day's movements.
+    const dial = page.getByRole('slider', { name: 'Día del mes' });
+    await dial.focus();
+    await page.keyboard.press('End');
+    await expect(dial).toHaveAttribute('aria-valuetext', /: \$\s22\.750$/);
+    await expect(page.getByRole('heading', { name: '4 movimientos' })).toBeVisible();
+    await page.getByRole('button', { name: 'Ver el mes' }).click();
+    await expect(page.getByText('gastado en', { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('status')).toBeHidden({ timeout: 7000 });
     await page.screenshot({
       path: `e2e/__screenshots__/${info.project.name}/inicio-datos-${theme}.png`,
