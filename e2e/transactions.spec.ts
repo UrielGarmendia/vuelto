@@ -22,7 +22,9 @@ async function addExpense(page: Page, digits: string, category: string, note?: s
     await sheet(page).getByRole('button', { name: 'Nota' }).click();
     await sheet(page).getByLabel('Nota').fill(note);
   }
-  await sheet(page).getByRole('button', { name: 'Guardar', exact: true }).click();
+  await sheet(page)
+    .getByRole('button', { name: /^Guardar (gasto|ingreso)$/ })
+    .click();
   await expect(sheet(page)).toBeHidden();
 }
 
@@ -39,7 +41,9 @@ test('adds an expense from the keypad and lists it under today', async ({ page }
 test('save is disabled until there is an amount', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Cargar movimiento' }).click();
-  await expect(sheet(page).getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
+  await expect(
+    sheet(page).getByRole('button', { name: /^Guardar (gasto|ingreso)$/ }),
+  ).toBeDisabled();
 });
 
 test('preselects the last used category', async ({ page }) => {
@@ -61,7 +65,7 @@ test('edits a transaction from its detail', async ({ page }) => {
   const pad = sheet(page).getByRole('group', { name: 'Teclado numérico' });
   await pad.getByRole('button', { name: '0', exact: true }).click();
   await sheet(page).getByRole('button', { name: 'Guardar cambios' }).click();
-  await expect(page.getByText(/−\$\s3\.000/)).toBeVisible();
+  await expect(page.getByText(/−\$\s3\.000/).first()).toBeVisible();
 });
 
 test('deletes from the detail and restores with undo', async ({ page }) => {
@@ -146,6 +150,8 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 test('going back from the detail does not duplicate history', async ({ page }) => {
+  // On wide screens a row opens the side panel instead; the detail page is the phone flow.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page
     .getByRole('navigation', { name: 'Principal' })

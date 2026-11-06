@@ -90,8 +90,9 @@ test('a credit card created with debt lowers the balance', async ({ page }, info
   await page.screenshot({ path: `e2e/__screenshots__/${info.project.name}/cuentas-light.png` });
 
   await page.goto('/');
-  await expect(page.getByRole('region', { name: 'Tu saldo' })).toContainText('-$ 15.000');
-  await expect(page.getByText(/Incluye \$\s15\.000 de deuda en tarjeta/)).toBeVisible();
+  const balance = page.getByRole('region', { name: 'Disponible' });
+  await expect(balance).toContainText('Tarjeta$ 15.000');
+  await expect(balance).toContainText(/te quedan −\$\s15\.000/);
 });
 
 test('rejects an invalid initial balance', async ({ page }) => {

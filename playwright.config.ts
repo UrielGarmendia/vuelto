@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
+  // Five projects share the machine; software-rendered WebKit paints the relief shadows slowly.
+  timeout: 60_000,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:4173',

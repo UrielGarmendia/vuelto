@@ -17,7 +17,7 @@ export function UpdatePrompt() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
           transition={spring.snappy}
-          className="fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-md bg-ink py-2 pr-2 pl-4 text-ground dark:bg-flat-2 dark:text-ink"
+          className="fixed inset-x-4 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-[20px] border border-line bg-flat-2 py-2 pr-2 pl-4 lg:bottom-6 lg:left-[232px]"
         >
           <p className="flex-1 text-sm font-medium">Hay una versión nueva</p>
           <button
@@ -30,7 +30,7 @@ export function UpdatePrompt() {
           <button
             type="button"
             onClick={() => updateServiceWorker(true)}
-            className="min-h-11 rounded-sm bg-hue px-4 text-sm font-semibold text-on-hue"
+            className="rel go min-h-11 rounded-[14px] px-4 text-sm font-bold"
           >
             Actualizar
           </button>

@@ -77,30 +77,30 @@ function Form({
         </h2>
       </SheetDragZone>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-muted">Nombre</span>
+        <span className="mb-1.5 block text-[13.5px] font-medium text-muted">Nombre</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={40}
           required
           autoFocus={!category}
-          className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
+          className="well min-h-12 w-full rounded-[14px] px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
         />
       </label>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-muted">Color</legend>
+        <legend className="mb-1.5 text-[13.5px] font-medium text-muted">Color</legend>
         <ColorPicker value={color} onChange={setColor} />
       </fieldset>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-muted">Ícono</legend>
+        <legend className="mb-1.5 text-[13.5px] font-medium text-muted">Ícono</legend>
         <IconPicker value={icon} color={color} onChange={setIcon} />
       </fieldset>
-      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-ground px-5 pt-2 pb-1">
+      <div className="sticky bottom-0 -mx-5 flex gap-3 bg-ground px-5 pt-3 pb-2">
         {category && (
           <button
             type="button"
             onClick={archive}
-            className="flex min-h-12 items-center gap-1.5 rounded-md bg-flat-2 px-4 font-semibold text-negative"
+            className="rel flex min-h-[52px] items-center gap-1.5 rounded-[18px] px-4 font-semibold text-negative"
           >
             <Archive aria-hidden className="size-4" /> Archivar
           </button>
@@ -108,7 +108,7 @@ function Form({
         <button
           type="submit"
           disabled={!name.trim()}
-          className="min-h-12 flex-1 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
+          className="rel go min-h-[52px] flex-1 rounded-[18px] font-bold"
         >
           Guardar
         </button>

@@ -16,7 +16,7 @@ async function addExpense(page: Page, digits: string, category: string) {
   const dialog = page.getByRole('dialog');
   for (const d of digits) await dialog.getByRole('button', { name: d, exact: true }).click();
   await dialog.getByRole('radio', { name: category }).click();
-  await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await dialog.getByRole('button', { name: /^Guardar (gasto|ingreso)$/ }).click();
   await expect(dialog).toBeHidden();
 }
 

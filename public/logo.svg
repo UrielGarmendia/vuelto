@@ -1,4 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#D9653B"/>
-  <path d="M164 176 256 344 348 176" fill="none" stroke="#F6F2EC" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs><linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1C1D21"/><stop offset="1" stop-color="#0B0B0C"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="url(#f)"/>
+  <line x1="101.8" y1="365.0" x2="79.3" y2="378.0" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="88.3" y1="335.6" x2="63.8" y2="344.3" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="80.3" y1="304.2" x2="54.6" y2="308.4" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="78.0" y1="271.9" x2="52.1" y2="271.4" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="81.7" y1="239.8" x2="56.3" y2="234.5" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="91.2" y1="208.8" x2="67.1" y2="199.0" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="106.1" y1="180.1" x2="84.2" y2="166.1" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="125.9" y1="154.5" x2="106.9" y2="136.8" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="150.1" y1="133.0" x2="134.6" y2="112.1" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="177.7" y1="116.1" x2="166.3" y2="92.8" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="208.0" y1="104.6" x2="201.0" y2="79.6" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="239.8" y1="98.7" x2="237.4" y2="72.8" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="272.2" y1="98.7" x2="274.6" y2="72.8" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="304.0" y1="104.6" x2="311.0" y2="79.6" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="334.3" y1="116.1" x2="345.7" y2="92.8" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="361.9" y1="133.0" x2="377.4" y2="112.1" stroke="#75AADB" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="386.1" y1="154.5" x2="405.1" y2="136.8" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="405.9" y1="180.1" x2="427.8" y2="166.1" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="420.8" y1="208.8" x2="444.9" y2="199.0" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="430.3" y1="239.8" x2="455.7" y2="234.5" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="434.0" y1="271.9" x2="459.9" y2="271.4" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="431.7" y1="304.2" x2="457.4" y2="308.4" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="423.7" y1="335.6" x2="448.2" y2="344.3" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <line x1="410.2" y1="365.0" x2="432.7" y2="378.0" stroke="#2E3036" stroke-width="14.0" stroke-linecap="round"/>
+  <path d="M178.0 200.0 256 344.0 334.0 200.0" fill="none" stroke="#FFFFFF" stroke-width="52.0" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

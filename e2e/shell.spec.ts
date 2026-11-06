@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const routes = [
-  { path: '/', name: 'inicio', heading: 'Tu saldo' },
+  { path: '/', name: 'inicio', heading: 'Disponible' },
   { path: '/movimientos', name: 'movimientos', heading: 'Movimientos' },
   { path: '/estadisticas', name: 'estadisticas', heading: 'Estadísticas' },
   { path: '/ajustes', name: 'ajustes', heading: 'Ajustes' },
@@ -68,7 +68,7 @@ test('install banner shows the right instructions per platform', async ({
     await expect(banner).toBeHidden();
   } else {
     // Headless Chromium never fires beforeinstallprompt, so the banner must stay hidden.
-    await expect(page.getByText('Tu saldo')).toBeVisible();
+    await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
     await expect(banner).toHaveCount(0);
   }
 });
@@ -78,7 +78,7 @@ test('works offline after the first visit', async ({ page, context }) => {
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Tu saldo')).toBeVisible();
+  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
   await page.goto('/ajustes');
   await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
 });
@@ -89,7 +89,7 @@ test('returns to Inicio from Ajustes', async ({ page }) => {
     .getByRole('navigation', { name: 'Principal' })
     .getByRole('link', { name: 'Inicio' })
     .click();
-  await expect(page.getByText('Tu saldo')).toBeVisible();
+  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
 });
 
 test('a new page starts at the top, going back restores the scroll', async ({ page }) => {

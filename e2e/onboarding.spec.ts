@@ -13,7 +13,7 @@ test('first launch shows onboarding once', async ({ page }, info) => {
 
   await page.getByRole('button', { name: 'Empezar' }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText('Tu saldo')).toBeVisible();
+  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
 
   await page.reload();
   await expect(page).toHaveURL(/\/$/);

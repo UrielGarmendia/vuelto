@@ -14,30 +14,48 @@ const points = [
   },
 ];
 
-/** The app mark: the tile settles in, then the V draws itself. */
+/** The app mark: a raised tile settles in, the month's ticks draw around it, then the V. */
 function Logo() {
   return (
-    <m.svg
-      viewBox="0 0 512 512"
+    <m.div
       aria-hidden
-      className="size-36"
+      className="rel grid size-36 place-items-center rounded-[38px]"
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={spring.snappy}
     >
-      <rect width="512" height="512" rx="112" fill="#D9653B" />
-      <m.path
-        d="M164 176 256 344 348 176"
-        fill="none"
-        stroke="#F6F2EC"
-        strokeWidth="60"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.5, delay: 0.2, ease: ease.out }}
-      />
-    </m.svg>
+      <svg viewBox="0 0 512 512" className="size-full">
+        {Array.from({ length: 24 }, (_, i) => {
+          const a = ((-210 + (240 * i) / 23) * Math.PI) / 180;
+          return (
+            <m.line
+              key={i}
+              x1={256 + 178 * Math.cos(a)}
+              y1={276 + 178 * Math.sin(a)}
+              x2={256 + 204 * Math.cos(a)}
+              y2={276 + 204 * Math.sin(a)}
+              stroke={i < 16 ? 'var(--color-hue)' : 'var(--color-idle)'}
+              strokeWidth="14"
+              strokeLinecap="round"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.15 + i * 0.025 }}
+            />
+          );
+        })}
+        <m.path
+          d="M178 200 256 344 334 200"
+          fill="none"
+          stroke="var(--color-ink)"
+          strokeWidth="52"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.5, delay: 0.7, ease: ease.out }}
+        />
+      </svg>
+    </m.div>
   );
 }
 
@@ -58,10 +76,12 @@ export function OnboardingPage() {
       <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.35, ease: ease.out }}
+        transition={{ duration: 0.4, delay: 0.9, ease: ease.out }}
         className="mt-10"
       >
-        <h1 className="text-[40px] leading-none font-semibold tracking-tight">Vuelto</h1>
+        <h1 className="font-wide text-[44px] leading-none font-extrabold tracking-[-0.03em]">
+          vuelto
+        </h1>
         <p className="mt-2 text-lg text-muted">Tus gastos, claros y al día.</p>
       </m.div>
 
@@ -71,15 +91,15 @@ export function OnboardingPage() {
             key={title}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.45 + i * 0.07, ease: ease.out }}
+            transition={{ duration: 0.35, delay: 1 + i * 0.07, ease: ease.out }}
             className="flex gap-3"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-flat-2 text-hue">
+            <span className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-flat text-hue">
               <Icon aria-hidden className="size-5" />
             </span>
             <span>
               <span className="block font-semibold">{title}</span>
-              <span className="block text-sm text-muted">{text}</span>
+              <span className="block text-[14px] text-muted">{text}</span>
             </span>
           </m.li>
         ))}
@@ -88,7 +108,7 @@ export function OnboardingPage() {
       <button
         type="button"
         onClick={start}
-        className="mt-auto min-h-13 w-full rounded-md bg-hue text-[17px] font-semibold text-on-hue"
+        className="rel go mt-auto min-h-[58px] w-full rounded-[20px] text-[17px] font-bold"
       >
         Empezar
       </button>

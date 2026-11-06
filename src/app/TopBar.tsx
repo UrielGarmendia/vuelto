@@ -20,7 +20,7 @@ export function TopBar() {
       <button
         type="button"
         onClick={openSearch}
-        aria-label="Buscar movimientos"
+        aria-label="Buscar"
         className="-mr-2 grid size-11 place-items-center rounded-full text-muted lg:hidden"
       >
         <Search aria-hidden className="size-5" />
@@ -28,6 +28,7 @@ export function TopBar() {
       <button
         type="button"
         onClick={openNew}
+        aria-label="Cargar movimiento"
         className="rel go hidden min-h-[42px] items-center gap-1.5 rounded-full px-[18px] text-[14px] font-bold lg:inline-flex"
       >
         <Plus aria-hidden className="size-[17px]" strokeWidth={2.4} /> Cargar

@@ -72,7 +72,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
   }
 
   const segment =
-    'min-h-10 rounded-full px-3 text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink';
+    'min-h-10 rounded-full px-3 text-[14px] text-muted transition-colors aria-checked:bg-sunk aria-checked:font-semibold aria-checked:text-ink aria-checked:shadow-[var(--press)]';
 
   return (
     <form
@@ -86,22 +86,22 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         <h2 className="text-lg font-semibold">{account ? 'Editar cuenta' : 'Nueva cuenta'}</h2>
       </SheetDragZone>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-muted">Nombre</span>
+        <span className="mb-1.5 block text-[13.5px] font-medium text-muted">Nombre</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={40}
           required
           autoFocus={!account}
-          className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
+          className="well min-h-12 w-full rounded-[14px] px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
         />
       </label>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-muted">Tipo</legend>
+        <legend className="mb-1.5 text-[13.5px] font-medium text-muted">Tipo</legend>
         <div
           role="radiogroup"
           aria-label="Tipo"
-          className="grid grid-cols-2 gap-1 rounded-[22px] bg-flat-2 p-1"
+          className="grid grid-cols-2 gap-1 rounded-[22px] bg-flat p-1.5"
         >
           {(Object.keys(accountKinds) as AccountKind[]).map((k) => (
             <button
@@ -119,7 +119,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
       </fieldset>
       <div className="grid grid-cols-[1fr_auto] gap-3">
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-muted">
+          <span className="mb-1.5 block text-[13.5px] font-medium text-muted">
             {kind === 'credit' ? 'Deuda actual' : 'Saldo inicial'}
           </span>
           <input
@@ -128,12 +128,12 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
             inputMode="decimal"
             placeholder="0"
             aria-invalid={parsed === null || (parsed ?? 0) < 0}
-            className="tabular min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue aria-invalid:outline-2 aria-invalid:outline-negative"
+            className="tabular well min-h-12 w-full rounded-[14px] px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue aria-invalid:outline-2 aria-invalid:outline-negative"
           />
         </label>
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-muted">Moneda</legend>
-          <div role="radiogroup" aria-label="Moneda" className="flex rounded-full bg-flat-2 p-1">
+          <legend className="mb-1.5 text-[13.5px] font-medium text-muted">Moneda</legend>
+          <div role="radiogroup" aria-label="Moneda" className="flex rounded-full bg-flat p-1.5">
             {(['ARS', 'USD'] as const).map((c) => (
               <button
                 key={c}
@@ -150,15 +150,15 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         </fieldset>
       </div>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-muted">Color</legend>
+        <legend className="mb-1.5 text-[13.5px] font-medium text-muted">Color</legend>
         <ColorPicker value={color} onChange={setColor} />
       </fieldset>
-      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-ground px-5 pt-2 pb-1">
+      <div className="sticky bottom-0 -mx-5 flex gap-3 bg-ground px-5 pt-3 pb-2">
         {account && (
           <button
             type="button"
             onClick={archive}
-            className="flex min-h-12 items-center gap-1.5 rounded-md bg-flat-2 px-4 font-semibold text-negative"
+            className="rel flex min-h-[52px] items-center gap-1.5 rounded-[18px] px-4 font-semibold text-negative"
           >
             <Archive aria-hidden className="size-4" /> Archivar
           </button>
@@ -166,7 +166,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         <button
           type="submit"
           disabled={!valid}
-          className="min-h-12 flex-1 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
+          className="rel go min-h-[52px] flex-1 rounded-[18px] font-bold"
         >
           Guardar
         </button>

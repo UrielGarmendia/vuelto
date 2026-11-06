@@ -6,7 +6,7 @@ async function add(page: Page, kind: 'Gasto' | 'Ingreso', digits: string, catego
   if (kind === 'Ingreso') await dialog.getByRole('radio', { name: 'Ingreso' }).click();
   for (const d of digits) await dialog.getByRole('button', { name: d, exact: true }).click();
   await dialog.getByRole('radio', { name: category }).click();
-  await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await dialog.getByRole('button', { name: /^Guardar (gasto|ingreso)$/ }).click();
   await expect(dialog).toBeHidden();
 }
 
@@ -24,11 +24,11 @@ for (const theme of ['light', 'dark'] as const) {
     await add(page, 'Gasto', '3200', 'Comida afuera');
     await add(page, 'Gasto', '1100', 'Transporte');
 
-    const balance = page.getByRole('region', { name: 'Tu saldo' });
+    const balance = page.getByRole('region', { name: 'Disponible' });
     await expect(balance).toContainText('$ 477.250');
-    await expect(page.getByText('Gastado en')).toBeVisible();
-    await expect(page.getByRole('region', { name: /Lo que más gastaste/ })).toContainText(
-      'Supermercado',
+    await expect(balance).toContainText('Salió$ 22.750');
+    await expect(page.getByRole('region', { name: 'Cómo viene el mes' })).toContainText(
+      'gastado en',
     );
     await expect(
       page.getByRole('region', { name: 'Últimos movimientos' }).getByRole('link'),
