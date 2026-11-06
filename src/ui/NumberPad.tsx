@@ -14,7 +14,7 @@ export function NumberPad({ onKey }: { onKey: (key: AmountKey) => void }) {
           aria-label={key === 'back' ? 'Borrar' : key === ',' ? 'Coma decimal' : key}
           onPointerDown={() => navigator.vibrate?.(10)}
           onClick={() => onKey(key)}
-          className="tabular grid h-12 place-items-center rounded-sm text-[24px] font-medium transition-transform duration-100 select-none active:scale-95 active:bg-surface-2 motion-reduce:active:scale-100"
+          className="tabular grid h-12 place-items-center rounded-sm text-[24px] font-medium transition-transform duration-100 select-none active:scale-95 active:bg-flat-2 motion-reduce:active:scale-100"
         >
           {key === 'back' ? <Delete aria-hidden className="size-6" strokeWidth={1.75} /> : key}
         </button>

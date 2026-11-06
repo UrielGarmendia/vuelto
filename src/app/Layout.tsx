@@ -14,7 +14,10 @@ import { fade } from '../ui/motion';
 import { Toaster } from '../ui/Toaster';
 import { InstallBanner } from './InstallBanner';
 import { useApplyPrefs, usePrefs } from './prefs';
+import { Sidebar } from './Sidebar';
 import { TabBar } from './TabBar';
+import { useOpenSearch } from './nav';
+import { TopBar } from './TopBar';
 import { UpdatePrompt } from './UpdatePrompt';
 import { viewTransitions } from './viewTransitions';
 
@@ -59,10 +62,13 @@ export function Layout() {
     setParams({}, { replace: true });
   }, [params, setParams]);
 
+  useShortcuts();
+
   return (
     <>
-      <div id="app" className="mx-auto min-h-dvh max-w-lg bg-bg pt-safe">
-        <main className="pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      <div id="app" className="min-h-dvh bg-ground pt-safe lg:pl-[232px]">
+        <main className="mx-auto max-w-[1280px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:px-6 lg:px-8 lg:pb-12">
+          <TopBar />
           {viewTransitions ? (
             outlet
           ) : (
@@ -79,6 +85,7 @@ export function Layout() {
         </main>
       </div>
       {/* Fixed UI lives outside #app so scaling #app behind a sheet doesn't move it. */}
+      <Sidebar />
       <TabBar />
       <InstallBanner />
       <UpdatePrompt />
@@ -88,4 +95,26 @@ export function Layout() {
       </Suspense>
     </>
   );
+}
+
+/** Keyboard: N opens a new movement, / jumps to search. Esc is handled by whatever is open. */
+function useShortcuts() {
+  const openSearch = useOpenSearch();
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const t = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (useTxSheet.getState().open) return;
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        useTxSheet.getState().openNew();
+      } else if (e.key === '/') {
+        e.preventDefault();
+        openSearch();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
 }

@@ -23,10 +23,24 @@ interface Props {
   account?: Account;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  /** Position inside its group of rows: rounds the panel's corners and draws the dividers. */
+  first?: boolean;
+  last?: boolean;
+  /** Highlighted as the one shown in the side panel (wide screens). */
+  current?: boolean;
 }
 
 /** Memoized: the virtual list re-renders on every scroll frame. */
-export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEdit }: Props) {
+export const TxRow = memo(function TxRow({
+  tx,
+  category,
+  account,
+  onDelete,
+  onEdit,
+  first = true,
+  last = true,
+  current = false,
+}: Props) {
   const x = useMotionValue(0);
   // Action backgrounds only exist while swiping, keeping idle rows cheap.
   const [swiping, setSwiping] = useState(false);
@@ -50,10 +64,13 @@ export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEd
   }
 
   const sign = tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : '';
-  const color = tx.type === 'income' ? 'text-income' : tx.type === 'expense' ? 'text-expense' : '';
+  // Spending is the normal case and stays in ink; only money coming in gets a color.
+  const color = tx.type === 'income' ? 'text-positive' : '';
 
   return (
-    <div className="relative overflow-hidden">
+    <div
+      className={`relative overflow-hidden bg-flat ${first ? 'rounded-t-[22px]' : ''} ${last ? 'rounded-b-[22px]' : ''}`}
+    >
       {swiping && <SwipeActions x={x} />}
       <m.div
         drag="x"
@@ -65,7 +82,7 @@ export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEd
           setSwiping(true);
         }}
         onDragEnd={onDragEnd}
-        className="relative bg-bg"
+        className="relative bg-flat"
       >
         <Link
           to={`/movimientos/${tx.id}`}
@@ -73,15 +90,19 @@ export const TxRow = memo(function TxRow({ tx, category, account, onDelete, onEd
           draggable={false}
           onPointerDown={() => (dragged.current = false)}
           onClick={(e) => dragged.current && e.preventDefault()}
-          className="flex min-h-[68px] items-center gap-3 px-5 py-2.5 select-none active:bg-surface-2"
+          aria-current={current ? 'true' : undefined}
+          className="hoverable relative flex min-h-[66px] items-center gap-3 px-4 py-2.5 select-none active:bg-flat-2 aria-[current]:bg-flat-2"
         >
+          {!first && (
+            <span aria-hidden className="absolute top-0 right-4 left-[68px] h-px bg-line" />
+          )}
           <CategoryIcon icon={category?.icon} color={category?.color} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium">
               {category?.name ?? 'Sin categoría'}
             </span>
-            <span className="block truncate text-[13px] text-muted">
-              {tx.note || account?.name}
+            <span className="block truncate text-[13px] text-faint">
+              {tx.note ? `${tx.note} · ${account?.name ?? ''}` : account?.name}
             </span>
           </span>
           <span
@@ -107,7 +128,7 @@ function SwipeActions({ x }: { x: MotionValue<number> }) {
       <m.div
         aria-hidden
         style={{ opacity: editOpacity }}
-        className="absolute inset-0 flex items-center bg-accent pl-6 text-on-accent"
+        className="absolute inset-0 flex items-center bg-hue pl-6 text-on-hue"
       >
         <m.span style={{ scale: editScale }}>
           <Pencil className="size-5" />
@@ -116,7 +137,7 @@ function SwipeActions({ x }: { x: MotionValue<number> }) {
       <m.div
         aria-hidden
         style={{ opacity: deleteOpacity }}
-        className="absolute inset-0 flex items-center justify-end bg-expense pr-6 text-white dark:text-bg"
+        className="absolute inset-0 flex items-center justify-end bg-negative pr-6 text-white dark:text-ground"
       >
         <m.span style={{ scale: deleteScale }}>
           <Trash2 className="size-5" />

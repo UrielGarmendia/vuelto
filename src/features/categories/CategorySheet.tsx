@@ -84,7 +84,7 @@ function Form({
           maxLength={40}
           required
           autoFocus={!category}
-          className="min-h-12 w-full rounded-sm bg-surface-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-accent-ink"
+          className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
         />
       </label>
       <fieldset>
@@ -95,12 +95,12 @@ function Form({
         <legend className="mb-1.5 text-sm font-medium text-muted">Ícono</legend>
         <IconPicker value={icon} color={color} onChange={setIcon} />
       </fieldset>
-      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-bg px-5 pt-2 pb-1">
+      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-ground px-5 pt-2 pb-1">
         {category && (
           <button
             type="button"
             onClick={archive}
-            className="flex min-h-12 items-center gap-1.5 rounded-md bg-surface-2 px-4 font-semibold text-expense"
+            className="flex min-h-12 items-center gap-1.5 rounded-md bg-flat-2 px-4 font-semibold text-negative"
           >
             <Archive aria-hidden className="size-4" /> Archivar
           </button>
@@ -108,7 +108,7 @@ function Form({
         <button
           type="submit"
           disabled={!name.trim()}
-          className="min-h-12 flex-1 rounded-md bg-accent-ink font-semibold text-on-accent disabled:opacity-40"
+          className="min-h-12 flex-1 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
         >
           Guardar
         </button>

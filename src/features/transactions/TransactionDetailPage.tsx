@@ -48,7 +48,7 @@ export function TransactionDetailPage() {
         </h1>
         <p
           className={`tabular mt-1 text-[44px] leading-tight font-semibold tracking-tight ${
-            tx.type === 'income' ? 'text-income' : 'text-expense'
+            tx.type === 'income' ? 'text-positive' : 'text-negative'
           }`}
           style={{ viewTransitionName: `amount-${tx.id}` }}
         >
@@ -57,7 +57,7 @@ export function TransactionDetailPage() {
         </p>
       </div>
 
-      <dl className="divide-y divide-line rounded-md bg-surface shadow-soft">
+      <dl className="divide-y divide-line rounded-md bg-flat">
         {[
           ['Tipo', tx.type === 'income' ? 'Ingreso' : 'Gasto'],
           ['Fecha', formatDay(tx.date)],
@@ -75,7 +75,7 @@ export function TransactionDetailPage() {
         <button
           type="button"
           onClick={() => openEdit(tx.id)}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-surface font-semibold shadow-soft"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-flat font-semibold"
         >
           <Pencil aria-hidden className="size-4" /> Editar
         </button>
@@ -85,7 +85,7 @@ export function TransactionDetailPage() {
             await deleteWithUndo(tx.id);
             void goBack();
           }}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-surface font-semibold text-expense shadow-soft"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-flat font-semibold text-negative"
         >
           <Trash2 aria-hidden className="size-4" /> Eliminar
         </button>

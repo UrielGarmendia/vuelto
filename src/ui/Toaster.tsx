@@ -18,7 +18,7 @@ export function Toaster() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
             transition={spring.snappy}
-            className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-md bg-ink py-1.5 pr-1.5 pl-4 text-bg shadow-soft dark:bg-raised dark:text-ink"
+            className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-md bg-ink py-1.5 pr-1.5 pl-4 text-ground dark:bg-flat-2 dark:text-ink"
           >
             <p className="flex-1 text-sm font-medium">{t.message}</p>
             {t.action && (
@@ -28,7 +28,7 @@ export function Toaster() {
                   t.action!.onClick();
                   dismiss(t.id);
                 }}
-                className="min-h-11 rounded-sm px-3 text-sm font-semibold text-accent"
+                className="min-h-11 rounded-sm px-3 text-sm font-semibold text-hue"
               >
                 {t.action.label}
               </button>

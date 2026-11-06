@@ -50,7 +50,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col bg-bg px-6 pt-safe pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col bg-ground px-6 pt-safe pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div className="mt-[12dvh] grid place-items-center">
         <Logo />
       </div>
@@ -74,7 +74,7 @@ export function OnboardingPage() {
             transition={{ duration: 0.35, delay: 0.45 + i * 0.07, ease: ease.out }}
             className="flex gap-3"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-surface-2 text-accent-ink">
+            <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-flat-2 text-hue">
               <Icon aria-hidden className="size-5" />
             </span>
             <span>
@@ -88,7 +88,7 @@ export function OnboardingPage() {
       <button
         type="button"
         onClick={start}
-        className="mt-auto min-h-13 w-full rounded-md bg-accent-ink text-[17px] font-semibold text-on-accent"
+        className="mt-auto min-h-13 w-full rounded-md bg-hue text-[17px] font-semibold text-on-hue"
       >
         Empezar
       </button>

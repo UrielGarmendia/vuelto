@@ -36,7 +36,7 @@ import {
   txs,
 } from '../data';
 import { Glyph } from '../Glyph';
-import { Odometer } from '../Odometer';
+import { Odometer } from '../../ui/Odometer';
 import { keyLabel, keys, sheetCategories, signed, useEntry } from '../shared';
 import './mix.css';
 

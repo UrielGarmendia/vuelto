@@ -49,7 +49,7 @@ test('theme choice persists across reloads', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#141210');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#000000');
 });
 
 test('install banner shows the right instructions per platform', async ({

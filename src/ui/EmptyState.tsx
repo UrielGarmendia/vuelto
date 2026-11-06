@@ -12,9 +12,9 @@ export function EmptyState({ icon: Icon, title, children, action }: Props) {
   return (
     <div className="flex flex-col items-center px-8 py-16 text-center">
       <div className="relative mb-6 grid size-24 place-items-center">
-        <div className="absolute inset-0 rotate-6 rounded-[28px] bg-surface-2" />
-        <div className="absolute inset-2 -rotate-3 rounded-[24px] bg-surface shadow-soft" />
-        <Icon aria-hidden className="relative size-9 text-accent" strokeWidth={1.75} />
+        <div className="absolute inset-0 rotate-6 rounded-[28px] bg-flat-2" />
+        <div className="absolute inset-2 -rotate-3 rounded-[24px] bg-flat" />
+        <Icon aria-hidden className="relative size-9 text-hue" strokeWidth={1.75} />
       </div>
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       {children && (

@@ -26,7 +26,7 @@ export function Sparkline({ values, className }: Props) {
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       aria-hidden
-      className={`h-16 w-full overflow-visible text-accent ${className ?? ''}`}
+      className={`h-16 w-full overflow-visible text-hue ${className ?? ''}`}
     >
       <defs>
         <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">

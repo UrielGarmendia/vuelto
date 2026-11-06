@@ -25,8 +25,8 @@ function Chip({
   const current = options.find((o) => o.value === value)?.label ?? label;
   return (
     <label
-      className={`relative flex min-h-10 shrink-0 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-accent-ink ${
-        active ? 'bg-ink text-bg' : 'bg-surface-2 text-ink'
+      className={`relative flex min-h-10 shrink-0 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue ${
+        active ? 'bg-ink text-ground' : 'bg-flat-2 text-ink'
       }`}
     >
       {active ? current : label}
@@ -60,7 +60,7 @@ export function FilterBar({
   return (
     <div className="space-y-2 pb-1">
       <div className="px-5">
-        <label className="flex min-h-11 items-center gap-2 rounded-sm bg-surface-2 px-3 has-focus-visible:outline-2 has-focus-visible:outline-accent-ink">
+        <label className="flex min-h-11 items-center gap-2 rounded-sm bg-flat-2 px-3 has-focus-visible:outline-2 has-focus-visible:outline-hue">
           <Search aria-hidden className="size-4 shrink-0 text-muted" />
           <input
             type="search"
@@ -116,7 +116,7 @@ export function FilterBar({
           <button
             type="button"
             onClick={f.reset}
-            className="flex min-h-10 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium text-accent-ink"
+            className="flex min-h-10 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium text-hue"
           >
             <X aria-hidden className="size-4" /> Limpiar
           </button>

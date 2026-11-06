@@ -14,7 +14,7 @@ export function BackLink({ to, label = 'Volver' }: { to: string; label?: string 
         e.preventDefault();
         goBack();
       }}
-      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-sm pr-3 text-[15px] font-medium text-accent-ink"
+      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 rounded-sm pr-3 text-[15px] font-medium text-hue"
     >
       <ChevronLeft aria-hidden className="size-5" /> {label}
     </Link>

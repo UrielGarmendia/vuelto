@@ -20,7 +20,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">
         {title}
       </h2>
-      <div className="rounded-md bg-surface shadow-soft">{children}</div>
+      <div className="rounded-md bg-flat">{children}</div>
     </section>
   );
 }
@@ -40,11 +40,11 @@ export function SettingsPage() {
       <Section title="Apariencia">
         <fieldset className="p-2">
           <legend className="sr-only">Tema</legend>
-          <div className="grid grid-cols-3 gap-1 rounded-sm bg-surface-2 p-1">
+          <div className="grid grid-cols-3 gap-1 rounded-sm bg-flat-2 p-1">
             {themes.map(({ value, label, icon: Icon }) => (
               <label
                 key={value}
-                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-sm font-medium text-muted transition-colors has-checked:bg-raised has-checked:text-ink has-checked:shadow-soft has-focus-visible:outline-2 has-focus-visible:outline-accent-ink"
+                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-sm font-medium text-muted transition-colors has-checked:bg-flat-2 has-checked:text-ink has-checked: has-focus-visible:outline-2 has-focus-visible:outline-hue"
               >
                 <input
                   type="radio"
@@ -76,7 +76,7 @@ export function SettingsPage() {
           />
           <span
             aria-hidden
-            className="relative h-7 w-12 shrink-0 rounded-full bg-surface-2 transition-colors peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-ink after:absolute after:top-0.5 after:left-0.5 after:size-6 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"
+            className="relative h-7 w-12 shrink-0 rounded-full bg-flat-2 transition-colors peer-checked:bg-hue peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-hue after:absolute after:top-0.5 after:left-0.5 after:size-6 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"
           />
         </label>
       </Section>
@@ -101,7 +101,7 @@ export function SettingsPage() {
               key={to}
               to={to}
               viewTransition={viewTransitions}
-              className="flex min-h-14 items-center gap-3 px-4 active:bg-surface-2"
+              className="flex min-h-14 items-center gap-3 px-4 active:bg-flat-2"
             >
               <Icon aria-hidden className="size-5 text-muted" />
               <span className="flex-1 text-[15px]">{label}</span>
@@ -116,7 +116,7 @@ export function SettingsPage() {
         <div className="flex min-h-14 items-center justify-between gap-4 px-4">
           <span className="text-[15px]">Datos protegidos</span>
           <span
-            className={`text-sm font-medium ${persisted?.value ? 'text-income' : 'text-muted'}`}
+            className={`text-sm font-medium ${persisted?.value ? 'text-positive' : 'text-muted'}`}
           >
             {persisted === undefined ? '…' : persisted.value ? 'Sí, persistente' : 'No garantizado'}
           </span>

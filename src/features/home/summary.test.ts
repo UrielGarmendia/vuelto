@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { Account, Transaction } from '../../db/types';
-import { accountBalances, dailySpending, monthTotals, topCategories, totals } from './summary';
+import {
+  accountBalances,
+  addMonths,
+  dailySpending,
+  daysInMonth,
+  monthDaily,
+  monthTotals,
+  pastMonths,
+  pastPace,
+  topCategories,
+  totals,
+} from './summary';
 
 const meta = { createdAt: 0, updatedAt: 0, deleted: 0, synced: 0 } as const;
 
@@ -112,5 +123,62 @@ describe('month and series', () => {
       { categoryId: 'b', cents: 300 },
       { categoryId: 'a', cents: 150 },
     ]);
+  });
+});
+
+describe('month helpers', () => {
+  it('knows month lengths and crosses years', () => {
+    expect(daysInMonth('2026-02')).toBe(28);
+    expect(daysInMonth('2028-02')).toBe(29);
+    expect(addMonths('2026-01', -1)).toBe('2025-12');
+    expect(addMonths('2026-11', 2)).toBe('2027-01');
+  });
+
+  it('spreads spending over the days of the month', () => {
+    const daily = monthDaily(
+      [
+        tx({ type: 'expense', amountCents: 500, accountId: 'a', date: '2026-11-01' }),
+        tx({ type: 'expense', amountCents: 300, accountId: 'a', date: '2026-11-30' }),
+        tx({ type: 'income', amountCents: 999, accountId: 'a', date: '2026-11-30' }),
+        tx({ type: 'expense', amountCents: 999, accountId: 'a', date: '2026-10-31' }),
+      ],
+      '2026-11',
+    );
+    expect(daily).toHaveLength(30);
+    expect(daily[0]).toBe(500);
+    expect(daily[29]).toBe(300);
+  });
+
+  it('totals the previous months, most recent first', () => {
+    const months = pastMonths(
+      [
+        tx({ type: 'expense', amountCents: 100, accountId: 'a', date: '2026-10-05' }),
+        tx({ type: 'expense', amountCents: 200, accountId: 'a', date: '2026-09-05' }),
+        tx({ type: 'expense', amountCents: 400, accountId: 'a', date: '2026-11-05', deleted: 1 }),
+      ],
+      '2026-11',
+      3,
+    );
+    expect(months.map((m) => [m.month, m.spentCents])).toEqual([
+      ['2026-10', 100],
+      ['2026-09', 200],
+      ['2026-08', 0],
+    ]);
+  });
+});
+
+describe('pastPace', () => {
+  it('averages what earlier months had spent by the same day', () => {
+    const pace = pastPace(
+      [
+        tx({ type: 'expense', amountCents: 1000, accountId: 'a', date: '2026-10-01' }),
+        tx({ type: 'expense', amountCents: 500, accountId: 'a', date: '2026-10-20' }),
+        tx({ type: 'expense', amountCents: 3000, accountId: 'a', date: '2026-09-02' }),
+      ],
+      '2026-11',
+      5,
+    );
+    expect(pace).toEqual({ upToDay: 2000, total: 2250 });
+    expect(pastPace([], '2026-11', 5)).toBeNull();
   });
 });

@@ -20,8 +20,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        theme_color: '#F6F2EC',
-        background_color: '#F6F2EC',
+        theme_color: '#000000',
+        background_color: '#000000',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -44,7 +44,7 @@ export default defineConfig({
       },
       workbox: {
         // Only the latin font subset; the others are never needed for Spanish UI.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/geist-latin-wght-*.woff2'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/archivo-latin-wdth-normal-*.woff2'],
         navigateFallback: '/index.html',
       },
     }),

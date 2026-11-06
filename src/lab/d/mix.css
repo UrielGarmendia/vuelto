@@ -21,7 +21,7 @@
     inset 1px 1px 0 rgb(255 255 255 / 0.08), inset -1px -1px 0 rgb(0 0 0 / 0.6),
     -4px -4px 12px rgb(255 255 255 / 0.035), 6px 8px 18px rgb(0 0 0 / 0.9);
   --press: inset 3px 4px 9px rgb(0 0 0 / 0.95), inset -1px -1px 0 rgb(255 255 255 / 0.06);
-  --font: 'Archivo', system-ui, sans-serif;
+  --font: 'Archivo Variable', system-ui, sans-serif;
   background: var(--ground);
   color: var(--ink);
   font-family: var(--font);

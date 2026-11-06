@@ -83,3 +83,12 @@ describe('dialSummary', () => {
     expect(dialSummary(5000, 3, 30, { mode: 'none' })).toEqual({ mode: 'none', spentCents: 5000 });
   });
 });
+
+describe('dialSummary with the past pace', () => {
+  it('compares against what earlier months had spent by the same day', () => {
+    expect(dialSummary(1200, 5, 30, { mode: 'average', perDay: 100 }, 1000)).toEqual({
+      mode: 'average',
+      percentVsAverage: 20,
+    });
+  });
+});

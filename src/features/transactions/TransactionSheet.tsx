@@ -166,7 +166,7 @@ function TxForm({
   const header = (
     <SheetDragZone className="px-5 pb-3">
       <div
-        className="mx-auto grid w-52 grid-cols-2 rounded-full bg-surface-2 p-1"
+        className="mx-auto grid w-52 grid-cols-2 rounded-full bg-flat-2 p-1"
         role="radiogroup"
         aria-label="Tipo"
       >
@@ -177,7 +177,7 @@ function TxForm({
             role="radio"
             aria-checked={type === k}
             onClick={() => switchType(k)}
-            className="min-h-9 rounded-full text-sm font-medium text-muted transition-colors aria-checked:bg-raised aria-checked:text-ink aria-checked:shadow-soft"
+            className="min-h-9 rounded-full text-sm font-medium text-muted transition-colors aria-checked:bg-flat-2 aria-checked:text-ink"
           >
             {k === 'expense' ? 'Gasto' : 'Ingreso'}
           </button>
@@ -187,7 +187,7 @@ function TxForm({
         aria-live="polite"
         aria-label={`Monto: ${formatAmountInput(amount)} pesos`}
         className={`tabular mt-3 truncate text-center text-[44px] leading-none font-semibold tracking-tight ${
-          amount ? (type === 'expense' ? 'text-expense' : 'text-income') : 'text-muted/50'
+          amount ? (type === 'expense' ? 'text-negative' : 'text-positive') : 'text-muted/50'
         }`}
       >
         <span className="mr-1 align-[0.35em] text-[28px] font-medium">$</span>
@@ -210,7 +210,7 @@ function TxForm({
 
           <div className="flex gap-2 overflow-x-auto px-5 pt-1 pb-2 [scrollbar-width:none]">
             <div
-              className="flex shrink-0 rounded-full bg-surface-2 p-1"
+              className="flex shrink-0 rounded-full bg-flat-2 p-1"
               role="radiogroup"
               aria-label="Fecha"
             >
@@ -224,14 +224,14 @@ function TxForm({
                   role="radio"
                   aria-checked={date === d.iso}
                   onClick={() => setDate(d.iso)}
-                  className="min-h-9 rounded-full px-3.5 text-sm font-medium text-muted aria-checked:bg-raised aria-checked:text-ink aria-checked:shadow-soft"
+                  className="min-h-9 rounded-full px-3.5 text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink"
                 >
                   {d.label}
                 </button>
               ))}
               <label
-                className={`relative flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-accent-ink ${
-                  isOtherDay ? 'bg-raised text-ink shadow-soft' : 'text-muted'
+                className={`relative flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue ${
+                  isOtherDay ? 'bg-flat-2 text-ink' : 'text-muted'
                 }`}
               >
                 <CalendarDays aria-hidden className="size-4" />
@@ -247,7 +247,7 @@ function TxForm({
               </label>
             </div>
 
-            <label className="relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 pr-3 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-accent-ink">
+            <label className="relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-flat-2 pr-3 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue">
               <Wallet aria-hidden className="size-4 text-muted" />
               <span>{accounts.find((a) => a.id === effectiveAccountId)?.name ?? 'Cuenta'}</span>
               <ChevronDown aria-hidden className="size-4 text-muted" />
@@ -269,7 +269,7 @@ function TxForm({
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3.5 text-sm font-medium"
+                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-flat-2 px-3.5 text-sm font-medium"
               >
                 <NotebookPen aria-hidden className="size-4 text-muted" /> Nota
               </button>
@@ -287,7 +287,7 @@ function TxForm({
                 aria-label="Nota"
                 maxLength={140}
                 enterKeyHint="done"
-                className="min-h-11 w-full rounded-sm bg-surface-2 px-4 text-[16px] placeholder:text-muted focus-visible:outline-2 focus-visible:outline-accent-ink"
+                className="min-h-11 w-full rounded-sm bg-flat-2 px-4 text-[16px] placeholder:text-muted focus-visible:outline-2 focus-visible:outline-hue"
               />
             </div>
           )}
@@ -299,7 +299,7 @@ function TxForm({
             type="button"
             onClick={save}
             disabled={!canSave}
-            className="mt-2 min-h-13 w-full rounded-md bg-accent-ink text-[17px] font-semibold text-on-accent transition-opacity disabled:opacity-40"
+            className="mt-2 min-h-13 w-full rounded-md bg-hue text-[17px] font-semibold text-on-hue transition-opacity disabled:opacity-40"
           >
             {editingId ? 'Guardar cambios' : 'Guardar'}
           </button>
@@ -334,7 +334,7 @@ function CategoryGrid({
           className="group flex snap-start flex-col items-center gap-1 rounded-sm px-0.5 py-1"
         >
           <span
-            className="rounded-[16px] ring-2 ring-transparent ring-offset-2 ring-offset-bg transition-shadow group-aria-checked:ring-[var(--c)]"
+            className="rounded-[16px] ring-2 ring-transparent ring-offset-2 ring-offset-ground transition-shadow group-aria-checked:ring-[var(--c)]"
             style={{ '--c': c.color } as React.CSSProperties}
           >
             <CategoryIcon icon={c.icon} color={c.color} />

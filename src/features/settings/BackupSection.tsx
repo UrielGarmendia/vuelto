@@ -34,8 +34,8 @@ function Row({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left active:bg-surface-2 ${
-        danger ? 'text-expense' : ''
+      className={`flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left active:bg-flat-2 ${
+        danger ? 'text-negative' : ''
       }`}
     >
       <Icon aria-hidden className={`size-5 shrink-0 ${danger ? '' : 'text-muted'}`} />
@@ -194,7 +194,7 @@ export function BackupSection() {
           type="button"
           disabled={busy}
           onClick={() => void confirmRestore()}
-          className="min-h-12 rounded-md bg-accent-ink font-semibold text-on-accent disabled:opacity-40"
+          className="min-h-12 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
         >
           Restaurar
         </button>
@@ -221,14 +221,14 @@ export function BackupSection() {
             onChange={(e) => setTyped(e.target.value)}
             autoComplete="off"
             autoCapitalize="characters"
-            className="min-h-12 w-full rounded-sm bg-surface-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-accent-ink"
+            className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
           />
         </label>
         <button
           type="button"
           disabled={busy || typed.trim().toUpperCase() !== CONFIRM_WORD}
           onClick={() => void confirmWipe()}
-          className="min-h-12 rounded-md bg-expense font-semibold text-white disabled:opacity-40 dark:text-bg"
+          className="min-h-12 rounded-md bg-negative font-semibold text-white disabled:opacity-40 dark:text-ground"
         >
           Borrar todo
         </button>

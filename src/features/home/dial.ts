@@ -65,6 +65,8 @@ export function dialSummary(
   today: number,
   daysInMonth: number,
   baseline: Baseline,
+  /** What past months had spent by today; when known it beats the straight per-day line. */
+  expectedSoFar?: number,
 ): DialSummary {
   if (baseline.mode === 'budget') {
     return {
@@ -73,7 +75,7 @@ export function dialSummary(
     };
   }
   if (baseline.mode === 'average') {
-    const expected = baseline.perDay! * today;
+    const expected = expectedSoFar || baseline.perDay! * today;
     return { mode: 'average', percentVsAverage: Math.round((spentSoFar / expected - 1) * 100) };
   }
   return { mode: 'none', spentCents: spentSoFar };

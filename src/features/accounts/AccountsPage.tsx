@@ -72,7 +72,7 @@ export function AccountsPage() {
       <button
         type="button"
         onClick={() => open()}
-        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-surface-2 font-semibold"
+        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-flat-2 font-semibold"
       >
         <Plus aria-hidden className="size-4" /> Nueva cuenta
       </button>
@@ -85,7 +85,7 @@ export function AccountsPage() {
           >
             Archivadas
           </h2>
-          <ul className="divide-y divide-line rounded-md bg-surface shadow-soft">
+          <ul className="divide-y divide-line rounded-md bg-flat">
             {archived.map((a) => (
               <li key={a.id} className="flex min-h-14 items-center gap-3 px-4 opacity-70">
                 <span
@@ -97,7 +97,7 @@ export function AccountsPage() {
                 <button
                   type="button"
                   onClick={() => void setArchived('accounts', a.id, 0)}
-                  className="min-h-11 rounded-sm px-3 text-sm font-semibold text-accent-ink"
+                  className="min-h-11 rounded-sm px-3 text-sm font-semibold text-hue"
                 >
                   Restaurar
                 </button>
@@ -164,7 +164,7 @@ function AccountCard({
         onPointerMove={tilt}
         onPointerLeave={reset}
         onPointerCancel={reset}
-        className="relative overflow-hidden rounded-[22px] shadow-soft"
+        className="relative overflow-hidden rounded-[22px]"
       >
         {/* Sheen that makes the tilt read as a physical card. */}
         <span

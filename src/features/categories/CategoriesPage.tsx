@@ -46,7 +46,7 @@ export function CategoriesPage() {
       <div
         role="radiogroup"
         aria-label="Tipo de categoría"
-        className="mt-4 grid grid-cols-2 rounded-full bg-surface-2 p-1"
+        className="mt-4 grid grid-cols-2 rounded-full bg-flat-2 p-1"
       >
         {(['expense', 'income'] as const).map((k) => (
           <button
@@ -55,7 +55,7 @@ export function CategoriesPage() {
             role="radio"
             aria-checked={type === k}
             onClick={() => setType(k)}
-            className="min-h-10 rounded-full text-sm font-medium text-muted aria-checked:bg-raised aria-checked:text-ink aria-checked:shadow-soft"
+            className="min-h-10 rounded-full text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink"
           >
             {k === 'expense' ? 'Gastos' : 'Ingresos'}
           </button>
@@ -70,7 +70,7 @@ export function CategoriesPage() {
         axis="y"
         values={ids}
         onReorder={onReorder}
-        className="divide-y divide-line overflow-hidden rounded-md bg-surface shadow-soft"
+        className="divide-y divide-line overflow-hidden rounded-md bg-flat"
         aria-describedby="reorder-hint"
       >
         {ids.map((id) => {
@@ -82,7 +82,7 @@ export function CategoriesPage() {
       <button
         type="button"
         onClick={() => open()}
-        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-surface-2 font-semibold"
+        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-flat-2 font-semibold"
       >
         <Plus aria-hidden className="size-4" /> Nueva categoría
       </button>
@@ -92,7 +92,7 @@ export function CategoriesPage() {
           <h2 id="archived-label" className="mb-2 px-1 text-xs font-semibold text-muted uppercase">
             Archivadas
           </h2>
-          <ul className="divide-y divide-line rounded-md bg-surface shadow-soft">
+          <ul className="divide-y divide-line rounded-md bg-flat">
             {archived.map((c) => (
               <li key={c.id} className="flex min-h-14 items-center gap-3 px-4 opacity-70">
                 <CategoryIcon icon={c.icon} color={c.color} size="sm" />
@@ -100,7 +100,7 @@ export function CategoriesPage() {
                 <button
                   type="button"
                   onClick={() => void setArchived('categories', c.id, 0)}
-                  className="min-h-11 rounded-sm px-3 text-sm font-semibold text-accent-ink"
+                  className="min-h-11 rounded-sm px-3 text-sm font-semibold text-hue"
                 >
                   Restaurar
                 </button>
@@ -133,7 +133,7 @@ function Row({ category: c, onOpen }: { category: Category; onOpen: () => void }
       onKeyDown={(e) => {
         if (e.key === 'Enter' && e.target === e.currentTarget) onOpen();
       }}
-      className="relative flex min-h-14 items-center bg-surface"
+      className="relative flex min-h-14 items-center bg-flat"
     >
       <span
         aria-hidden

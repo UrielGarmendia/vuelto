@@ -72,7 +72,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
   }
 
   const segment =
-    'min-h-10 rounded-full px-3 text-sm font-medium text-muted aria-checked:bg-raised aria-checked:text-ink aria-checked:shadow-soft';
+    'min-h-10 rounded-full px-3 text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink';
 
   return (
     <form
@@ -93,7 +93,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
           maxLength={40}
           required
           autoFocus={!account}
-          className="min-h-12 w-full rounded-sm bg-surface-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-accent-ink"
+          className="min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue"
         />
       </label>
       <fieldset>
@@ -101,7 +101,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         <div
           role="radiogroup"
           aria-label="Tipo"
-          className="grid grid-cols-2 gap-1 rounded-[22px] bg-surface-2 p-1"
+          className="grid grid-cols-2 gap-1 rounded-[22px] bg-flat-2 p-1"
         >
           {(Object.keys(accountKinds) as AccountKind[]).map((k) => (
             <button
@@ -128,12 +128,12 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
             inputMode="decimal"
             placeholder="0"
             aria-invalid={parsed === null || (parsed ?? 0) < 0}
-            className="tabular min-h-12 w-full rounded-sm bg-surface-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-accent-ink aria-invalid:outline-2 aria-invalid:outline-expense"
+            className="tabular min-h-12 w-full rounded-sm bg-flat-2 px-4 text-[16px] focus-visible:outline-2 focus-visible:outline-hue aria-invalid:outline-2 aria-invalid:outline-negative"
           />
         </label>
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium text-muted">Moneda</legend>
-          <div role="radiogroup" aria-label="Moneda" className="flex rounded-full bg-surface-2 p-1">
+          <div role="radiogroup" aria-label="Moneda" className="flex rounded-full bg-flat-2 p-1">
             {(['ARS', 'USD'] as const).map((c) => (
               <button
                 key={c}
@@ -153,12 +153,12 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         <legend className="mb-1.5 text-sm font-medium text-muted">Color</legend>
         <ColorPicker value={color} onChange={setColor} />
       </fieldset>
-      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-bg px-5 pt-2 pb-1">
+      <div className="sticky bottom-0 -mx-5 flex gap-2 bg-ground px-5 pt-2 pb-1">
         {account && (
           <button
             type="button"
             onClick={archive}
-            className="flex min-h-12 items-center gap-1.5 rounded-md bg-surface-2 px-4 font-semibold text-expense"
+            className="flex min-h-12 items-center gap-1.5 rounded-md bg-flat-2 px-4 font-semibold text-negative"
           >
             <Archive aria-hidden className="size-4" /> Archivar
           </button>
@@ -166,7 +166,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
         <button
           type="submit"
           disabled={!valid}
-          className="min-h-12 flex-1 rounded-md bg-accent-ink font-semibold text-on-accent disabled:opacity-40"
+          className="min-h-12 flex-1 rounded-md bg-hue font-semibold text-on-hue disabled:opacity-40"
         >
           Guardar
         </button>

@@ -53,7 +53,7 @@ export function ColorPicker({
           aria-checked={value.toLowerCase() === c.toLowerCase()}
           aria-label={name}
           onClick={() => onChange(c)}
-          className="grid aspect-square place-items-center rounded-full text-white ring-offset-2 ring-offset-bg aria-checked:ring-2 aria-checked:ring-ink"
+          className="grid aspect-square place-items-center rounded-full text-white ring-offset-2 ring-offset-ground aria-checked:ring-2 aria-checked:ring-ink"
           style={{ backgroundColor: c }}
         >
           {value.toLowerCase() === c.toLowerCase() && <Check aria-hidden className="size-4" />}

@@ -59,7 +59,7 @@ export function InstallBanner() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
           transition={spring.snappy}
-          className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-md rounded-md border border-line bg-surface p-4 shadow-soft"
+          className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-md rounded-md border border-line bg-flat p-4"
         >
           <div className="flex items-start gap-3">
             <img src="/pwa-64x64.png" alt="" className="size-11 rounded-[12px]" />
@@ -94,7 +94,7 @@ export function InstallBanner() {
             <button
               type="button"
               onClick={install}
-              className="mt-3 min-h-11 w-full rounded-sm bg-ink text-sm font-semibold text-bg"
+              className="mt-3 min-h-11 w-full rounded-sm bg-ink text-sm font-semibold text-ground"
             >
               Instalar
             </button>

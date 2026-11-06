@@ -28,7 +28,7 @@ export const usePrefs = create<Prefs>()(
   ),
 );
 
-const themeColor = { light: '#F6F2EC', dark: '#141210' } as const;
+const themeColor = { light: '#ECEEF1', dark: '#000000' } as const;
 
 /** Keeps <html data-theme>, the browser chrome color and the motion flag in sync with prefs. */
 export function useApplyPrefs(): void {

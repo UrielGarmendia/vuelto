@@ -1,57 +1,86 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/geist';
+@import '@fontsource-variable/archivo/wdth.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* Noche con relieve: true black, celeste for actions, amber only when the month runs over.
+   Volume is reserved for what you press (and the balance and account cards); lists stay flat. */
 @theme {
-  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
 
-  --color-bg: #f6f2ec;
-  --color-surface: #ffffff;
-  --color-surface-2: #efe9e1;
-  --color-raised: #ffffff;
-  --color-line: #e4ddd3;
-  --color-ink: #1c1a17;
-  --color-muted: #6f685f;
-  --color-accent: #d9653b;
-  --color-accent-ink: #b04e28;
-  --color-on-accent: #fffaf5;
-  --color-income: #267a53;
-  --color-expense: #c94a40;
+  --color-ground: #000000;
+  --color-flat: #0f0f10;
+  --color-flat-2: #18191c;
+  --color-face-a: #1c1d21;
+  --color-face-b: #131417;
+  --color-sunk: #0b0b0c;
+  --color-line: #1d1e21;
+  --color-ink: #ffffff;
+  --color-muted: #b3b5ba;
+  --color-faint: #8d9096;
+  --color-hue: #75aadb;
+  --color-on-hue: #04121f;
+  --color-over: #e8a23a;
+  --color-positive: #8fd18a;
+  --color-negative: #ff8a80;
+  --color-idle: #26272b;
 
   --radius-sm: 12px;
   --radius-md: 20px;
-  --radius-lg: 28px;
-
-  --shadow-soft: 0 1px 2px rgb(60 40 20 / 0.04), 0 8px 24px -12px rgb(60 40 20 / 0.12);
+  --radius-lg: 24px;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 150ms;
   --duration-base: 220ms;
   --duration-slow: 320ms;
 }
 
+:root {
+  /* Black cannot get darker, so volume comes from a lit rim and a faint halo of light. */
+  --rise:
+    inset 1px 1px 0 rgb(255 255 255 / 0.08), inset -1px -1px 0 rgb(0 0 0 / 0.6),
+    -4px -4px 12px rgb(255 255 255 / 0.035), 6px 8px 18px rgb(0 0 0 / 0.9);
+  --press: inset 3px 4px 9px rgb(0 0 0 / 0.95), inset -1px -1px 0 rgb(255 255 255 / 0.06);
+  --go-a: #8cbbe6;
+  --go-b: #6a9fd1;
+  --on-go: #04121f;
+  --scrim: rgb(0 0 0 / 0.62);
+}
+
 [data-theme='dark'] {
-  --color-bg: #141210;
-  --color-surface: #1e1b18;
-  --color-surface-2: #282420;
-  --color-raised: #3a342e;
-  --color-line: #2f2a25;
-  --color-ink: #f3eee7;
-  --color-muted: #9a9286;
-  --color-accent: #f08a5d;
-  --color-accent-ink: #f08a5d;
-  --color-on-accent: #1c1a17;
-  --color-income: #5cc08c;
-  --color-expense: #f07a6e;
-  /* Elevation in dark comes from surface lightness, not shadows. */
-  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.04);
   color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --color-ground: #eceef1;
+  --color-flat: #e4e7eb;
+  --color-flat-2: #d9dde3;
+  --color-face-a: #f8f9fb;
+  --color-face-b: #e3e6ea;
+  --color-sunk: #e1e4e8;
+  --color-line: #d9dde3;
+  --color-ink: #0b0c0e;
+  --color-muted: #4c5260;
+  --color-faint: #5f6573;
+  --color-hue: #2a679f;
+  --color-on-hue: #ffffff;
+  --color-over: #995c00;
+  --color-positive: #1b7a33;
+  --color-negative: #c42b2b;
+  --color-idle: #d3d7dd;
+  --rise: 6px 7px 16px #c4cad3, -6px -6px 14px #ffffff;
+  --press: inset 4px 4px 9px #c4cad3, inset -4px -4px 9px #ffffff;
+  --go-a: #3577b3;
+  --go-b: #255f94;
+  --on-go: #ffffff;
+  --scrim: rgb(20 24 30 / 0.35);
+  color-scheme: light;
 }
 
 @layer base {
   html {
-    background: var(--color-bg);
+    background: var(--color-ground);
     color: var(--color-ink);
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
@@ -62,45 +91,132 @@
     overscroll-behavior-y: none;
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent-ink);
-    outline-offset: 2px;
+    outline: 2px solid var(--color-hue);
+    outline-offset: 3px;
+  }
+  button:not(:disabled),
+  [role='button'] {
+    cursor: pointer;
+  }
+}
+
+/* Relief: two shadow layers swap by opacity, the face shrinks with an overshoot. */
+@layer components {
+  .rel {
+    position: relative;
+    isolation: isolate;
+    background: linear-gradient(145deg, var(--color-face-a), var(--color-face-b));
+  }
+  .rel::before,
+  .rel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    transition: opacity 140ms ease-out;
+  }
+  .rel::before {
+    box-shadow: var(--rise);
+  }
+  .rel::after {
+    box-shadow: var(--press);
+    opacity: 0;
+  }
+  button.rel,
+  a.rel,
+  label.rel {
+    transition: transform 300ms var(--ease-spring);
+  }
+  button.rel:not(:disabled):active,
+  a.rel:active,
+  .rel[aria-checked='true'],
+  .rel[aria-pressed='true'],
+  .rel[data-on='true'] {
+    transform: scale(0.965);
+  }
+  button.rel:not(:disabled):active::before,
+  a.rel:active::before,
+  .rel[aria-checked='true']::before,
+  .rel[aria-pressed='true']::before,
+  .rel[data-on='true']::before {
+    opacity: 0;
+  }
+  button.rel:not(:disabled):active::after,
+  a.rel:active::after,
+  .rel[aria-checked='true']::after,
+  .rel[aria-pressed='true']::after,
+  .rel[data-on='true']::after {
+    opacity: 1;
+  }
+  .rel[aria-checked='true'],
+  .rel[aria-pressed='true'],
+  .rel[data-on='true'] {
+    background: var(--color-sunk);
+  }
+  /* The primary action keeps its volume but wears the celeste. */
+  .rel.go {
+    background: linear-gradient(145deg, var(--go-a), var(--go-b));
+    color: var(--on-go);
+  }
+  .rel.go:disabled {
+    background: linear-gradient(145deg, var(--color-face-a), var(--color-face-b));
+    color: var(--color-faint);
+  }
+  .well {
+    background: var(--color-sunk);
+    box-shadow: var(--press);
+  }
+  /* Wide display figures: amounts and big numbers. */
+  .wide {
+    font-stretch: 125%;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  @media (hover: hover) {
+    .hoverable:hover {
+      background: var(--color-flat-2);
+    }
   }
 }
 
 /* Page behind an open sheet recedes (iOS style). The tab bar lives outside #app, so it gets
-   its own origin that maps to the same viewport point. */
-html {
-  transition: background-color var(--duration-slow) var(--ease-out);
-}
+   its own origin that maps to the same viewport point. Only on phones: on wide screens the
+   sheet is a centred dialog. */
 #app,
 #tabbar {
   transition:
     transform var(--duration-slow) var(--ease-out),
     border-radius var(--duration-slow) var(--ease-out);
 }
-html[data-sheet='open'] {
-  background: #000;
-}
-html[data-sheet='open'] #app {
-  transform: scale(0.94);
-  transform-origin: 50% var(--sheet-origin-y, 50vh);
-  border-radius: 20px;
-  overflow: clip;
-}
-html[data-sheet='open'] #tabbar {
-  /* Hidden under the overlay anyway; recomputing the blur while scaling is expensive. */
-  backdrop-filter: none;
-  background: var(--color-bg);
-  transform: scale(0.94);
-  transform-origin: 50% calc(100% - 50dvh);
+@media (max-width: 1023px) {
+  html[data-sheet='open'] #app {
+    transform: scale(0.94);
+    transform-origin: 50% var(--sheet-origin-y, 50vh);
+    border-radius: 20px;
+    overflow: clip;
+  }
+  html[data-sheet='open'] #tabbar {
+    transform: scale(0.94);
+    transform-origin: 50% calc(100% - 50dvh);
+  }
 }
 html[data-reduce-motion='true'] #app,
 html[data-reduce-motion='true'] #tabbar {
   transition: none;
 }
+html[data-reduce-motion='true'] .rel,
+html[data-reduce-motion='true'] .rel::before,
+html[data-reduce-motion='true'] .rel::after {
+  transition: none;
+}
 @media (prefers-reduced-motion: reduce) {
   #app,
-  #tabbar {
+  #tabbar,
+  .rel,
+  .rel::before,
+  .rel::after {
     transition: none;
   }
 }
@@ -115,6 +231,13 @@ html[data-reduce-motion='true'] #tabbar {
 
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 ::view-transition-old(root),

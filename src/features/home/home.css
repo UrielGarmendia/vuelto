@@ -1,0 +1,58 @@
+/* The dial's ticks appear one after another, like a month being drawn. */
+.dial-tick {
+  stroke-linecap: round;
+  stroke-width: 5.5;
+  opacity: 0;
+  animation: dial-on 380ms ease-out forwards;
+  transition: stroke-width 200ms var(--ease-out);
+}
+/* Dimming lives on the wrapping group so it never restarts the drawing animation. */
+.dial-day {
+  transition: opacity 200ms var(--ease-out);
+}
+.dial-tick[data-on='true'] {
+  stroke-width: 8;
+}
+@keyframes dial-on {
+  to {
+    opacity: 1;
+  }
+}
+
+/* A slow drifting light behind the dial: celeste while the month behaves, amber when it runs
+   over. Only transform animates, on a pre-painted gradient. */
+.dial-glow {
+  position: absolute;
+  inset: -20% -10%;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 36% at 38% 42%, var(--glow) 0%, transparent 70%),
+    radial-gradient(30% 28% at 66% 60%, var(--glow-2) 0%, transparent 70%);
+  animation: dial-drift 14s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes dial-drift {
+  from {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 3%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial-tick {
+    animation: none;
+    opacity: 1;
+  }
+  .dial-glow {
+    animation: none;
+  }
+}
+html[data-reduce-motion='true'] .dial-tick {
+  animation: none;
+  opacity: 1;
+}
+html[data-reduce-motion='true'] .dial-glow {
+  animation: none;
+}

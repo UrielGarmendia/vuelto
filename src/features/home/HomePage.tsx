@@ -1,158 +1,205 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRight, CreditCard, Sparkles } from 'lucide-react';
-import { m } from 'motion/react';
+import { ChevronRight, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router';
+import { viewTransitions } from '../../app/viewTransitions';
 import { db } from '../../db/db';
-import { todayISO } from '../../lib/dates';
+import type { Category, Transaction } from '../../db/types';
+import { fromISODate, todayISO } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
-import { AnimatedNumber } from '../../ui/AnimatedNumber';
-import { CategoryIcon } from '../../ui/CategoryIcon';
-import { EmptyState } from '../../ui/EmptyState';
-import { ease } from '../../ui/motion';
+import { Odometer } from '../../ui/Odometer';
 import { Skeleton } from '../../ui/Skeleton';
-import { Sparkline } from '../../ui/Sparkline';
+import { monthBudget } from '../budgets/budgets';
+import { pickInsight, projectMonth, type Insight } from '../insights/insights';
 import { deleteTx, editTx } from '../transactions/actions';
 import { listTransactions } from '../transactions/queries';
 import { useTxSheet } from '../transactions/store';
 import { TxRow } from '../transactions/TxRow';
 import { useCatalog } from '../transactions/useCatalog';
-import { accountBalances, dailySpending, monthTotals, topCategories, totals } from './summary';
-import { viewTransitions } from '../../app/viewTransitions';
+import { AccountStack } from './AccountStack';
+import { dialBaseline, dialSummary, dialTicks, AVERAGE_MONTHS } from './dial';
+import { MonthDial } from './MonthDial';
+import {
+  accountBalances,
+  addMonths,
+  monthDaily,
+  monthTotals,
+  pastMonths,
+  pastPace,
+  totals,
+} from './summary';
 
-const monthName = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
+const monthFmt = new Intl.DateTimeFormat('es-AR', { month: 'long' });
+const weekdayFmt = new Intl.DateTimeFormat('es-AR', { weekday: 'long' });
+const monthNameOf = (month: string) => monthFmt.format(fromISODate(`${month}-01`));
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+// "sábado" → "sábados"; "lunes" stays "lunes". 1 Nov 2026 is a Sunday, the base for weekdays.
+const plural = (s: string) => (s.endsWith('s') ? s : `${s}s`);
+const round100 = (cents: number) => Math.round(cents / 100) * 100;
 
 export function HomePage() {
   const txs = useLiveQuery(() => listTransactions(), []);
-  const accounts = useLiveQuery(() => db.accounts.toArray(), []);
+  const accounts = useLiveQuery(
+    () =>
+      db.accounts
+        .orderBy('order')
+        .filter((a) => !a.deleted && !a.archived)
+        .toArray(),
+    [],
+  );
+  const budgets = useLiveQuery(() => db.budgets.toArray(), []);
   const catalog = useCatalog();
-  const openNew = useTxSheet((s) => s.openNew);
+  const [selected, setSelected] = useState<number | null>(null);
 
-  if (!txs || !accounts || !catalog.ready) return <HomeSkeleton />;
+  if (!txs || !accounts || !budgets || !catalog.ready) return <HomeSkeleton />;
 
   const today = todayISO();
   const month = today.slice(0, 7);
-  const { balanceCents, creditDebtCents } = totals(accounts, accountBalances(accounts, txs));
+  const day = Number(today.slice(8));
+  const monthName = monthNameOf(month);
+  const daily = monthDaily(txs, month);
+  const n = daily.length;
+  const left = n - day;
+  const budget = monthBudget(budgets, month);
+  const baseline = dialBaseline(budget, pastMonths(txs, month, AVERAGE_MONTHS), n);
   const { expenseCents, incomeCents } = monthTotals(txs, month);
-  const series = dailySpending(txs, today, 30);
-  const spent30 = series.reduce((a, b) => a + b, 0);
-  const top = topCategories(txs, month, 3);
-  const recent = txs.slice(0, 5);
+  const pace = pastPace(txs, month, day);
+  const summary = dialSummary(expenseCents, day, n, baseline, pace?.upToDay);
+  // With history, the rest of the month is what usually comes after today; otherwise a line.
+  const projected = pace
+    ? expenseCents + Math.max(0, pace.total - pace.upToDay)
+    : projectMonth(expenseCents, day, n);
+  const balances = accountBalances(accounts, txs);
+  const { balanceCents, creditDebtCents } = totals(accounts, balances);
+  const available = balanceCents + creditDebtCents;
+  const running =
+    (baseline.mode === 'budget' && projected > budget!) ||
+    (summary.mode === 'average' && summary.percentVsAverage > 10);
+  const dayTxs = selected
+    ? txs.filter((t) => t.date === `${month}-${String(selected).padStart(2, '0')}`)
+    : [];
 
   return (
     <>
-      <section aria-labelledby="balance-label" className="px-5 pt-8 pb-2">
-        <h1 id="balance-label" className="text-sm font-medium text-muted">
-          Tu saldo
-        </h1>
-        <AnimatedNumber
-          cents={balanceCents}
-          className="mt-1 block text-[52px] leading-none font-semibold tracking-tight"
-        />
-        {creditDebtCents > 0 && (
-          <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-            <CreditCard aria-hidden className="size-4" />
-            Incluye {formatMoney(creditDebtCents)} de deuda en tarjeta
-          </p>
-        )}
-        <dl className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-md bg-surface p-4 shadow-soft">
-            <dt className="text-xs font-medium text-muted">Gastado en {monthName}</dt>
-            <dd className="mt-1 text-xl font-semibold text-expense">
-              <AnimatedNumber cents={expenseCents} />
-            </dd>
-          </div>
-          <div className="rounded-md bg-surface p-4 shadow-soft">
-            <dt className="text-xs font-medium text-muted">Ingresado en {monthName}</dt>
-            <dd className="mt-1 text-xl font-semibold text-income">
-              <AnimatedNumber cents={incomeCents} />
-            </dd>
-          </div>
-        </dl>
-      </section>
+      <header className="pt-2">
+        <h1 className="text-[22px] font-bold">{capital(monthName)}</h1>
+        <p className="mt-1 max-w-[52ch] text-[15px] leading-snug text-muted">
+          {headline(baseline.mode, { budget, projected, left, today, baseline, n, pace })}
+        </p>
+      </header>
 
-      {txs.length === 0 ? (
-        <EmptyState
-          icon={Sparkles}
-          title="Arrancá con tu primer gasto"
-          action={
-            <button
-              type="button"
-              onClick={openNew}
-              className="min-h-11 rounded-full bg-ink px-5 text-sm font-semibold text-bg"
-            >
-              Cargar un gasto
-            </button>
+      <div className="mt-4 grid items-start gap-4 md:grid-cols-[1.05fr_1fr]">
+        <section
+          aria-label="Cómo viene el mes"
+          className="relative isolate overflow-hidden rounded-[24px] bg-flat px-5 pt-3 pb-5"
+          style={
+            {
+              '--glow': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 16%, transparent)`,
+              '--glow-2': `color-mix(in oklab, var(--color-${running ? 'over' : 'hue'}) 9%, transparent)`,
+            } as React.CSSProperties
           }
         >
-          Cargar un gasto lleva menos de 5 segundos.
-        </EmptyState>
-      ) : (
-        <>
-          <section aria-labelledby="trend-label" className="px-5 pt-4">
-            <div className="rounded-md bg-surface p-4 shadow-soft">
-              <div className="flex items-baseline justify-between">
-                <h2 id="trend-label" className="text-xs font-medium text-muted">
-                  Últimos 30 días
-                </h2>
-                <p className="tabular text-sm font-semibold">
-                  {formatMoney(spent30)} <span className="font-normal text-muted">gastados</span>
+          <div aria-hidden className="dial-glow -z-10" />
+          <MonthDial
+            ticks={dialTicks(daily, day, baseline)}
+            daily={daily}
+            today={day}
+            monthName={monthName}
+            baseline={baseline}
+            summary={summary}
+            selected={selected}
+            onSelect={setSelected}
+          />
+          {selected === null ? (
+            <>
+              {baseline.mode === 'budget' && (
+                <p className="-mt-1 text-center text-[15px]">
+                  Gastaste <b className="tabular">{formatMoney(expenseCents)}</b> de{' '}
+                  {formatMoney(budget!)}
                 </p>
-              </div>
-              <Sparkline values={series} className="mt-3" />
-            </div>
+              )}
+              {baseline.mode === 'average' && (
+                <p className="-mt-1 text-center text-[15px]">
+                  Tu promedio es{' '}
+                  <b className="tabular">{formatMoney(round100(baseline.perDay!))}</b> por día
+                </p>
+              )}
+              <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-center text-[13px] text-muted">
+                {baseline.mode === 'none' ? (
+                  <span>Cargá unas semanas y vas a ver cómo viene cada día.</span>
+                ) : (
+                  <>
+                    <span>
+                      <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-hue align-[2px]" />
+                      {baseline.mode === 'budget'
+                        ? 'dentro del presupuesto diario'
+                        : 'debajo de tu promedio'}
+                    </span>
+                    <span>
+                      <i className="mr-1.5 inline-block h-1 w-2.5 rounded-sm bg-over align-[2px]" />
+                      día que te pasaste
+                    </span>
+                  </>
+                )}
+              </p>
+              <p className="mt-2 text-center text-[12.5px] text-faint">
+                Tocá un día del dial para ver qué pasó.
+              </p>
+            </>
+          ) : (
+            <DayList txs={dayTxs} catalog={catalog} onClose={() => setSelected(null)} />
+          )}
+        </section>
+
+        <div className="grid gap-4">
+          <section aria-labelledby="available-label" className="rel rounded-[24px] p-[22px]">
+            <p id="available-label" className="text-[14px] text-muted">
+              Disponible
+            </p>
+            <Odometer
+              cents={available}
+              className="wide mt-1.5 text-[clamp(34px,10vw,52px)] leading-[1.05] font-extrabold"
+            />
+            {creditDebtCents > 0 && (
+              <p className="mt-1 text-[13px] text-faint">
+                Después de pagar la tarjeta te quedan{' '}
+                <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
+              </p>
+            )}
+            <dl className="mt-4 grid grid-cols-3 gap-2.5">
+              <Kpi label="Entró" cents={incomeCents} />
+              <Kpi label="Salió" cents={expenseCents} />
+              <Kpi label="Tarjeta" cents={creditDebtCents} />
+            </dl>
           </section>
 
-          {top.length > 0 && (
-            <section aria-labelledby="top-label" className="px-5 pt-6">
-              <h2 id="top-label" className="mb-2 px-1 text-sm font-semibold">
-                Lo que más gastaste en {monthName}
-              </h2>
-              <ul className="space-y-3 rounded-md bg-surface p-4 shadow-soft">
-                {top.map(({ categoryId, cents }, i) => {
-                  const cat = catalog.categories.get(categoryId);
-                  const pct = expenseCents ? cents / expenseCents : 0;
-                  return (
-                    <li key={categoryId} className="flex items-center gap-3">
-                      <CategoryIcon icon={cat?.icon} color={cat?.color} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-[15px] font-medium">{cat?.name}</span>
-                          <span className="tabular text-[15px] font-semibold">
-                            {formatMoney(cents)}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                          <m.div
-                            className="h-full origin-left rounded-full"
-                            style={{ backgroundColor: cat?.color }}
-                            initial={{ scaleX: 0 }}
-                            animate={{ scaleX: pct }}
-                            transition={{ duration: 0.5, delay: 0.15 + i * 0.06, ease: ease.out }}
-                          />
-                        </div>
-                      </div>
-                      <span className="sr-only">{Math.round(pct * 100)}% del gasto del mes</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+          {txs.length > 0 && (
+            <InsightLine insight={pickInsight(txs, today)} catalog={catalog} month={month} />
           )}
 
-          <section aria-labelledby="recent-label" className="pt-6">
-            <div className="flex items-center justify-between px-6 pb-1">
-              <h2 id="recent-label" className="text-sm font-semibold">
+          {accounts.length > 0 && <AccountStack accounts={accounts} balances={balances} />}
+        </div>
+
+        {txs.length === 0 ? (
+          <FirstSteps />
+        ) : (
+          <section
+            aria-labelledby="recent-label"
+            className="rounded-[24px] bg-flat px-1 pt-4 pb-1 md:col-span-2"
+          >
+            <div className="flex items-center justify-between px-4 pb-1">
+              <h2 id="recent-label" className="text-[16px] font-semibold">
                 Últimos movimientos
               </h2>
               <Link
                 to="/movimientos"
                 viewTransition={viewTransitions}
-                className="-mr-2 flex min-h-11 items-center gap-0.5 px-2 text-sm font-medium text-accent-ink"
+                className="-mr-2 flex min-h-11 items-center gap-0.5 px-2 text-[13.5px] font-medium text-hue"
               >
                 Ver todos <ChevronRight aria-hidden className="size-4" />
               </Link>
             </div>
-            {recent.map((tx) => (
+            {txs.slice(0, 5).map((tx, i) => (
               <TxRow
                 key={tx.id}
                 tx={tx}
@@ -160,25 +207,187 @@ export function HomePage() {
                 account={catalog.accounts.get(tx.accountId)}
                 onDelete={deleteTx}
                 onEdit={editTx}
+                first={i === 0}
+                last={i === Math.min(4, txs.length - 1)}
               />
             ))}
           </section>
-        </>
-      )}
+        )}
+      </div>
     </>
+  );
+}
+
+const signedMoney = (cents: number) => (cents < 0 ? `−${formatMoney(-cents)}` : formatMoney(cents));
+
+function headline(
+  mode: 'budget' | 'average' | 'none',
+  {
+    budget,
+    projected,
+    left,
+    today,
+    baseline,
+    n,
+    pace,
+  }: {
+    budget?: number;
+    projected: number;
+    left: number;
+    today: string;
+    baseline: { perDay?: number };
+    n: number;
+    pace: { total: number } | null;
+  },
+) {
+  const rest =
+    left === 0 ? 'Hoy cierra el mes.' : left === 1 ? 'Falta 1 día.' : `Faltan ${left} días.`;
+  if (mode === 'budget') {
+    const diff = round100(projected - budget!);
+    return diff > 0
+      ? `A este ritmo te pasás ${formatMoney(diff)} del presupuesto. ${rest}`
+      : `A este ritmo cerrás con ${formatMoney(-diff)} de margen. ${rest}`;
+  }
+  if (mode === 'average') {
+    const avg = pace?.total ?? baseline.perDay! * n;
+    const pct = Math.round((projected / avg - 1) * 100);
+    return pct === 0
+      ? `Vas en línea con tu promedio. ${rest}`
+      : `A este ritmo cerrás ${Math.abs(pct)} % ${pct > 0 ? 'arriba' : 'abajo'} de tu promedio. ${rest}`;
+  }
+  return `${capital(weekdayFmt.format(fromISODate(today)))} ${Number(today.slice(8))}. ${rest}`;
+}
+
+function Kpi({ label, cents }: { label: string; cents: number }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[12.5px] text-muted">{label}</dt>
+      <dd className="tabular mt-1 truncate text-[15px] font-semibold">{formatMoney(cents)}</dd>
+    </div>
+  );
+}
+
+type Catalog = ReturnType<typeof useCatalog>;
+
+function InsightLine({
+  insight,
+  catalog,
+  month,
+}: {
+  insight: Insight | null;
+  catalog: Catalog;
+  month: string;
+}) {
+  if (!insight) return null;
+  const prev = monthNameOf(addMonths(month, -1));
+  let body: React.ReactNode;
+  if (insight.kind === 'weekday') {
+    body = (
+      <>
+        Los <b>{plural(weekdayFmt.format(new Date(2026, 10, 1 + insight.weekday)))}</b> gastás{' '}
+        <b className="tabular">{insight.ratio.toFixed(1).replace('.', ',')} veces</b> lo de un día
+        promedio.
+      </>
+    );
+  } else {
+    const name = (catalog.categories.get(insight.categoryId) as Category | undefined)?.name;
+    body = (
+      <>
+        {name} va{' '}
+        <b className={`tabular ${insight.kind === 'up' ? 'text-over' : 'text-hue'}`}>
+          {insight.pct > 0 ? '+' : '−'}
+          {Math.abs(insight.pct)} %
+        </b>{' '}
+        contra {prev} a esta altura: {formatMoney(insight.nowCents)} frente a{' '}
+        {formatMoney(insight.beforeCents)}.
+      </>
+    );
+  }
+  return (
+    <p className="flex items-start gap-2.5 rounded-[20px] bg-flat px-[18px] py-4 text-[15px] leading-snug">
+      <Sparkles
+        aria-hidden
+        className={`mt-0.5 size-[18px] shrink-0 ${insight.kind === 'up' ? 'text-over' : 'text-hue'}`}
+      />
+      <span>{body}</span>
+    </p>
+  );
+}
+
+function DayList({
+  txs,
+  catalog,
+  onClose,
+}: {
+  txs: Transaction[];
+  catalog: Catalog;
+  onClose: () => void;
+}) {
+  return (
+    <div className="-mx-4 mt-1">
+      <div className="flex items-center justify-between px-4">
+        <h2 className="text-[14px] font-semibold text-muted">
+          {txs.length === 0
+            ? 'Sin movimientos ese día'
+            : txs.length === 1
+              ? '1 movimiento'
+              : `${txs.length} movimientos`}
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="-mr-2 min-h-11 px-2 text-[13.5px] font-medium text-hue"
+        >
+          Ver el mes
+        </button>
+      </div>
+      {txs.map((tx, i) => (
+        <TxRow
+          key={tx.id}
+          tx={tx}
+          category={tx.categoryId ? catalog.categories.get(tx.categoryId) : undefined}
+          account={catalog.accounts.get(tx.accountId)}
+          onDelete={deleteTx}
+          onEdit={editTx}
+          first={i === 0}
+          last={i === txs.length - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FirstSteps() {
+  const openNew = useTxSheet((s) => s.openNew);
+  return (
+    <section className="grid justify-items-center rounded-[24px] bg-flat px-6 py-10 text-center md:col-span-2">
+      <h2 className="text-[18px] font-semibold">Arrancá con tu primer gasto</h2>
+      <p className="mt-2 max-w-[34ch] text-[15px] leading-relaxed text-muted">
+        Cargar uno lleva menos de cinco segundos. El dial se va llenando día a día.
+      </p>
+      <button
+        type="button"
+        onClick={openNew}
+        className="rel go mt-6 min-h-[52px] rounded-[18px] px-6 text-[15px] font-bold"
+      >
+        Cargar un gasto
+      </button>
+    </section>
   );
 }
 
 function HomeSkeleton() {
   return (
-    <div aria-hidden className="px-5 pt-8">
-      <Skeleton className="h-3.5 w-20" />
-      <Skeleton className="mt-3 h-12 w-48" />
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <Skeleton className="h-20 rounded-md" />
-        <Skeleton className="h-20 rounded-md" />
+    <div aria-hidden className="pt-2">
+      <Skeleton className="h-6 w-32" />
+      <Skeleton className="mt-3 h-4 w-64" />
+      <div className="mt-5 grid gap-4 md:grid-cols-[1.05fr_1fr]">
+        <Skeleton className="h-[360px] rounded-[24px]" />
+        <div className="grid content-start gap-4">
+          <Skeleton className="h-[170px] rounded-[24px]" />
+          <Skeleton className="h-[64px] rounded-[20px]" />
+        </div>
       </div>
-      <Skeleton className="mt-4 h-28 rounded-md" />
     </div>
   );
 }

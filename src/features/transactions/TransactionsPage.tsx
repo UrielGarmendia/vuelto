@@ -46,7 +46,7 @@ export function TransactionsPage() {
             <button
               type="button"
               onClick={openNew}
-              className="min-h-11 rounded-full bg-ink px-5 text-sm font-semibold text-bg"
+              className="min-h-11 rounded-full bg-ink px-5 text-sm font-semibold text-ground"
             >
               Cargá tu primer gasto
             </button>
@@ -65,7 +65,7 @@ export function TransactionsPage() {
                 <button
                   type="button"
                   onClick={filters.reset}
-                  className="min-h-11 rounded-full bg-surface-2 px-5 text-sm font-semibold"
+                  className="min-h-11 rounded-full bg-flat-2 px-5 text-sm font-semibold"
                 >
                   Limpiar filtros
                 </button>
