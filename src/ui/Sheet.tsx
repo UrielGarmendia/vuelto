@@ -34,6 +34,8 @@ const CLOSE_VELOCITY = 600;
 /** Bottom sheet: Radix Dialog for focus/a11y, Motion for the spring and drag-to-close. */
 export function Sheet({ open, onOpenChange, title, children }: Props) {
   const drag = useDragControls();
+  // Wide screens get a centred dialog instead of a sheet from the bottom.
+  const wide = typeof matchMedia !== 'undefined' && matchMedia('(min-width: 1024px)').matches;
 
   // Scale the page behind (iOS style); CSS in styles.css reads these.
   useEffect(() => {
@@ -57,7 +59,7 @@ export function Sheet({ open, onOpenChange, title, children }: Props) {
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild forceMount>
               <m.div
-                className="fixed inset-0 z-40 bg-black/40"
+                className="fixed inset-0 z-40 bg-[var(--scrim)]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -76,12 +78,16 @@ export function Sheet({ open, onOpenChange, title, children }: Props) {
             >
               <m.div
                 tabIndex={-1}
-                className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[94dvh] max-w-lg flex-col overflow-y-auto overscroll-contain rounded-t-[28px] bg-ground pb-safe shadow-[0_-8px_40px_-12px_rgb(0_0_0/0.25)] outline-none"
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={spring.sheet}
-                drag="y"
+                className={`fixed z-50 flex flex-col overflow-y-auto overscroll-contain border-line bg-ground outline-none ${
+                  wide
+                    ? 'inset-x-0 top-[6dvh] mx-auto max-h-[88dvh] w-[460px] rounded-[30px] border pb-2'
+                    : 'inset-x-0 bottom-0 mx-auto max-h-[94dvh] max-w-xl rounded-t-[30px] border-t pb-safe'
+                }`}
+                initial={wide ? { opacity: 0, scale: 0.96, y: 12 } : { y: '100%' }}
+                animate={wide ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
+                exit={wide ? { opacity: 0, scale: 0.97, y: 8 } : { y: '100%' }}
+                transition={wide ? { duration: duration.base, ease: ease.out } : spring.sheet}
+                drag={wide ? false : 'y'}
                 dragListener={false}
                 dragControls={drag}
                 dragConstraints={{ top: 0, bottom: 0 }}
@@ -90,7 +96,10 @@ export function Sheet({ open, onOpenChange, title, children }: Props) {
               >
                 <DragContext.Provider value={(e) => drag.start(e)}>
                   <SheetDragZone className="flex shrink-0 justify-center pt-2.5 pb-1.5">
-                    <span aria-hidden className="h-1.5 w-10 rounded-full bg-line" />
+                    <span
+                      aria-hidden
+                      className={`h-[5px] w-10 rounded-full bg-idle ${wide ? 'invisible' : ''}`}
+                    />
                   </SheetDragZone>
                   <Dialog.Title className="sr-only">{title}</Dialog.Title>
                   {children}

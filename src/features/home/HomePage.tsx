@@ -88,7 +88,7 @@ export function HomePage() {
         </p>
       </header>
 
-      <div className="mt-4 grid items-start gap-4 md:grid-cols-[1.05fr_1fr]">
+      <div className="mt-4 grid items-start gap-4 md:grid-cols-[1.05fr_1fr] md:grid-rows-[auto_1fr]">
         <section
           aria-label="Cómo viene el mes"
           className="relative isolate overflow-hidden rounded-[24px] bg-flat px-5 pt-3 pb-5"
@@ -151,14 +151,19 @@ export function HomePage() {
           )}
         </section>
 
-        <div className="grid gap-4">
-          <section aria-labelledby="available-label" className="rel rounded-[24px] p-[22px]">
+        <div className="grid gap-4 md:col-start-2 md:row-span-2 md:row-start-1">
+          <section
+            aria-labelledby="available-label"
+            className="rel rounded-[24px] p-[22px] [container-type:inline-size]"
+          >
             <p id="available-label" className="text-[14px] text-muted">
               Disponible
             </p>
             <Odometer
               cents={available}
-              className="wide mt-1.5 text-[clamp(34px,10vw,52px)] leading-[1.05] font-extrabold"
+              className="wide mt-1.5 leading-[1.05] font-extrabold"
+              // Long amounts shrink to fit the card instead of overflowing it.
+              style={{ fontSize: fitSize(formatMoney(available), 52) }}
             />
             {creditDebtCents > 0 && (
               <p className="mt-1 text-[13px] text-faint">
@@ -185,7 +190,7 @@ export function HomePage() {
         ) : (
           <section
             aria-labelledby="recent-label"
-            className="rounded-[24px] bg-flat px-1 pt-4 pb-1 md:col-span-2"
+            className="rounded-[24px] bg-flat px-1 pt-4 pb-1 md:col-start-1"
           >
             <div className="flex items-center justify-between px-4 pb-1">
               <h2 id="recent-label" className="text-[16px] font-semibold">
@@ -217,6 +222,10 @@ export function HomePage() {
     </>
   );
 }
+
+/** Font size that fits `text` in its container (needs container-type) without passing `max`. */
+const fitSize = (text: string, max: number) =>
+  `min(${max}px, ${(100 / (text.length * 0.66)).toFixed(2)}cqw)`;
 
 const signedMoney = (cents: number) => (cents < 0 ? `−${formatMoney(-cents)}` : formatMoney(cents));
 
@@ -360,7 +369,7 @@ function DayList({
 function FirstSteps() {
   const openNew = useTxSheet((s) => s.openNew);
   return (
-    <section className="grid justify-items-center rounded-[24px] bg-flat px-6 py-10 text-center md:col-span-2">
+    <section className="grid justify-items-center rounded-[24px] bg-flat px-6 py-10 text-center md:col-start-1">
       <h2 className="text-[18px] font-semibold">Arrancá con tu primer gasto</h2>
       <p className="mt-2 max-w-[34ch] text-[15px] leading-relaxed text-muted">
         Cargar uno lleva menos de cinco segundos. El dial se va llenando día a día.

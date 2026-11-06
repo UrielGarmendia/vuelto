@@ -16,9 +16,11 @@ interface Props {
   transactions: Transaction[];
   categories: Map<string, Category>;
   accounts: Map<string, Account>;
+  currentId?: string;
+  onOpen?: (id: string) => void;
 }
 
-export function TransactionList({ transactions, categories, accounts }: Props) {
+export function TransactionList({ transactions, categories, accounts, currentId, onOpen }: Props) {
   const rows = useMemo(() => groupByDay(transactions), [transactions]);
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -44,7 +46,7 @@ export function TransactionList({ transactions, categories, accounts }: Props) {
 
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
-    estimateSize: (i) => (rows[i]?.kind === 'day' ? 44 : 68),
+    estimateSize: (i) => (rows[i]?.kind === 'day' ? 46 : 66),
     getItemKey: (i) => rows[i]!.key,
     overscan: 5,
     scrollMargin,
@@ -77,9 +79,9 @@ export function TransactionList({ transactions, categories, accounts }: Props) {
             }
           >
             {row.kind === 'day' ? (
-              <div className="flex items-end justify-between px-5 pt-5 pb-1.5">
+              <div className="flex items-end justify-between px-1 pt-5 pb-2">
                 <h2 className="text-[13px] font-semibold text-muted">{formatDay(row.date)}</h2>
-                <span className="tabular text-[13px] font-medium text-muted">
+                <span className="tabular text-[13px] font-semibold text-muted">
                   {row.totalCents > 0 ? '+' : row.totalCents < 0 ? '−' : ''}
                   {formatMoney(Math.abs(row.totalCents))}
                 </span>
@@ -91,6 +93,10 @@ export function TransactionList({ transactions, categories, accounts }: Props) {
                 account={accounts.get(row.tx.accountId)}
                 onDelete={deleteTx}
                 onEdit={editTx}
+                first={rows[item.index - 1]?.kind !== 'tx'}
+                last={rows[item.index + 1]?.kind !== 'tx'}
+                current={row.tx.id === currentId}
+                onOpen={onOpen}
               />
             )}
           </m.div>

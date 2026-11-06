@@ -44,7 +44,7 @@ export default defineConfig({
       },
       workbox: {
         // Only the latin font subset; the others are never needed for Spanish UI.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/archivo-latin-wdth-normal-*.woff2'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/archivo-latin-wdth-normal-*.woff2', 'assets/archivo-wide-latin-*.woff2'],
         navigateFallback: '/index.html',
       },
     }),

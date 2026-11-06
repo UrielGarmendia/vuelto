@@ -1,4 +1,6 @@
 import { ChevronDown, Search, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router';
 import type { Account, Category } from '../../db/types';
 import { isFiltering, useFilters, type Range } from './filters';
 
@@ -25,8 +27,9 @@ function Chip({
   const current = options.find((o) => o.value === value)?.label ?? label;
   return (
     <label
-      className={`relative flex min-h-10 shrink-0 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue ${
-        active ? 'bg-ink text-ground' : 'bg-flat-2 text-ink'
+      data-on={active}
+      className={`rel relative flex min-h-[38px] shrink-0 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-[13.5px] has-focus-visible:outline-2 has-focus-visible:outline-hue ${
+        active ? 'font-semibold text-ink' : 'text-muted'
       }`}
     >
       {active ? current : label}
@@ -56,24 +59,31 @@ export function FilterBar({
 }) {
   const f = useFilters();
   const active = isFiltering(f);
+  const search = useRef<HTMLInputElement>(null);
+  const focusSearch = (useLocation().state as { focusSearch?: number } | null)?.focusSearch;
+  // The `/` shortcut and the search buttons land here with the box focused.
+  useEffect(() => {
+    if (focusSearch) search.current?.focus();
+  }, [focusSearch]);
 
   return (
-    <div className="space-y-2 pb-1">
-      <div className="px-5">
-        <label className="flex min-h-11 items-center gap-2 rounded-sm bg-flat-2 px-3 has-focus-visible:outline-2 has-focus-visible:outline-hue">
-          <Search aria-hidden className="size-4 shrink-0 text-muted" />
+    <div className="space-y-2.5 pb-1">
+      <div>
+        <label className="well flex min-h-[46px] items-center gap-2 rounded-full px-4 has-focus-visible:outline-2 has-focus-visible:outline-hue">
+          <Search aria-hidden className="size-[17px] shrink-0 text-faint" />
           <input
+            ref={search}
             type="search"
             value={f.query}
             onChange={(e) => f.set({ query: e.target.value })}
             placeholder="Buscar por nota, categoría o monto"
             aria-label="Buscar movimientos"
             enterKeyHint="search"
-            className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted"
+            className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-faint"
           />
         </label>
       </div>
-      <div className="flex gap-2 overflow-x-auto px-5 py-1 [scrollbar-width:none]">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pt-1 pb-2 md:mx-0 md:px-0.5">
         <Chip
           label="Fecha"
           active={f.range !== 'all'}
@@ -116,7 +126,7 @@ export function FilterBar({
           <button
             type="button"
             onClick={f.reset}
-            className="flex min-h-10 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium text-hue"
+            className="flex min-h-[38px] shrink-0 items-center gap-1 rounded-full px-3 text-[13.5px] font-medium text-hue"
           >
             <X aria-hidden className="size-4" /> Limpiar
           </button>

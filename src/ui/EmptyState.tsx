@@ -10,15 +10,13 @@ interface Props {
 
 export function EmptyState({ icon: Icon, title, children, action }: Props) {
   return (
-    <div className="flex flex-col items-center px-8 py-16 text-center">
-      <div className="relative mb-6 grid size-24 place-items-center">
-        <div className="absolute inset-0 rotate-6 rounded-[28px] bg-flat-2" />
-        <div className="absolute inset-2 -rotate-3 rounded-[24px] bg-flat" />
-        <Icon aria-hidden className="relative size-9 text-hue" strokeWidth={1.75} />
+    <div className="flex flex-col items-center px-6 py-14 text-center">
+      <div className="rel mb-6 grid size-20 place-items-center rounded-[26px]">
+        <Icon aria-hidden className="size-8 text-hue" strokeWidth={1.75} />
       </div>
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      <h2 className="text-[18px] font-semibold">{title}</h2>
       {children && (
-        <p className="mt-2 max-w-64 text-[15px] leading-relaxed text-muted">{children}</p>
+        <p className="mt-2 max-w-[34ch] text-[15px] leading-relaxed text-muted">{children}</p>
       )}
       {action && <div className="mt-6">{action}</div>}
     </div>

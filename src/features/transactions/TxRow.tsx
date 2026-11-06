@@ -28,7 +28,11 @@ interface Props {
   last?: boolean;
   /** Highlighted as the one shown in the side panel (wide screens). */
   current?: boolean;
+  /** On wide screens, shows the movement beside the list instead of navigating. */
+  onOpen?: (id: string) => void;
 }
+
+const wide = () => matchMedia('(min-width: 1024px)').matches;
 
 /** Memoized: the virtual list re-renders on every scroll frame. */
 export const TxRow = memo(function TxRow({
@@ -40,6 +44,7 @@ export const TxRow = memo(function TxRow({
   first = true,
   last = true,
   current = false,
+  onOpen,
 }: Props) {
   const x = useMotionValue(0);
   // Action backgrounds only exist while swiping, keeping idle rows cheap.
@@ -89,7 +94,13 @@ export const TxRow = memo(function TxRow({
           viewTransition={viewTransitions}
           draggable={false}
           onPointerDown={() => (dragged.current = false)}
-          onClick={(e) => dragged.current && e.preventDefault()}
+          onClick={(e) => {
+            if (dragged.current) e.preventDefault();
+            else if (onOpen && wide()) {
+              e.preventDefault();
+              onOpen(tx.id);
+            }
+          }}
           aria-current={current ? 'true' : undefined}
           className="hoverable relative flex min-h-[66px] items-center gap-3 px-4 py-2.5 select-none active:bg-flat-2 aria-[current]:bg-flat-2"
         >

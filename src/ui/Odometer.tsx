@@ -7,7 +7,15 @@ import './odometer.css';
  * so the browser animates it on the compositor. Columns are keyed from the right so units
  * stay units when the number gains a digit.
  */
-export function Odometer({ cents, className }: { cents: number; className?: string }) {
+export function Odometer({
+  cents,
+  className,
+  style,
+}: {
+  cents: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   // Start from zeros of the same shape, then roll to the value after the first paint.
   const target = formatMoney(cents);
   const [shown, setShown] = useState(() => target.replace(/\d/g, '0'));
@@ -18,7 +26,7 @@ export function Odometer({ cents, className }: { cents: number; className?: stri
 
   const chars = [...shown];
   return (
-    <span className={`odo ${className ?? ''}`}>
+    <span className={`odo ${className ?? ''}`} style={style}>
       <span className="sr-only">{target}</span>
       <span aria-hidden className="odo-row">
         {chars.map((ch, i) => {

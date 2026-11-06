@@ -166,7 +166,7 @@ function TxForm({
   const header = (
     <SheetDragZone className="px-5 pb-3">
       <div
-        className="mx-auto grid w-52 grid-cols-2 rounded-full bg-flat-2 p-1"
+        className="well mx-auto grid w-56 grid-cols-2 gap-1 rounded-full p-[5px]"
         role="radiogroup"
         aria-label="Tipo"
       >
@@ -177,7 +177,7 @@ function TxForm({
             role="radio"
             aria-checked={type === k}
             onClick={() => switchType(k)}
-            className="min-h-9 rounded-full text-sm font-medium text-muted transition-colors aria-checked:bg-flat-2 aria-checked:text-ink"
+            className={`min-h-9 rounded-full text-[14px] text-muted transition-colors aria-checked:font-semibold aria-checked:text-ink ${type === k ? 'rel' : ''}`}
           >
             {k === 'expense' ? 'Gasto' : 'Ingreso'}
           </button>
@@ -186,11 +186,11 @@ function TxForm({
       <p
         aria-live="polite"
         aria-label={`Monto: ${formatAmountInput(amount)} pesos`}
-        className={`tabular mt-3 truncate text-center text-[44px] leading-none font-semibold tracking-tight ${
-          amount ? (type === 'expense' ? 'text-negative' : 'text-positive') : 'text-muted/50'
+        className={`wide mt-5 mb-1 truncate text-center text-[clamp(40px,13vw,56px)] leading-none font-extrabold ${
+          amount ? (type === 'income' ? 'text-positive' : 'text-ink') : 'text-faint'
         }`}
       >
-        <span className="mr-1 align-[0.35em] text-[28px] font-medium">$</span>
+        <span className="mr-1.5 align-[0.5em] text-[0.45em] font-medium text-muted">$</span>
         {formatAmountInput(amount)}
       </p>
     </SheetDragZone>
@@ -208,9 +208,9 @@ function TxForm({
             onSelect={setCategoryId}
           />
 
-          <div className="flex gap-2 overflow-x-auto px-5 pt-1 pb-2 [scrollbar-width:none]">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-2 pb-2">
             <div
-              className="flex shrink-0 rounded-full bg-flat-2 p-1"
+              className="well flex shrink-0 rounded-full p-1"
               role="radiogroup"
               aria-label="Fecha"
             >
@@ -224,13 +224,13 @@ function TxForm({
                   role="radio"
                   aria-checked={date === d.iso}
                   onClick={() => setDate(d.iso)}
-                  className="min-h-9 rounded-full px-3.5 text-sm font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink"
+                  className="min-h-9 rounded-full px-3.5 text-[13.5px] font-medium text-muted aria-checked:bg-flat-2 aria-checked:text-ink"
                 >
                   {d.label}
                 </button>
               ))}
               <label
-                className={`relative flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue ${
+                className={`relative flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[13.5px] font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue ${
                   isOtherDay ? 'bg-flat-2 text-ink' : 'text-muted'
                 }`}
               >
@@ -247,7 +247,7 @@ function TxForm({
               </label>
             </div>
 
-            <label className="relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-flat-2 pr-3 pl-3.5 text-sm font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue">
+            <label className="well relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pr-3 pl-3.5 text-[13.5px] font-medium has-focus-visible:outline-2 has-focus-visible:outline-hue">
               <Wallet aria-hidden className="size-4 text-muted" />
               <span>{accounts.find((a) => a.id === effectiveAccountId)?.name ?? 'Cuenta'}</span>
               <ChevronDown aria-hidden className="size-4 text-muted" />
@@ -269,7 +269,7 @@ function TxForm({
               <button
                 type="button"
                 onClick={() => setShowNote(true)}
-                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-flat-2 px-3.5 text-sm font-medium"
+                className="well flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-medium"
               >
                 <NotebookPen aria-hidden className="size-4 text-muted" /> Nota
               </button>
@@ -287,21 +287,25 @@ function TxForm({
                 aria-label="Nota"
                 maxLength={140}
                 enterKeyHint="done"
-                className="min-h-11 w-full rounded-sm bg-flat-2 px-4 text-[16px] placeholder:text-muted focus-visible:outline-2 focus-visible:outline-hue"
+                className="well min-h-11 w-full rounded-[14px] px-4 text-[16px] placeholder:text-faint focus-visible:outline-2 focus-visible:outline-hue"
               />
             </div>
           )}
         </div>
 
-        <div className="shrink-0 border-t border-line px-4 pt-2 pb-3">
+        <div className="shrink-0 px-4 pt-3 pb-3">
           <NumberPad onKey={(k) => setAmount((a) => applyAmountKey(a, k))} />
           <button
             type="button"
             onClick={save}
             disabled={!canSave}
-            className="mt-2 min-h-13 w-full rounded-md bg-hue text-[17px] font-semibold text-on-hue transition-opacity disabled:opacity-40"
+            className="rel go mt-3.5 min-h-[56px] w-full rounded-[20px] text-[16px] font-bold"
           >
-            {editingId ? 'Guardar cambios' : 'Guardar'}
+            {editingId
+              ? 'Guardar cambios'
+              : type === 'expense'
+                ? 'Guardar gasto'
+                : 'Guardar ingreso'}
           </button>
         </div>
       </div>
@@ -322,7 +326,11 @@ function CategoryGrid({
     <div
       role="radiogroup"
       aria-label="Categoría"
-      className="grid snap-x auto-cols-[76px] grid-flow-col grid-rows-2 gap-x-1 gap-y-0.5 overflow-x-auto px-4 py-1 [scrollbar-width:none]"
+      className="no-scrollbar grid snap-x auto-cols-[78px] grid-flow-col grid-rows-2 gap-x-1.5 gap-y-1.5 overflow-x-auto px-4 py-1.5"
+      // A mouse wheel scrolls the strip sideways (desktop has no swipe).
+      onWheel={(e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+      }}
     >
       {categories.map((c) => (
         <button
@@ -331,14 +339,9 @@ function CategoryGrid({
           role="radio"
           aria-checked={selected === c.id}
           onClick={() => onSelect(c.id)}
-          className="group flex snap-start flex-col items-center gap-1 rounded-sm px-0.5 py-1"
+          className="group flex snap-start flex-col items-center gap-1.5 rounded-[18px] px-0.5 pt-2 pb-1.5 transition-[background-color,box-shadow] aria-checked:bg-sunk aria-checked:shadow-[var(--press)]"
         >
-          <span
-            className="rounded-[16px] ring-2 ring-transparent ring-offset-2 ring-offset-ground transition-shadow group-aria-checked:ring-[var(--c)]"
-            style={{ '--c': c.color } as React.CSSProperties}
-          >
-            <CategoryIcon icon={c.icon} color={c.color} />
-          </span>
+          <CategoryIcon icon={c.icon} color={c.color} />
           <span className="w-full truncate text-center text-[11px] leading-tight font-medium text-muted group-aria-checked:text-ink">
             {c.name}
           </span>
