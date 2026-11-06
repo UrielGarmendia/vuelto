@@ -45,15 +45,6 @@ export default defineConfig({
       workbox: {
         // Only the latin font subset; the others are never needed for Spanish UI.
         globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/geist-latin-wght-*.woff2'],
-        // The 3D chunk is big and most sessions never need it: cache it on first use instead.
-        globIgnores: ['**/CoinScene-*.js'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/assets\/CoinScene-.*\.js$/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'vuelto-3d', expiration: { maxEntries: 4 } },
-          },
-        ],
         navigateFallback: '/index.html',
       },
     }),
