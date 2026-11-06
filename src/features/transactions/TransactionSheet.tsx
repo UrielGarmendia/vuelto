@@ -65,7 +65,7 @@ export function TransactionSheet() {
     () =>
       db.accounts
         .orderBy('order')
-        .filter((a) => !a.archived && !a.deleted)
+        .filter((a) => !a.archived && !a.deleted && a.kind !== 'investment')
         .toArray(),
     [],
   );

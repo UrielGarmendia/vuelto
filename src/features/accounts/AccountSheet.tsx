@@ -7,7 +7,7 @@ import { parseCents, type Currency } from '../../lib/money';
 import { ColorPicker } from '../../ui/Pickers';
 import { Sheet, SheetDragZone } from '../../ui/Sheet';
 import { toast } from '../../ui/toast';
-import { accountKinds } from './kinds';
+import { accountKinds, manualKinds } from './kinds';
 
 interface Props {
   open: boolean;
@@ -103,7 +103,7 @@ function Form({ account, onDone }: { account?: Account; onDone: () => void }) {
           aria-label="Tipo"
           className="grid grid-cols-2 gap-1 rounded-[22px] bg-flat p-1.5"
         >
-          {(Object.keys(accountKinds) as AccountKind[]).map((k) => (
+          {manualKinds.map((k) => (
             <button
               key={k}
               type="button"

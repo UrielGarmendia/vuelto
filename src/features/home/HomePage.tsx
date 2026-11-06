@@ -13,6 +13,8 @@ import { Skeleton } from '../../ui/Skeleton';
 import { closedWithin, monthBudget } from '../budgets/budgets';
 import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
+import { snapshotTotal } from '../external/provider';
+import { useIol } from '../iol/iol';
 import { pickInsight, projectMonth, type Insight } from '../insights/insights';
 import { deleteTx, editTx } from '../transactions/actions';
 import { listTransactions } from '../transactions/queries';
@@ -53,6 +55,7 @@ export function HomePage() {
   const budgets = useLiveQuery(() => db.budgets.toArray(), []);
   const catalog = useCatalog();
   const rates = useRates();
+  const iol = useIol();
   const rateKind = usePrefs((s) => s.rateKind);
   const [selected, setSelected] = useState<number | null>(null);
   useMonthCelebration(txs, budgets);
@@ -76,8 +79,13 @@ export function HomePage() {
     ? expenseCents + Math.max(0, pace.total - pace.upToDay)
     : projectMonth(expenseCents, day, n);
   const balances = accountBalances(accounts, txs);
-  const { balanceCents, creditDebtCents } = totals(accounts, balances, rates?.values[rateKind]);
+  const usdRate = rates?.values[rateKind];
+  const { balanceCents, creditDebtCents } = totals(accounts, balances, usdRate);
   const available = balanceCents + creditDebtCents;
+  // With IOL linked, the card shows net worth: cash, investments and card debt.
+  const invested = iol?.account && iol.snapshot ? snapshotTotal(iol.snapshot, usdRate) : undefined;
+  const bigCents = invested === undefined ? available : balanceCents + invested;
+  if (iol?.account && invested !== undefined) balances.set(iol.account.id, invested);
   const running =
     (baseline.mode === 'budget' && projected > budget!) ||
     (summary.mode === 'average' && summary.percentVsAverage > 10);
@@ -163,25 +171,44 @@ export function HomePage() {
             className="rel rounded-[24px] p-[22px] [container-type:inline-size]"
           >
             <p id="available-label" className="text-[14px] text-muted">
-              Disponible
+              {invested === undefined ? 'Disponible' : 'Patrimonio'}
             </p>
             <Odometer
-              cents={available}
+              cents={bigCents}
               className="wide mt-1.5 leading-[1.05] font-extrabold"
               // Long amounts shrink to fit the card instead of overflowing it.
-              style={{ fontSize: fitSize(formatMoney(available), 52) }}
+              style={{ fontSize: fitSize(formatMoney(bigCents), 52) }}
             />
-            {creditDebtCents > 0 && (
-              <p className="mt-1 text-[13px] text-faint">
-                Después de pagar la tarjeta te quedan{' '}
-                <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
-              </p>
+            {invested === undefined ? (
+              <>
+                {creditDebtCents > 0 && (
+                  <p className="mt-1 text-[13px] text-faint">
+                    Después de pagar la tarjeta te quedan{' '}
+                    <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
+                  </p>
+                )}
+                <dl className="mt-4 grid grid-cols-3 gap-2.5">
+                  <Kpi label="Entró" cents={incomeCents} />
+                  <Kpi label="Salió" cents={expenseCents} />
+                  <Kpi label="Tarjeta" cents={creditDebtCents} />
+                </dl>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-[13px] text-faint">
+                  Lo que tenés más lo invertido, menos la tarjeta.
+                </p>
+                <dl className="mt-4 grid grid-cols-3 gap-2.5">
+                  <Kpi label="Disponible" cents={available} />
+                  <Kpi label="Invertido" cents={invested} />
+                  <Kpi label="Tarjeta" cents={creditDebtCents} />
+                </dl>
+                <p className="mt-3 border-t border-line pt-3 text-[13px] text-muted">
+                  Este mes entró <b className="tabular text-ink">{formatMoney(incomeCents)}</b> y
+                  salió <b className="tabular text-ink">{formatMoney(expenseCents)}</b>.
+                </p>
+              </>
             )}
-            <dl className="mt-4 grid grid-cols-3 gap-2.5">
-              <Kpi label="Entró" cents={incomeCents} />
-              <Kpi label="Salió" cents={expenseCents} />
-              <Kpi label="Tarjeta" cents={creditDebtCents} />
-            </dl>
           </section>
 
           {txs.length > 0 && (

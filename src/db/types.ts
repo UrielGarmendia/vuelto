@@ -37,7 +37,7 @@ export interface Category extends Meta {
   archived: 0 | 1;
 }
 
-export type AccountKind = 'cash' | 'bank' | 'wallet' | 'credit';
+export type AccountKind = 'cash' | 'bank' | 'wallet' | 'credit' | 'investment';
 
 export interface Account extends Meta {
   name: string;
@@ -47,6 +47,9 @@ export interface Account extends Meta {
   color: string;
   order: number;
   archived: 0 | 1;
+  /** Linked to an outside service (IOL): its balance comes from there, not from movements.
+   * `blob` is the sealed connection; only our server functions can open it. */
+  external?: { provider: 'iol'; blob: string; connectedAt: number };
 }
 
 export interface Budget extends Meta {

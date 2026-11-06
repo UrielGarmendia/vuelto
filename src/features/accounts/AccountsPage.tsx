@@ -2,13 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { GripVertical, Plus } from 'lucide-react';
 import { m, useDragControls, useReducedMotion, useSpring } from 'motion/react';
 import { Reorder } from 'motion/react-m';
-import { useState, type PointerEvent } from 'react';
+import { useCallback, useState, type PointerEvent } from 'react';
 import { usePrefs } from '../../app/prefs';
 import { setArchived } from '../../db/catalog';
 import { db } from '../../db/db';
 import type { Account } from '../../db/types';
 import { formatMoney } from '../../lib/money';
 import { BackLink } from '../../ui/BackLink';
+import { usePullToRefresh } from '../../ui/usePullToRefresh';
+import { useIolStatus } from '../iol/iol';
+import { IolCard } from '../iol/IolCard';
 import { accountBalances } from '../home/summary';
 import { useOrder } from '../categories/useOrder';
 import { AccountSheet } from './AccountSheet';
@@ -28,13 +31,21 @@ export function AccountsPage() {
     [],
   );
   const txs = useLiveQuery(() => db.transactions.where('deleted').equals(0).toArray(), []);
-  const active = all?.filter((a) => !a.archived) ?? [];
+  // Linked accounts (IOL) have their own card above; their balance is not made of movements.
+  const active = all?.filter((a) => !a.archived && a.kind !== 'investment') ?? [];
   const archived = all?.filter((a) => a.archived) ?? [];
   const balances = all && txs ? accountBalances(all, txs) : new Map<string, number>();
   const byId = new Map(active.map((a) => [a.id, a]));
   const [ids, onReorder] = useOrder(
     'accounts',
     active.map((a) => a.id),
+  );
+
+  const linked = all?.some((a) => a.kind === 'investment');
+  usePullToRefresh(
+    useCallback(() => {
+      if (linked) void useIolStatus.getState().refresh();
+    }, [linked]),
   );
 
   const open = (account?: Account) =>
@@ -48,6 +59,8 @@ export function AccountsPage() {
         Tocá una cuenta para editarla. Arrastrá desde la manija para reordenar (con teclado: Enter
         edita, Espacio agarra y las flechas mueven).
       </p>
+
+      <IolCard />
 
       <Reorder.Group
         axis="y"
