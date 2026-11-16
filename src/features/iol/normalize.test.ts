@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { dayChange, investedTotal, snapshotTotal, type Snapshot } from '../external/provider';
+import {
+  cashTotal,
+  dayChange,
+  investedTotal,
+  snapshotTotal,
+  type Snapshot,
+} from '../external/provider';
 import { assetCategory, normalizeBalance, normalizePortfolio } from './normalize';
 
 // Shaped like IOL's MCP answers; every amount is made up.
@@ -215,6 +221,9 @@ describe('IOL snapshot', () => {
     expect(snapshotTotal(s, 1000)).toBe(15_000_000 + 25_050 * 1000 + pesos + 40_000 * 1000);
     // Without a rate the dollars are left out instead of guessed.
     expect(snapshotTotal(s)).toBe(15_000_000 + pesos);
+    // Inicio and the IOL card split it the same way: cash apart from positions.
+    expect(cashTotal(s, 1000)).toBe(15_000_000 + 25_050 * 1000);
+    expect(cashTotal(s, 1000) + investedTotal(s, 1000)).toBe(snapshotTotal(s, 1000));
   });
 
   it('weights the day change by each position’s value in pesos', () => {

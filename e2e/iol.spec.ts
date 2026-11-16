@@ -101,7 +101,10 @@ test('connects IOL, shows the portfolio and the net worth, and disconnects', asy
 
   await page.goto('/');
   const balance = page.getByRole('region', { name: 'Patrimonio' });
-  await expect(balance).toContainText('Invertido$ 1.000.000');
+  await expect(balance.getByRole('img', { name: '$ 1.000.000' })).toBeVisible();
+  // IOL's cash counts as available; invested is only the positions.
+  await expect(balance).toContainText('Disponible$ 100.000incluye $ 100.000 en IOL');
+  await expect(balance).toContainText('Invertido$ 900.000');
   await page.screenshot({ path: `e2e/__screenshots__/${info.project.name}/iol-inicio.png` });
 
   await page.goto('/ajustes/cuentas');

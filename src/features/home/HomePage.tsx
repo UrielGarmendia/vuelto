@@ -14,7 +14,7 @@ import { Skeleton } from '../../ui/Skeleton';
 import { closedWithin, monthBudget } from '../budgets/budgets';
 import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
-import { snapshotTotal } from '../external/provider';
+import { cashTotal, investedTotal, snapshotTotal } from '../external/provider';
 import { useIol } from '../iol/iol';
 import { pickInsight, projectMonth, type Insight } from '../insights/insights';
 import { deleteTx, editTx } from '../transactions/actions';
@@ -84,10 +84,14 @@ export function HomePage() {
   const usdRate = rates?.values[rateKind];
   const { balanceCents, creditDebtCents } = totals(accounts, balances, usdRate);
   const available = balanceCents + creditDebtCents;
-  // With IOL linked, the card shows net worth: cash, investments and card debt.
-  const invested = iol?.account && iol.snapshot ? snapshotTotal(iol.snapshot, usdRate) : undefined;
-  const bigCents = invested === undefined ? available : balanceCents + invested;
-  if (iol?.account && invested !== undefined) balances.set(iol.account.id, invested);
+  // With IOL linked, the card shows net worth. IOL's cash counts as available money and only
+  // its positions count as invested, the same split as the IOL card.
+  const iolSnapshot = iol?.account ? iol.snapshot : undefined;
+  const iolCash = iolSnapshot ? cashTotal(iolSnapshot, usdRate) : 0;
+  const invested = iolSnapshot ? investedTotal(iolSnapshot, usdRate) : undefined;
+  const bigCents = invested === undefined ? available : balanceCents + iolCash + invested;
+  if (iol?.account && iolSnapshot)
+    balances.set(iol.account.id, snapshotTotal(iolSnapshot, usdRate));
   const running =
     (baseline.mode === 'budget' && projected > budget!) ||
     (summary.mode === 'average' && summary.percentVsAverage > 10);
@@ -195,7 +199,11 @@ export function HomePage() {
               Lo que tenés más lo invertido, menos la tarjeta.
             </p>
             <dl className="mt-4 grid gap-1.5 @[20rem]:grid-cols-3 @[20rem]:gap-2.5">
-              <Kpi label="Disponible" cents={available} />
+              <Kpi
+                label="Disponible"
+                cents={available + iolCash}
+                note={iolCash ? `incluye ${formatMoney(iolCash)} en IOL` : undefined}
+              />
               <Kpi label="Invertido" cents={invested} />
               <Kpi label="Tarjeta" cents={creditDebtCents} />
             </dl>
@@ -320,14 +328,19 @@ function headline(
   return `${capital(weekdayFmt.format(fromISODate(today)))} ${Number(today.slice(8))}. ${rest}`;
 }
 
-function Kpi({ label, cents }: { label: string; cents: number }) {
+function Kpi({ label, cents, note }: { label: string; cents: number; note?: string }) {
   return (
     // A row on narrow cards, a column from 320 px: amounts are never cut.
-    <div className="flex min-w-0 items-baseline justify-between gap-3 @[20rem]:block">
+    <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 @[20rem]:block">
       <dt className="text-[12.5px] text-muted">{label}</dt>
       <dd className="tabular text-[15px] font-semibold whitespace-nowrap @[20rem]:mt-1">
         {formatMoney(cents)}
       </dd>
+      {note && (
+        <dd className="tabular basis-full text-[12px] leading-snug text-faint @[20rem]:mt-0.5">
+          {note}
+        </dd>
+      )}
     </div>
   );
 }

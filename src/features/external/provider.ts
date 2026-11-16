@@ -48,9 +48,14 @@ export function investedTotal(s: Snapshot, usdRate?: number): number {
   return s.positions.reduce((a, p) => a + inPesos(p.valueCents, p.currency, usdRate), 0);
 }
 
+/** Cash held at the provider, in pesos. */
+export function cashTotal(s: Snapshot, usdRate?: number): number {
+  return s.cash.ARS + inPesos(s.cash.USD, 'USD', usdRate);
+}
+
 /** Cash plus positions, in pesos; dollars convert at `usdRate` (left out without one). */
 export function snapshotTotal(s: Snapshot, usdRate?: number): number {
-  return s.cash.ARS + inPesos(s.cash.USD, 'USD', usdRate) + investedTotal(s, usdRate);
+  return cashTotal(s, usdRate) + investedTotal(s, usdRate);
 }
 
 /**

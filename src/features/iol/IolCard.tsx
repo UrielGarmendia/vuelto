@@ -6,6 +6,7 @@ import { formatMoney } from '../../lib/money';
 import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
 import {
+  cashTotal,
   dayChange,
   investedTotal,
   snapshotTotal,
@@ -181,8 +182,7 @@ export function IolCard() {
             <div>
               <dt className="text-[12.5px] text-muted">Efectivo</dt>
               <dd className="tabular mt-0.5 text-[15px] font-semibold">
-                {formatMoney(s.cash.ARS)}
-                {s.cash.USD ? ` · ${formatMoney(s.cash.USD, 'USD')}` : ''}
+                {formatMoney(cashTotal(s, rate))}
               </dd>
             </div>
             <div>
