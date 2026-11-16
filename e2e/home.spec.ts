@@ -25,7 +25,7 @@ for (const theme of ['light', 'dark'] as const) {
     await add(page, 'Gasto', '1100', 'Transporte');
 
     const balance = page.getByRole('region', { name: 'Disponible' });
-    await expect(balance).toContainText('$ 477.250');
+    await expect(balance.getByRole('img', { name: '$ 477.250' })).toBeVisible();
     await expect(balance).toContainText('Salió$ 22.750');
     await expect(page.getByRole('region', { name: 'Cómo viene el mes' })).toContainText(
       'gastado en',

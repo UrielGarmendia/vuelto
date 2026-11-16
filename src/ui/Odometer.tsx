@@ -26,15 +26,19 @@ export function Odometer({
 
   const chars = [...shown];
   return (
-    <span className={`odo ${className ?? ''}`} style={style}>
-      <span className="sr-only">{target}</span>
+    // The 0–9 columns are decoration: assistive tech gets the real amount from the label only.
+    <span role="img" aria-label={target} className={`odo ${className ?? ''}`} style={style}>
       <span aria-hidden className="odo-row">
         {chars.map((ch, i) => {
           const key = chars.length - i;
           if (!/\d/.test(ch)) return <span key={`s${key}`}>{ch}</span>;
           return (
-            <span key={`d${key}`} className="odo-cell">
-              <span className="odo-col" style={{ transform: `translateY(${-Number(ch) * 10}%)` }}>
+            <span key={`d${key}`} aria-hidden className="odo-cell">
+              <span
+                aria-hidden
+                className="odo-col"
+                style={{ transform: `translateY(${-Number(ch) * 10}%)` }}
+              >
                 {'0123456789'.split('').map((d) => (
                   <span key={d}>{d}</span>
                 ))}
