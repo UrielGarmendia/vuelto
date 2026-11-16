@@ -14,6 +14,8 @@ import { projectMonth } from '../insights/insights';
 import { useFilters } from '../transactions/filters';
 import { listTransactions } from '../transactions/queries';
 import { useCatalog } from '../transactions/useCatalog';
+import { DonutRing } from '../../ui/Donut';
+import { holeFontSize } from '../../ui/fit';
 import { categoryTotals, monthSeries, weekdaySpending } from './stats';
 import './stats.css';
 
@@ -230,29 +232,6 @@ interface Paint {
   name: (id: string) => string;
 }
 
-/** Ring segments for the donut, clockwise from twelve o'clock. */
-function donutArcs(parts: Part[], total: number) {
-  const R = 110;
-  const r = 72;
-  let angle = -Math.PI / 2;
-  return parts.map((p) => {
-    const sweep = (p.cents / total) * Math.PI * 2;
-    const gap = parts.length > 1 ? 0.012 : 0;
-    const a0 = angle + gap;
-    // A single category is a full ring: stop just short so the arc stays drawable.
-    const a1 = angle + Math.min(sweep, Math.PI * 2 - 0.0001) - gap;
-    angle += sweep;
-    const pt = (rad: number, a: number) =>
-      `${(150 + rad * Math.cos(a)).toFixed(2)} ${(150 + rad * Math.sin(a)).toFixed(2)}`;
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    return {
-      ...p,
-      mid: (a0 + a1) / 2,
-      d: `M ${pt(R, a0)} A ${R} ${R} 0 ${large} 1 ${pt(R, a1)} L ${pt(r, a1)} A ${r} ${r} 0 ${large} 0 ${pt(r, a0)} Z`,
-    };
-  });
-}
-
 function Donut({
   parts,
   total,
@@ -263,8 +242,7 @@ function Donut({
   caption,
 }: Paint & { parts: Part[]; total: number; caption: string }) {
   const navigate = useNavigate();
-  const arcs = donutArcs(parts, total);
-  const focus = arcs.find((a) => a.id === sel);
+  const focus = parts.find((a) => a.id === sel);
   const filter = useFilters((s) => s.set);
   const reset = useFilters((s) => s.reset);
 
@@ -276,62 +254,42 @@ function Donut({
         </h2>
         <span className="text-[13px] text-faint">{caption}</span>
       </div>
-      <div className="donut relative grid flex-1 content-center justify-items-center py-2 [container-type:inline-size]">
-        <svg
-          viewBox="0 0 300 300"
-          className="w-full max-w-[380px] overflow-visible"
-          role="img"
-          aria-label="Gasto por categoría"
+      <DonutRing
+        parts={parts}
+        total={total}
+        sel={sel}
+        onSelect={setSel}
+        color={color}
+        label="Gasto por categoría"
+      >
+        <p className="pointer-events-none truncate px-[30%] text-[13px] text-muted">
+          {focus ? name(focus.id) : 'Total'}
+        </p>
+        <p
+          className="wide pointer-events-none mt-0.5 font-extrabold"
+          // Fits inside the hole of the ring, which is about 45 % of the chart's width.
+          style={{ fontSize: holeFontSize(formatMoney(focus ? focus.cents : total)) }}
         >
-          {arcs.map((a, i) => (
-            <path
-              key={a.id}
-              d={a.d}
-              fill={color(a.id)}
-              opacity={sel && sel !== a.id ? 0.3 : 1}
-              style={{
-                animationDelay: `${i * 60}ms`,
-                transform:
-                  sel === a.id
-                    ? `translate(${Math.cos(a.mid) * 10}px, ${Math.sin(a.mid) * 10}px)`
-                    : undefined,
-              }}
-              onClick={() => setSel(sel === a.id ? null : a.id)}
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
-          <p className="pointer-events-none truncate px-[30%] text-[13px] text-muted">
-            {focus ? name(focus.id) : 'Total'}
-          </p>
-          <p
-            className="wide pointer-events-none mt-0.5 font-extrabold"
-            // Fits inside the hole of the ring, which is about 45 % of the chart's width.
-            style={{
-              fontSize: `min(20px, ${(42 / (formatMoney(focus ? focus.cents : total).length * 0.66)).toFixed(2)}cqw)`,
+          {formatMoney(focus ? focus.cents : total)}
+        </p>
+        {focus && focus.id !== OTHERS ? (
+          <button
+            type="button"
+            onClick={() => {
+              reset();
+              filter({ categoryId: focus.id });
+              navigate('/movimientos', { viewTransition: viewTransitions });
             }}
+            className="mt-1 min-h-9 px-2 text-[13px] font-medium text-hue"
           >
-            {formatMoney(focus ? focus.cents : total)}
+            {Math.round((focus.cents / total) * 100)} % · Ver movimientos
+          </button>
+        ) : (
+          <p className="pointer-events-none mt-1 text-[13px] text-muted">
+            {focus ? `${Math.round((focus.cents / total) * 100)} % del mes` : 'tocá una porción'}
           </p>
-          {focus && focus.id !== OTHERS ? (
-            <button
-              type="button"
-              onClick={() => {
-                reset();
-                filter({ categoryId: focus.id });
-                navigate('/movimientos', { viewTransition: viewTransitions });
-              }}
-              className="mt-1 min-h-9 px-2 text-[13px] font-medium text-hue"
-            >
-              {Math.round((focus.cents / total) * 100)} % · Ver movimientos
-            </button>
-          ) : (
-            <p className="pointer-events-none mt-1 text-[13px] text-muted">
-              {focus ? `${Math.round((focus.cents / total) * 100)} % del mes` : 'tocá una porción'}
-            </p>
-          )}
-        </div>
-      </div>
+        )}
+      </DonutRing>
     </section>
   );
 }
