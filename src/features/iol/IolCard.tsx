@@ -1,7 +1,8 @@
-import { BadgeCheck, Link2, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Link2, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { usePrefs } from '../../app/prefs';
+import { viewTransitions } from '../../app/viewTransitions';
 import { formatMoney } from '../../lib/money';
 import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
@@ -10,6 +11,7 @@ import {
   dayChange,
   investedTotal,
   snapshotTotal,
+  type AssetCategory,
   type Position,
   type Snapshot,
 } from '../external/provider';
@@ -24,26 +26,14 @@ import {
   useIol,
   useIolStatus,
 } from './iol';
+import { pct, since } from '../investments/format';
+import { CATEGORY_COLORS } from './colors';
 import { assetCategory } from './normalize';
 
 const failures = {
   denied: 'Cancelaste la autorización en IOL, así que no se conectó.',
   failed: 'IOL no aceptó la autorización: puede haber vencido o ya se usó. Empezá de nuevo.',
 };
-
-const ago = new Intl.RelativeTimeFormat('es-AR', { numeric: 'auto' });
-function since(ms: number) {
-  const min = Math.round((Date.now() - ms) / 60000);
-  if (min < 1) return 'recién';
-  if (min < 60) return ago.format(-min, 'minute');
-  const h = Math.round(min / 60);
-  return h < 48 ? ago.format(-h, 'hour') : ago.format(-Math.round(h / 24), 'day');
-}
-const pct = (p: number) =>
-  `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p).toFixed(2).replace('.', ',')} %`;
-
-// A fixed sequence of distinct hues for the distribution bar (asset classes have no colour).
-const typeColors = ['#75AADB', '#8FD18A', '#E8A23A', '#B48EE0', '#E07A8C', '#5FC2B5', '#C9A66B'];
 
 /** Linked IOL account: total, cash, today's change, distribution and movers. */
 export function IolCard() {
@@ -195,7 +185,7 @@ export function IolCard() {
               <dt className="text-[12.5px] text-muted">Hoy</dt>
               <dd
                 className={`tabular mt-0.5 text-[15px] font-semibold ${
-                  change === undefined ? '' : change >= 0 ? 'text-positive' : 'text-negative'
+                  change === undefined ? '' : change >= 0 ? 'text-hue' : 'text-over'
                 }`}
               >
                 {change === undefined ? '—' : pct(change)}
@@ -223,6 +213,13 @@ export function IolCard() {
           )}
           {s.positions.length > 0 && <Distribution positions={s.positions} rate={rate} />}
           {s.positions.length > 0 && <Movers snapshot={s} />}
+          <Link
+            to="/inversiones"
+            viewTransition={viewTransitions}
+            className="rel mt-5 flex min-h-11 items-center justify-center gap-1 rounded-[14px] text-[14px] font-semibold text-hue"
+          >
+            Ver todas las posiciones <ChevronRight aria-hidden className="size-4" />
+          </Link>
         </>
       ) : (
         <p className="mt-2 text-[14px] text-muted">
@@ -296,7 +293,7 @@ export function IolCard() {
 function Distribution({ positions, rate }: { positions: Position[]; rate?: number }) {
   const ars = (p: Position) =>
     p.currency === 'ARS' ? p.valueCents : rate ? Math.round(p.valueCents * rate) : 0;
-  const byType = new Map<string, number>();
+  const byType = new Map<AssetCategory, number>();
   // assetCategory also tidies snapshots cached before categories existed.
   for (const p of positions) {
     const t = assetCategory(p.type);
@@ -309,23 +306,23 @@ function Distribution({ positions, rate }: { positions: Position[]; rate?: numbe
     <div className="mt-5">
       <p className="text-[13px] font-semibold text-muted">Por tipo</p>
       <div className="mt-2 flex h-2.5 overflow-hidden rounded-full" aria-hidden>
-        {parts.map(([t, v], i) => (
+        {parts.map(([t, v]) => (
           <span
             key={t}
             style={{
               width: `${(v / total) * 100}%`,
-              background: typeColors[i % typeColors.length],
+              background: CATEGORY_COLORS[t],
             }}
           />
         ))}
       </div>
       <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-        {parts.map(([t, v], i) => (
+        {parts.map(([t, v]) => (
           <li key={t} className="flex items-center gap-2 text-[13.5px]">
             <span
               aria-hidden
               className="size-2.5 rounded-[3px]"
-              style={{ background: typeColors[i % typeColors.length] }}
+              style={{ background: CATEGORY_COLORS[t] }}
             />
             <span className="flex-1 truncate">{t}</span>
             <span className="tabular text-muted">{Math.round((v / total) * 100)} %</span>
@@ -364,8 +361,8 @@ function Movers({ snapshot }: { snapshot: Snapshot }) {
     );
   return (
     <div className="mt-5 grid grid-cols-2 gap-4">
-      {list(up, TrendingUp, 'text-positive', 'Suben hoy')}
-      {list(down, TrendingDown, 'text-negative', 'Bajan hoy')}
+      {list(up, TrendingUp, 'text-hue', 'Suben hoy')}
+      {list(down, TrendingDown, 'text-over', 'Bajan hoy')}
     </div>
   );
 }

@@ -14,7 +14,7 @@ const signed = (cents: number, currency: Account['currency']) =>
 
 /**
  * Accounts as a stack of raised cards, like a wallet. Tapping the stack fans it out into a
- * grid; then each card opens Movimientos filtered by that account.
+ * grid; then each card opens Movimientos filtered by that account (IOL opens Inversiones).
  */
 export function AccountStack({
   accounts,
@@ -30,7 +30,13 @@ export function AccountStack({
   const setFilters = useFilters((s) => s.set);
   const reset = useFilters((s) => s.reset);
 
-  function show(id: string) {
+  function show(account: Account) {
+    // A linked investment account has no movements: it opens its portfolio.
+    if (account.external) {
+      navigate('/inversiones', { viewTransition: viewTransitions });
+      return;
+    }
+    const id = account.id;
     reset();
     setFilters({ accountId: id });
     navigate('/movimientos', { viewTransition: viewTransitions });
@@ -70,12 +76,14 @@ export function AccountStack({
               type="button"
               tabIndex={open ? 0 : -1}
               aria-label={
-                open ? `${a.name}: ${signed(cents, a.currency)}. Ver movimientos` : undefined
+                open
+                  ? `${a.name}: ${signed(cents, a.currency)}. ${a.external ? 'Ver inversiones' : 'Ver movimientos'}`
+                  : undefined
               }
               onClick={(e) => {
                 if (!open) return;
                 e.stopPropagation();
-                show(a.id);
+                show(a);
               }}
               // Later cards sit on top, so each one behind shows its name strip.
               style={{ zIndex: i }}

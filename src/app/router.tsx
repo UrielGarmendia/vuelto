@@ -87,6 +87,20 @@ export const router = createBrowserRouter([
                 Component: m.HomeWidgetsPage,
               })),
           },
+          {
+            path: 'inversiones',
+            lazy: () =>
+              import('../features/investments/InvestmentsPage').then((m) => ({
+                Component: m.InvestmentsPage,
+              })),
+          },
+          {
+            path: 'inversiones/:market/:symbol',
+            lazy: () =>
+              import('../features/investments/AssetPage').then((m) => ({
+                Component: m.AssetPage,
+              })),
+          },
           { path: '*', element: <HomePage /> },
         ],
       },

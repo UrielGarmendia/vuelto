@@ -134,3 +134,125 @@ test('an expired or reused authorization shows a clear error with Reintentar', a
   await expect(card).toContainText('Vinculada');
   await expect(alert).toBeHidden();
 });
+
+// A fuller portfolio: two markets, a fund and a stock that fell.
+const holding = (
+  symbol: string,
+  type: string,
+  quantity: number,
+  price: number,
+  pct: number,
+  extra: { market?: string; currency?: string } = {},
+) => ({
+  quantity,
+  unit_price: price,
+  lot_price: price,
+  committed: 0,
+  daily_change_pct: pct,
+  asset: {
+    symbol,
+    description: `${symbol} descripción`,
+    market: extra.market ?? 'BCBA',
+    type,
+    currency: extra.currency ?? 'ARS',
+    units_per_lot: 1,
+    country: extra.market && extra.market !== 'BCBA' ? 'USA' : 'ARG',
+    term: 'T1',
+  },
+});
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`the portfolio lists every position and each asset has its chart (${theme})`, async ({
+    page,
+  }, info) => {
+    await page.addInitScript((t) => {
+      localStorage.setItem(
+        'vuelto-prefs',
+        JSON.stringify({ state: { installDismissed: true, theme: t }, version: 0 }),
+      );
+    }, theme);
+    await page.route('**/api/iol/portfolio**', (route) =>
+      route.fulfill({
+        json: {
+          data:
+            new URL(route.request().url()).searchParams.get('country') === 'estados_Unidos'
+              ? {
+                  country: 'USA',
+                  positions: [
+                    holding('AAPL', 'Acciones', 2, 200, 1, { market: 'NASDAQ', currency: 'USD' }),
+                  ],
+                }
+              : {
+                  country: 'ARG',
+                  positions: [
+                    holding('GGAL', 'Acciones', 10, 4000, 2.5),
+                    holding('YPFD', 'Acciones', 5, 40000, -1),
+                    holding('SPY', 'CEDEARS', 5, 30000, 0.5),
+                    holding('FIMA', 'Fondo Común de Inversión', 1000, 50, 0.1),
+                  ],
+                },
+        },
+      }),
+    );
+    const asked: string[] = [];
+    await page.route('**/api/iol/history**', (route) => {
+      asked.push(new URL(route.request().url()).search);
+      return route.fulfill({
+        json: {
+          data: [0, 1, 2, 3, 4].map((i) => ({
+            time: 1_760_000_000 + i * 86_400,
+            open: 4000,
+            high: 4100,
+            low: 3900,
+            close: 3800 + i * 50,
+            volume: 100,
+          })),
+        },
+      });
+    });
+
+    await page.goto('/ajustes/cuentas');
+    await page.getByRole('button', { name: 'Conectar IOL' }).click();
+    await page.getByRole('link', { name: 'Ver todas las posiciones' }).click();
+    await expect(page.getByRole('heading', { name: 'Inversiones', level: 1 })).toBeVisible();
+
+    const total = page.getByRole('region', { name: 'Total en IOL' });
+    // 100.000 cash + 40.000 + 200.000 + 150.000 + 50.000 + 400 USD × 1.210
+    await expect(total).toContainText('$ 1.024.000');
+    await expect(total).toContainText('Invertido$ 924.000');
+    await expect(page.getByRole('region', { name: 'Por tipo' })).toContainText('FCI');
+    await expect(page.getByRole('region', { name: 'Por mercado' })).toContainText('EE.UU.');
+
+    const stocks = page.getByRole('heading', { name: /^Acciones/ }).locator('xpath=..');
+    const rows = stocks.getByRole('link');
+    await expect(rows.first()).toContainText('AAPL'); // US$ 400 ≈ $ 484.000, the largest
+    await page.getByRole('radio', { name: 'Variación' }).click();
+    await expect(rows.first()).toContainText('GGAL');
+    await expect(rows.last()).toContainText('YPFD');
+    await expect(rows.last()).toContainText('−1,00 %');
+    await page.screenshot({
+      path: `e2e/__screenshots__/${info.project.name}/inversiones-${theme}.png`,
+      fullPage: true,
+    });
+
+    await rows.filter({ hasText: 'GGAL' }).click();
+    await expect(page.getByRole('heading', { name: 'GGAL', level: 1 })).toBeVisible();
+    await expect(page.getByRole('img', { name: /Precio de GGAL en un mes/ })).toBeVisible();
+    await page.getByRole('radio', { name: 'tres meses' }).click();
+    await expect(page.getByRole('img', { name: /Precio de GGAL en tres meses/ })).toBeVisible();
+    await expect(page.getByText('Peso en el portafolio')).toBeVisible();
+    await page.screenshot({
+      path: `e2e/__screenshots__/${info.project.name}/activo-${theme}.png`,
+      fullPage: true,
+    });
+    expect(asked).toEqual([
+      '?symbol=GGAL&market=BCBA&range=1M',
+      '?symbol=GGAL&market=BCBA&range=3M',
+    ]);
+
+    await page.goBack();
+    await page.getByRole('link', { name: /FIMA/ }).click();
+    await expect(page.getByText('Sin gráfico disponible para este activo')).toBeVisible();
+    expect(asked).toHaveLength(2);
+  });
+}
