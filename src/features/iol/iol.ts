@@ -133,14 +133,19 @@ export const iolProvider: ExternalAccountProvider = {
       external.blob = next;
       await db.accounts.update(account.id, { external, updatedAt: Date.now(), synced: 0 });
     };
-    const balance = await post('/api/iol/balance', { blob: external.blob });
-    await keep(balance.blob);
-    const portfolio = await post('/api/iol/portfolio', { blob: external.blob });
-    await keep(portfolio.blob);
+    // One after the other: each call may hand back a refreshed connection for the next.
+    const read = async (path: string) => {
+      const r = await post(path, { blob: external.blob });
+      await keep(r.blob);
+      return r.data;
+    };
+    const balance = await read('/api/iol/balance');
+    const argentina = await read('/api/iol/portfolio?country=argentina');
+    const unitedStates = await read('/api/iol/portfolio?country=estados_Unidos');
     const snapshot: Snapshot = {
       provider: 'iol',
-      cash: normalizeBalance(balance.data),
-      positions: normalizePortfolio(portfolio.data),
+      ...normalizeBalance(balance),
+      positions: [...normalizePortfolio(argentina), ...normalizePortfolio(unitedStates)],
       fetchedAt: Date.now(),
     };
     await db.kv.put({ key: SNAPSHOT_KEY, value: snapshot });

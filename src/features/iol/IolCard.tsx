@@ -5,7 +5,13 @@ import { usePrefs } from '../../app/prefs';
 import { formatMoney } from '../../lib/money';
 import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
-import { dayChange, snapshotTotal, type Position, type Snapshot } from '../external/provider';
+import {
+  dayChange,
+  investedTotal,
+  snapshotTotal,
+  type Position,
+  type Snapshot,
+} from '../external/provider';
 import { availability } from '../sync/google';
 import { useSync } from '../sync/useSync';
 import {
@@ -17,6 +23,7 @@ import {
   useIol,
   useIolStatus,
 } from './iol';
+import { assetCategory } from './normalize';
 
 const failures = {
   denied: 'Cancelaste la autorización en IOL, así que no se conectó.',
@@ -34,16 +41,6 @@ function since(ms: number) {
 const pct = (p: number) =>
   `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p).toFixed(2).replace('.', ',')} %`;
 
-const typeNames: Record<string, string> = {
-  acciones: 'Acciones',
-  cedears: 'CEDEARs',
-  titulospublicos: 'Bonos',
-  obligacionesnegociables: 'Obligaciones negociables',
-  fondocomundeinversion: 'Fondos',
-  letras: 'Letras',
-  cauciones: 'Cauciones',
-  opciones: 'Opciones',
-};
 // A fixed sequence of distinct hues for the distribution bar (asset classes have no colour).
 const typeColors = ['#75AADB', '#8FD18A', '#E8A23A', '#B48EE0', '#E07A8C', '#5FC2B5', '#C9A66B'];
 
@@ -144,7 +141,7 @@ export function IolCard() {
   }
 
   const s = iol.snapshot;
-  const change = s ? dayChange(s) : undefined;
+  const change = s ? dayChange(s, rate) : undefined;
 
   return (
     <section aria-labelledby="iol-title" className="rel mb-5 rounded-[24px] p-5">
@@ -180,12 +177,18 @@ export function IolCard() {
               ? ' · sin cotización, los dólares no suman'
               : ''}
           </p>
-          <dl className="mt-4 grid grid-cols-2 gap-3">
+          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div>
-              <dt className="text-[12.5px] text-muted">Disponible</dt>
+              <dt className="text-[12.5px] text-muted">Efectivo</dt>
               <dd className="tabular mt-0.5 text-[15px] font-semibold">
                 {formatMoney(s.cash.ARS)}
                 {s.cash.USD ? ` · ${formatMoney(s.cash.USD, 'USD')}` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[12.5px] text-muted">Invertido</dt>
+              <dd className="tabular mt-0.5 text-[15px] font-semibold">
+                {formatMoney(investedTotal(s, rate))}
               </dd>
             </div>
             <div>
@@ -199,6 +202,25 @@ export function IolCard() {
               </dd>
             </div>
           </dl>
+          {s.accounts?.some((a) => a.totalCents !== 0) && (
+            <ul aria-label="Efectivo por cuenta" className="mt-4 grid gap-1.5">
+              {s.accounts
+                .filter((a) => a.totalCents !== 0)
+                .map((a) => (
+                  <li key={a.id} className="flex items-baseline gap-2 text-[13.5px]">
+                    <span className="flex-1 truncate text-muted">{a.label}</span>
+                    <span className="tabular text-right">
+                      {formatMoney(a.totalCents, a.currency)}
+                      {a.availableCents !== a.totalCents && (
+                        <span className="block text-[12px] text-faint">
+                          {formatMoney(a.availableCents, a.currency)} disponible
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
           {s.positions.length > 0 && <Distribution positions={s.positions} rate={rate} />}
           {s.positions.length > 0 && <Movers snapshot={s} />}
         </>
@@ -275,7 +297,11 @@ function Distribution({ positions, rate }: { positions: Position[]; rate?: numbe
   const ars = (p: Position) =>
     p.currency === 'ARS' ? p.valueCents : rate ? Math.round(p.valueCents * rate) : 0;
   const byType = new Map<string, number>();
-  for (const p of positions) byType.set(p.type, (byType.get(p.type) ?? 0) + ars(p));
+  // assetCategory also tidies snapshots cached before categories existed.
+  for (const p of positions) {
+    const t = assetCategory(p.type);
+    byType.set(t, (byType.get(t) ?? 0) + ars(p));
+  }
   const parts = [...byType].sort((a, b) => b[1] - a[1]);
   const total = parts.reduce((a, [, v]) => a + v, 0);
   if (!total) return null;
@@ -301,7 +327,7 @@ function Distribution({ positions, rate }: { positions: Position[]; rate?: numbe
               className="size-2.5 rounded-[3px]"
               style={{ background: typeColors[i % typeColors.length] }}
             />
-            <span className="flex-1 truncate">{typeNames[t] ?? t}</span>
+            <span className="flex-1 truncate">{t}</span>
             <span className="tabular text-muted">{Math.round((v / total) * 100)} %</span>
           </li>
         ))}

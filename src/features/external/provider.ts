@@ -5,41 +5,66 @@ export interface ExternalAccountProvider {
   fetchSnapshot(): Promise<Snapshot>;
 }
 
+export type AssetCategory =
+  'Acciones' | 'CEDEARs' | 'Bonos' | 'ONs' | 'FCI' | 'Cauciones' | 'Otros';
+
 export interface Position {
   symbol: string;
   description: string;
-  /** Asset class as the provider names it: acciones, bonos, cedears, fci… */
-  type: string;
+  /** Readable asset class. Snapshots cached before categories may hold a provider name. */
+  type: AssetCategory | string;
   currency: 'ARS' | 'USD';
   quantity: number;
   valueCents: number;
-  /** Today's change, in percent. */
+  /** Today's change, in percent (1.5 = 1,5 %). */
   dayChangePct?: number;
-  /** Gain since bought, in percent. */
-  gainPct?: number;
+}
+
+/** One cash account at the provider, e.g. pesos, dollars in Argentina, dollars abroad. */
+export interface CashAccount {
+  id: string;
+  label: string;
+  currency: 'ARS' | 'USD';
+  /** Settled cash today: available plus committed. */
+  totalCents: number;
+  availableCents: number;
 }
 
 export interface Snapshot {
   provider: string;
+  /** Cash per currency, the sum of `accounts`. */
   cash: { ARS: number; USD: number };
+  accounts?: CashAccount[];
   positions: Position[];
   fetchedAt: number;
 }
 
-/** Cash plus positions, in pesos; dollars convert at `usdRate` (left out without one). */
-export function snapshotTotal(s: Snapshot, usdRate?: number): number {
-  const usd = (c: number) => (usdRate ? Math.round(c * usdRate) : 0);
-  const positions = s.positions.reduce(
-    (a, p) => a + (p.currency === 'ARS' ? p.valueCents : usd(p.valueCents)),
-    0,
-  );
-  return s.cash.ARS + usd(s.cash.USD) + positions;
+/** Cents in pesos; dollars convert at `usdRate` and are left out without one. */
+const inPesos = (cents: number, currency: 'ARS' | 'USD', usdRate?: number) =>
+  currency === 'ARS' ? cents : usdRate ? Math.round(cents * usdRate) : 0;
+
+/** What the positions are worth, in pesos. */
+export function investedTotal(s: Snapshot, usdRate?: number): number {
+  return s.positions.reduce((a, p) => a + inPesos(p.valueCents, p.currency, usdRate), 0);
 }
 
-/** Value-weighted change of the day, in percent, over the positions that report one. */
-export function dayChange(s: Snapshot): number | undefined {
-  const withChange = s.positions.filter((p) => p.dayChangePct !== undefined && p.valueCents > 0);
-  const total = withChange.reduce((a, p) => a + p.valueCents, 0);
-  if (!total) return undefined;
-  return withChange.reduce((a, p) => a + p.dayChangePct! * p.valueCents, 0) / total;
+/** Cash plus positions, in pesos; dollars convert at `usdRate` (left out without one). */
+export function snapshotTotal(s: Snapshot, usdRate?: number): number {
+  return s.cash.ARS + inPesos(s.cash.USD, 'USD', usdRate) + investedTotal(s, usdRate);
+}
+
+/**
+ * Change of the day, in percent, weighted by each position's value in pesos over the
+ * positions that report one. Dollar positions count only with a rate.
+ */
+export function dayChange(s: Snapshot, usdRate?: number): number | undefined {
+  let total = 0;
+  let weighted = 0;
+  for (const p of s.positions) {
+    const value = inPesos(p.valueCents, p.currency, usdRate);
+    if (p.dayChangePct === undefined || value <= 0) continue;
+    total += value;
+    weighted += p.dayChangePct * value;
+  }
+  return total ? weighted / total : undefined;
 }

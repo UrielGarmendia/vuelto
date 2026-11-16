@@ -26,37 +26,55 @@ test.beforeEach(async ({ page, context }) => {
   await context.route('**/api/iol/start', (route) =>
     route.fulfill({ json: { url: '/ajustes/cuentas#iol=sealed-blob' } }),
   );
+  // Shaped like IOL's MCP answers; the amounts are made up.
+  const terms = (t0: number) => ({ t0, t1: t0, t2: t0, t3: t0 });
+  const cash = (amount: number) => ({
+    totals: terms(amount),
+    available: terms(amount),
+    committed: terms(0),
+    available_for_withdrawal: amount,
+  });
   await context.route('**/api/iol/balance', (route) =>
     route.fulfill({
-      json: {
-        data: {
-          cuentas: [
-            { moneda: 'peso_Argentino', disponible: 100000 },
-            { moneda: 'dolar_Estadounidense', disponible: 0 },
-          ],
-        },
-      },
+      json: { data: { arg_ars: cash(100000), arg_usd: cash(0), eeuu_usd: cash(0) } },
     }),
   );
-  await context.route('**/api/iol/portfolio', (route) =>
+  const position = (
+    symbol: string,
+    type: string,
+    quantity: number,
+    price: number,
+    pct: number,
+  ) => ({
+    quantity,
+    unit_price: price,
+    lot_price: price,
+    committed: 0,
+    daily_change_pct: pct,
+    asset: {
+      symbol,
+      description: symbol,
+      market: 'BCBA',
+      type,
+      currency: 'ARS',
+      units_per_lot: 1,
+      country: 'ARG',
+      term: 'T1',
+    },
+  });
+  await context.route('**/api/iol/portfolio**', (route) =>
     route.fulfill({
       json: {
-        data: {
-          activos: [
-            {
-              cantidad: 10,
-              valorizado: 400000,
-              variacionDiaria: 2.5,
-              titulo: { simbolo: 'GGAL', tipo: 'ACCIONES', moneda: 'peso_Argentino' },
-            },
-            {
-              cantidad: 5,
-              valorizado: 500000,
-              variacionDiaria: -1.25,
-              titulo: { simbolo: 'SPY', tipo: 'CEDEARS', moneda: 'peso_Argentino' },
-            },
-          ],
-        },
+        data:
+          new URL(route.request().url()).searchParams.get('country') === 'estados_Unidos'
+            ? { country: 'USA', positions: [] }
+            : {
+                country: 'ARG',
+                positions: [
+                  position('GGAL', 'Acciones', 10, 40000, 2.5),
+                  position('SPY', 'CEDEARS', 5, 100000, -1.25),
+                ],
+              },
       },
     }),
   );
