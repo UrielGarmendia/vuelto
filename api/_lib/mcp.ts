@@ -5,7 +5,13 @@ import { HttpError } from './http.js';
  * (validate_*, simulate_*, update_access_mode, …) is rejected before reaching IOL.
  * Widen this list only for a concrete feature.
  */
-export const ALLOWED_TOOLS = ['get_balance', 'get_portfolio', 'get_asset_quote'] as const;
+export const ALLOWED_TOOLS = [
+  'get_balance',
+  'get_portfolio',
+  'get_asset_quote',
+  'get_price_history',
+  'get_aum_evolution',
+] as const;
 export type AllowedTool = (typeof ALLOWED_TOOLS)[number];
 
 export function assertAllowed(name: string): asserts name is AllowedTool {

@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../iol/callback.js';
+import { POST as aum } from '../iol/aum.js';
+import { POST as history } from '../iol/history.js';
 import { POST as portfolio } from '../iol/portfolio.js';
 import { googleUser, mask } from './google.js';
 import { env, HttpError } from './http.js';
@@ -43,11 +45,21 @@ const FORBIDDEN = [
   'get_activities',
   'get_order_status',
   'get_ddjj',
+  // Read-only, but nothing in Vuelto needs them.
+  'get_asset_info',
+  'get_return_evolution',
+  'get_intraday_prices',
 ];
 
 describe('allowlist', () => {
-  it('is only balance, portfolio and quotes', () => {
-    expect([...ALLOWED_TOOLS]).toEqual(['get_balance', 'get_portfolio', 'get_asset_quote']);
+  it('is only balance, portfolio, quotes, price history and holdings history', () => {
+    expect([...ALLOWED_TOOLS]).toEqual([
+      'get_balance',
+      'get_portfolio',
+      'get_asset_quote',
+      'get_price_history',
+      'get_aum_evolution',
+    ]);
   });
 
   it('blocks every other tool before any request leaves', async () => {
@@ -416,6 +428,78 @@ describe('portfolio endpoint', () => {
       ]);
     } finally {
       vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('history and holdings endpoints', () => {
+  async function run(post: (req: Request) => Promise<Response>, query: string) {
+    const asked: { name: string; arguments: Record<string, unknown> }[] = [];
+    const mcp = mcpServer({ bars: [] });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.startsWith('https://oauth2.googleapis.com/tokeninfo'))
+          return tokeninfo({ sub: 'u1', azp: 'google-client', exp: later });
+        const msg = JSON.parse(String(init?.body)) as { method: string; params?: never };
+        if (msg.method === 'tools/call') asked.push(msg.params!);
+        return mcp(url, init);
+      }),
+    );
+    try {
+      const { sealed } = await blobFromTokens({ access_token: 'a' }, 'u1');
+      const res = await post(
+        new Request(`https://x/api/iol/x${query}`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer g' },
+          body: JSON.stringify({ blob: sealed }),
+        }),
+      );
+      return { status: res.status, asked };
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  }
+  const day = (msAgo: number) => new Date(Date.now() - msAgo).toISOString().slice(0, 10);
+
+  it('asks for daily bars over the chosen range, dates set by the server', async () => {
+    const { status, asked } = await run(history, '?symbol=GGAL&market=BCBA&range=1M');
+    expect(status).toBe(200);
+    expect(asked).toEqual([
+      {
+        name: 'get_price_history',
+        arguments: {
+          symbol: 'GGAL',
+          market: 'BCBA',
+          from_date: day(31 * 86_400_000),
+          to_date: day(0),
+        },
+      },
+    ]);
+  });
+
+  it('rejects odd symbols, markets and ranges before calling IOL', async () => {
+    for (const q of [
+      '?symbol=ggal;drop&market=BCBA&range=1M',
+      '?symbol=GGAL&market=FCI&range=1M',
+      '?symbol=GGAL&market=BCBA&range=10A',
+      '',
+    ]) {
+      const { status, asked } = await run(history, q);
+      expect(status).toBe(400);
+      expect(asked).toEqual([]);
+    }
+  });
+
+  it('asks for the holdings history of one country within three years', async () => {
+    const { status, asked } = await run(aum, '?country=USA&days=90');
+    expect(status).toBe(200);
+    expect(asked[0]).toEqual({
+      name: 'get_aum_evolution',
+      arguments: { country: 'USA', from_date: day(90 * 86_400_000), to_date: day(0) },
+    });
+    for (const q of ['?country=BRA&days=90', '?country=ARG&days=5000', '?country=ARG&days=x']) {
+      expect((await run(aum, q)).status).toBe(400);
     }
   });
 });
