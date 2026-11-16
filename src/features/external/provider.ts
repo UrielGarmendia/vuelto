@@ -18,6 +18,11 @@ export interface Position {
   valueCents: number;
   /** Today's change, in percent (1.5 = 1,5 %). */
   dayChangePct?: number;
+  /** Last price as the provider quotes it (bonds: per lot). */
+  price?: number;
+  /** Where it trades (BCBA, NYSE…), for its price history. */
+  market?: string;
+  country?: 'ARG' | 'USA';
 }
 
 /** One cash account at the provider, e.g. pesos, dollars in Argentina, dollars abroad. */
@@ -56,6 +61,17 @@ export function cashTotal(s: Snapshot, usdRate?: number): number {
 /** Cash plus positions, in pesos; dollars convert at `usdRate` (left out without one). */
 export function snapshotTotal(s: Snapshot, usdRate?: number): number {
   return cashTotal(s, usdRate) + investedTotal(s, usdRate);
+}
+
+/** What a position gained or lost today, in its own currency's cents. */
+export function dayChangeCents(p: Position): number {
+  if (p.dayChangePct === undefined || p.dayChangePct <= -100) return 0;
+  return Math.round(p.valueCents - p.valueCents / (1 + p.dayChangePct / 100));
+}
+
+/** Today's change of all positions, in pesos. */
+export function dayChangeTotal(s: Snapshot, usdRate?: number): number {
+  return s.positions.reduce((a, p) => a + inPesos(dayChangeCents(p), p.currency, usdRate), 0);
 }
 
 /**

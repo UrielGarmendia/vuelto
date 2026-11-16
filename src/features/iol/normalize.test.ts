@@ -2,11 +2,19 @@ import { describe, expect, it } from 'vitest';
 import {
   cashTotal,
   dayChange,
+  dayChangeCents,
+  dayChangeTotal,
   investedTotal,
   snapshotTotal,
   type Snapshot,
 } from '../external/provider';
-import { assetCategory, normalizeBalance, normalizePortfolio } from './normalize';
+import {
+  assetCategory,
+  normalizeAum,
+  normalizeBalance,
+  normalizePortfolio,
+  normalizePriceHistory,
+} from './normalize';
 
 // Shaped like IOL's MCP answers; every amount is made up.
 const terms = (t0: number, later = t0) => ({ t0, t1: later, t2: later, t3: later });
@@ -156,6 +164,9 @@ describe('IOL portfolio', () => {
       quantity: 10,
       valueCents: 5_000_000,
       dayChangePct: 1.5,
+      price: 5000,
+      market: 'BCBA',
+      country: 'ARG',
     });
     expect(p[1]!.valueCents).toBe(10_000_000);
     // 1000 nominals at 85.000 per 100 = 850.000
@@ -180,7 +191,13 @@ describe('IOL portfolio', () => {
 
   it('reads the US portfolio and the data wrapper', () => {
     expect(normalizePortfolio({ data: unitedStates })).toEqual([
-      expect.objectContaining({ symbol: 'AAPL', currency: 'USD', valueCents: 40_000 }),
+      expect.objectContaining({
+        symbol: 'AAPL',
+        currency: 'USD',
+        valueCents: 40_000,
+        market: 'NASDAQ',
+        country: 'USA',
+      }),
     ]);
     expect(normalizePortfolio({ positions: 'nope' })).toEqual([]);
   });
@@ -236,5 +253,78 @@ describe('IOL snapshot', () => {
       1 * 40_000_000;
     expect(dayChange(s, 1000)).toBeCloseTo(weighted / (pesos + 40_000_000));
     expect(dayChange(s)).toBeCloseTo((weighted - 40_000_000) / pesos);
+  });
+});
+
+describe('day change in money', () => {
+  it('backs out what each position moved today', () => {
+    // Worth 101 after +1 %: it was 100, so it moved 1.
+    expect(dayChangeCents({ ...base, valueCents: 10_100, dayChangePct: 1 })).toBe(100);
+    expect(dayChangeCents({ ...base, valueCents: 9_000, dayChangePct: -10 })).toBe(-1_000);
+    expect(dayChangeCents({ ...base, valueCents: 9_000 })).toBe(0);
+    const s: Snapshot = {
+      provider: 'iol',
+      cash: { ARS: 0, USD: 0 },
+      positions: [
+        { ...base, valueCents: 10_100, dayChangePct: 1 },
+        { ...base, currency: 'USD', valueCents: 1_010, dayChangePct: 1 },
+      ],
+      fetchedAt: 0,
+    };
+    expect(dayChangeTotal(s, 1000)).toBe(100 + 10 * 1000);
+    expect(dayChangeTotal(s)).toBe(100);
+  });
+});
+
+const base = {
+  symbol: 'X',
+  description: 'X',
+  type: 'Acciones',
+  currency: 'ARS' as const,
+  quantity: 1,
+  valueCents: 0,
+};
+
+describe('price history', () => {
+  it('reads daily bars with Unix times, oldest first, inside any wrapper', () => {
+    const bars = [
+      { time: 1_700_086_400, open: 1, high: 3, low: 1, close: 2.5, volume: 10 },
+      { time: 1_700_000_000, open: 1, high: 2, low: 1, close: 2, volume: 5 },
+      { time: 'nope', close: 9 },
+      { open: 1 },
+    ];
+    const expected = [
+      { t: 1_700_000_000_000, close: 2 },
+      { t: 1_700_086_400_000, close: 2.5 },
+    ];
+    expect(normalizePriceHistory(bars)).toEqual(expected);
+    expect(normalizePriceHistory({ data: { symbol: 'GGAL', bars } })).toEqual(expected);
+    expect(normalizePriceHistory({ bars: [] })).toEqual([]);
+    expect(normalizePriceHistory('no data')).toEqual([]);
+  });
+});
+
+describe('holdings history', () => {
+  it('finds dated amounts and the partial status, whatever the field names', () => {
+    expect(
+      normalizeAum({
+        status: 'Partial',
+        missing_dates: ['2026-11-03'],
+        snapshots: [
+          { date: '2026-11-04', aum: 1500.5 },
+          { date: '2026-11-02', aum: 1000 },
+        ],
+      }),
+    ).toEqual({
+      points: [
+        { date: '2026-11-02', cents: 100_000 },
+        { date: '2026-11-04', cents: 150_050 },
+      ],
+      partial: true,
+    });
+    expect(
+      normalizeAum({ data: [{ fecha: '2026-10-01T00:00:00', monto: 7 }], status: 'Complete' }),
+    ).toEqual({ points: [{ date: '2026-10-01', cents: 700 }], partial: false });
+    expect(normalizeAum(null)).toEqual({ points: [], partial: false });
   });
 });

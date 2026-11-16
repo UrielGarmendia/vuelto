@@ -5,7 +5,12 @@ import { db, newMeta } from '../../db/db';
 import type { Account } from '../../db/types';
 import type { ExternalAccountProvider, Snapshot } from '../external/provider';
 import { useSync } from '../sync/useSync';
-import { normalizeBalance, normalizePortfolio } from './normalize';
+import {
+  normalizeBalance,
+  normalizePortfolio,
+  normalizePriceHistory,
+  type PricePoint,
+} from './normalize';
 
 export const IOL_NAME = 'IOL — Inversiones';
 const SNAPSHOT_KEY = 'iol-snapshot';
@@ -120,25 +125,67 @@ export async function disconnectIol(): Promise<void> {
 }
 
 /** IOL as a provider: balance and portfolio through our read-only functions. */
+let queue: Promise<unknown> = Promise.resolve();
+
+/**
+ * One read through our IOL functions. Reads go one at a time: any of them may hand back a
+ * refreshed connection (IOL can rotate its refresh token), which is stored before the next
+ * one starts, so a later failure cannot lose it.
+ */
+export function iolRead(path: string): Promise<unknown> {
+  const run = async () => {
+    const account = await findIolAccount();
+    if (!account?.external) throw new IolError('IOL no está conectado', true);
+    const external = account.external;
+    const r = await post(path, { blob: external.blob });
+    if (r.blob && r.blob !== external.blob) {
+      await db.accounts.update(account.id, {
+        external: { ...external, blob: r.blob },
+        updatedAt: Date.now(),
+        synced: 0,
+      });
+    }
+    return r.data;
+  };
+  const next = queue.then(run, run);
+  queue = next.catch(() => undefined);
+  return next;
+}
+
+export type PriceRange = '1S' | '1M' | '3M' | '1A';
+/** Markets IOL has daily bars for; anything else (funds) has no chart. */
+export const CHART_MARKETS = ['BCBA', 'NYSE', 'NASDAQ', 'AMEX'];
+const HISTORY_TTL = 60 * 60 * 1000;
+
+/** Daily closes for one asset, cached for an hour. Undefined: IOL has no bars for it. */
+export async function priceHistory(
+  symbol: string,
+  market: string,
+  range: PriceRange,
+): Promise<PricePoint[] | undefined> {
+  if (!CHART_MARKETS.includes(market)) return undefined;
+  const key = `iol-history:${market}:${symbol}:${range}`;
+  const cached = (await db.kv.get(key))?.value as { at: number; points: PricePoint[] } | undefined;
+  if (cached && Date.now() - cached.at < HISTORY_TTL) return cached.points;
+  try {
+    const q = new URLSearchParams({ symbol, market, range });
+    const points = normalizePriceHistory(await iolRead(`/api/iol/history?${q}`));
+    await db.kv.put({ key, value: { at: Date.now(), points } });
+    return points.length ? points : undefined;
+  } catch (err) {
+    // Offline or IOL down: an old chart beats none.
+    if (cached) return cached.points;
+    // IOL answered but has no bars for this asset: that is "no chart", not a failure.
+    if (navigator.onLine && err instanceof IolError && !err.reconnect) return undefined;
+    throw err;
+  }
+}
+
 export const iolProvider: ExternalAccountProvider = {
   id: 'iol',
   name: 'IOL',
   async fetchSnapshot() {
-    const account = await findIolAccount();
-    if (!account?.external) throw new IolError('IOL no está conectado', true);
-    const external = account.external;
-    // A refreshed connection is stored right away, so a later failure cannot lose it.
-    const keep = async (next?: string) => {
-      if (!next || next === external.blob) return;
-      external.blob = next;
-      await db.accounts.update(account.id, { external, updatedAt: Date.now(), synced: 0 });
-    };
-    // One after the other: each call may hand back a refreshed connection for the next.
-    const read = async (path: string) => {
-      const r = await post(path, { blob: external.blob });
-      await keep(r.blob);
-      return r.data;
-    };
+    const read = iolRead;
     const balance = await read('/api/iol/balance');
     const argentina = await read('/api/iol/portfolio?country=argentina');
     const unitedStates = await read('/api/iol/portfolio?country=estados_Unidos');

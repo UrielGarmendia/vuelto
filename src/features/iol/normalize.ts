@@ -86,6 +86,7 @@ function positionValue(p: Record<string, unknown>, asset: Record<string, unknown
 export function normalizePortfolio(raw: unknown): Position[] {
   const data = unwrap(raw, 'positions');
   const positions = Array.isArray(data.positions) ? (data.positions as unknown[]) : [];
+  const country = countryOf(data.country);
   return positions.flatMap((item): Position[] => {
     const p = obj(item);
     const asset = obj(p.asset);
@@ -101,7 +102,81 @@ export function normalizePortfolio(raw: unknown): Position[] {
         quantity: num(p.quantity) ?? 0,
         valueCents: Math.round(value * 100),
         dayChangePct: num(p.daily_change_pct),
+        price: num(p.unit_price),
+        market: str(asset.market) || undefined,
+        country: country ?? countryOf(asset.country) ?? 'ARG',
       },
     ];
   });
+}
+
+const countryOf = (v: unknown): 'ARG' | 'USA' | undefined => {
+  const s = str(v).toUpperCase();
+  if (s === 'USA' || s === 'US' || s === 'EEUU' || s === 'ESTADOS_UNIDOS') return 'USA';
+  if (s === 'ARG' || s === 'AR' || s === 'ARGENTINA') return 'ARG';
+  return undefined;
+};
+
+/** The first list of objects (at most a few levels down) whose items pass `test`. */
+function findRows(raw: unknown, test: (o: Record<string, unknown>) => boolean, depth = 0) {
+  if (Array.isArray(raw)) {
+    const rows = raw.map(obj).filter(test);
+    if (rows.length) return rows;
+  }
+  if (depth > 3 || typeof raw !== 'object' || raw === null) return [];
+  for (const v of Object.values(raw)) {
+    const rows: Record<string, unknown>[] = findRows(v, test, depth + 1);
+    if (rows.length) return rows;
+  }
+  return [];
+}
+
+export interface PricePoint {
+  /** Milliseconds since the epoch. */
+  t: number;
+  close: number;
+}
+
+/** get_price_history: one daily bar per session, its time a Unix timestamp. */
+export function normalizePriceHistory(raw: unknown): PricePoint[] {
+  return findRows(raw, (o) => num(o.close) !== undefined)
+    .flatMap((b): PricePoint[] => {
+      const when = b.time ?? b.t ?? b.date;
+      let t = typeof when === 'string' ? Date.parse(when) : (num(when) ?? NaN);
+      // Unix timestamps in seconds; anything already in milliseconds is left alone.
+      if (t < 1e12) t *= 1000;
+      return Number.isFinite(t) ? [{ t, close: num(b.close)! }] : [];
+    })
+    .sort((a, b) => a.t - b.t);
+}
+
+export interface AumPoint {
+  date: string;
+  cents: number;
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}/;
+const VALUE_KEYS = ['aum', 'total', 'value', 'amount', 'balance', 'net_worth', 'valorizado'];
+
+/**
+ * get_aum_evolution: business-day snapshots of the holdings, plus a status that says
+ * "Partial" while IOL is still filling in missing dates. The exact field names are not
+ * documented, so dates and amounts are looked for by shape.
+ */
+export function normalizeAum(raw: unknown): { points: AumPoint[]; partial: boolean } {
+  const dateOf = (o: Record<string, unknown>) =>
+    Object.values(o).find((v): v is string => typeof v === 'string' && DAY.test(v));
+  const points = findRows(raw, (o) => dateOf(o) !== undefined)
+    .flatMap((o): AumPoint[] => {
+      const key = VALUE_KEYS.find((k) => num(o[k]) !== undefined);
+      const value = key
+        ? num(o[key])
+        : Object.values(o)
+            .map(num)
+            .find((v) => v !== undefined);
+      return value === undefined ? [] : [{ date: dateOf(o)!.slice(0, 10), cents: cents(value) }];
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const status = JSON.stringify(raw ?? '').match(/"status"\s*:\s*"([^"]*)"/)?.[1] ?? '';
+  return { points, partial: /partial/i.test(status) };
 }
