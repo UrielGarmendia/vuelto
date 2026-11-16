@@ -14,6 +14,7 @@ export function assertAllowed(name: string): asserts name is AllowedTool {
 }
 
 export const MCP_URL = 'https://mcp.invertironline.com/mcp';
+const PROTOCOL_VERSION = '2025-06-18';
 
 /** IOL rejected the access token: refresh it and try again. */
 export class McpAuthError extends Error {}
@@ -55,7 +56,11 @@ export async function callTool(
     Accept: 'application/json, text/event-stream',
   };
   const post = async (body: unknown) => {
-    const res = await fetcher(MCP_URL, { method: 'POST', headers, body: JSON.stringify(body) });
+    const res = await fetcher(MCP_URL, {
+      method: 'POST',
+      headers: { ...headers },
+      body: JSON.stringify(body),
+    });
     if (res.status === 401) throw new McpAuthError('IOL rechazó el token');
     if (!res.ok && res.status !== 202) throw new HttpError(502, `IOL respondió ${res.status}`);
     return res;
@@ -66,14 +71,16 @@ export async function callTool(
     id: 1,
     method: 'initialize',
     params: {
-      protocolVersion: '2025-06-18',
+      protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
       clientInfo: { name: 'vuelto', version: '1.0.0' },
     },
   });
   const session = init.headers.get('mcp-session-id');
   if (session) headers['Mcp-Session-Id'] = session;
-  await readRpc(init);
+  const hello = (await readRpc(init)) as { result?: { protocolVersion?: string } };
+  // Every request after initialize must carry the negotiated version.
+  headers['MCP-Protocol-Version'] = hello.result?.protocolVersion ?? PROTOCOL_VERSION;
   await post({ jsonrpc: '2.0', method: 'notifications/initialized' });
 
   const rpc = await readRpc(

@@ -8,6 +8,9 @@ interface TokenInfo {
   error_description?: string;
 }
 
+/** Enough of an id to tell two apart in the logs without printing it whole. */
+export const mask = (s = '') => `${s.slice(0, 6)}…${s.slice(-6)}`;
+
 /**
  * Who is calling: the Google access token in Authorization is checked with Google itself
  * (tokeninfo), which only answers for genuine, unexpired tokens. It must have been issued to
@@ -28,7 +31,9 @@ export async function googleUser(
   if (!res.ok || !info.sub) throw new HttpError(401, 'Sesión de Google inválida');
   if (info.azp !== clientId && info.aud !== clientId) {
     // Client ids are public; logging both makes a misconfigured deploy obvious in the logs.
-    console.error(`Google token issued to ${info.azp ?? info.aud}, expected ${clientId}`);
+    console.error(
+      `Google token issued to ${mask(info.azp ?? info.aud)}, expected ${mask(clientId)}`,
+    );
     throw new HttpError(401, 'La sesión de Google es de otra app');
   }
   if (!info.exp || Number(info.exp) * 1000 < now)

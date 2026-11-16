@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { googleUser } from './google.js';
+import { GET } from '../iol/callback.js';
+import { googleUser, mask } from './google.js';
 import { env, HttpError } from './http.js';
 import { blobFromTokens, withIol, type IolBlob } from './iol.js';
 import { ALLOWED_TOOLS, callTool, MCP_URL } from './mcp.js';
@@ -89,6 +90,33 @@ describe('callTool', () => {
     expect(last['Mcp-Session-Id']).toBe('s1');
     expect(last.Authorization).toBe('Bearer tok');
   });
+
+  it('initializes, confirms and calls in one go with the negotiated protocol headers', async () => {
+    const server = mcpServer({ total: 5 });
+    await callTool('tok', 'get_balance', {}, server as typeof fetch);
+    const calls = server.mock.calls.map(([, init]) => ({
+      method: (JSON.parse(String(init?.body)) as { method: string }).method,
+      headers: init?.headers as Record<string, string>,
+    }));
+    expect(calls.map((c) => c.method)).toEqual([
+      'initialize',
+      'notifications/initialized',
+      'tools/call',
+    ]);
+    for (const { headers } of calls)
+      expect(headers.Accept).toBe('application/json, text/event-stream');
+    expect(calls[0]!.headers['MCP-Protocol-Version']).toBeUndefined();
+    for (const { headers } of calls.slice(1)) {
+      expect(headers['Mcp-Session-Id']).toBe('s1');
+      expect(headers['MCP-Protocol-Version']).toBe('2025-06-18');
+    }
+  });
+});
+
+describe('mask', () => {
+  it('keeps only the ends of an id', () => {
+    expect(mask('123456789-abcdef.apps.googleusercontent.com')).toBe('123456…nt.com');
+  });
 });
 
 const tokeninfo = (info: Record<string, string>, ok = true) =>
@@ -155,6 +183,34 @@ describe('googleUser', () => {
     await expect(
       googleUser(new Request('https://x', { method: 'POST' }), 'google-client'),
     ).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe('callback', () => {
+  const callback = (query: string) => GET(new Request(`https://x/api/iol/callback?${query}`));
+  const location = (res: Response) => res.headers.get('location');
+
+  it('sends a clear error back when the code is invalid, expired or denied', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ error: 'invalid_grant' }, { status: 400 })),
+    );
+    try {
+      const state = await seal({ v: 'verifier', sub: 'u1', exp: Date.now() + 60_000 }, KEY);
+      const res = await callback(`code=used&state=${encodeURIComponent(state)}`);
+      expect(res.status).toBe(302);
+      expect(location(res)).toBe('/ajustes/cuentas#iol-error=failed');
+      expect(location(await callback('code=x&state=tampered'))).toBe(
+        '/ajustes/cuentas#iol-error=failed',
+      );
+      expect(location(await callback('error=access_denied'))).toBe(
+        '/ajustes/cuentas#iol-error=denied',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 });
 
