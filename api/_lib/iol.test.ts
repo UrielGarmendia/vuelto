@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../iol/callback.js';
+import { POST as portfolio } from '../iol/portfolio.js';
 import { googleUser, mask } from './google.js';
 import { env, HttpError } from './http.js';
 import { blobFromTokens, withIol, type IolBlob } from './iol.js';
@@ -377,5 +378,44 @@ describe('withIol', () => {
     await expect(
       withIol(req({ blob: 'garbage.blob' }), 'get_balance', {}, server('u1')),
     ).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe('portfolio endpoint', () => {
+  it('asks get_portfolio for the requested market, Argentina unless it is the US', async () => {
+    const asked: unknown[] = [];
+    const mcp = mcpServer({ country: 'ARG', positions: [] });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.startsWith('https://oauth2.googleapis.com/tokeninfo'))
+          return tokeninfo({ sub: 'u1', azp: 'google-client', exp: later });
+        const msg = JSON.parse(String(init?.body)) as { method: string; params?: unknown };
+        if (msg.method === 'tools/call') asked.push(msg.params);
+        return mcp(url, init);
+      }),
+    );
+    try {
+      const { sealed } = await blobFromTokens({ access_token: 'a' }, 'u1');
+      const call = (query: string) =>
+        portfolio(
+          new Request(`https://x/api/iol/portfolio${query}`, {
+            method: 'POST',
+            headers: { Authorization: 'Bearer g' },
+            body: JSON.stringify({ blob: sealed }),
+          }),
+        );
+      for (const q of ['?country=estados_Unidos', '?country=argentina', '?country=mars', '']) {
+        expect((await call(q)).status).toBe(200);
+      }
+      expect(asked).toEqual([
+        { name: 'get_portfolio', arguments: { country: 'estados_Unidos' } },
+        { name: 'get_portfolio', arguments: { country: 'argentina' } },
+        { name: 'get_portfolio', arguments: { country: 'argentina' } },
+        { name: 'get_portfolio', arguments: { country: 'argentina' } },
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
