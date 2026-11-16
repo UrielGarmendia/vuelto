@@ -53,6 +53,12 @@ Cada llamada abre su propia sesión MCP: `initialize` → `notifications/initial
 2. Completá `GOOGLE_CLIENT_ID` y `VITE_GOOGLE_CLIENT_ID` en `.env.local`.
 3. `vercel dev` (puerto 3000) y entrá a `http://localhost:3000`. Recordá sumar `http://localhost:3000` a los orígenes autorizados de Google.
 
-## Pendiente de validar con una cuenta real
+## Formato de IOL (verificado en producción)
 
-La forma de las respuestas de `get_balance` y `get_portfolio` se tomó de la API pública de IOL (`cuentas[]` con `moneda` y `disponible`; `activos[]` con `titulo`, `valorizado` y `variacionDiaria`). La normalización (`src/features/iol/normalize.ts`) ignora lo que no reconoce; si la primera conexión real muestra $ 0, revisar ese archivo con la respuesta real.
+- **`get_balance`**: `arg_ars`, `arg_usd` y `eeuu_usd`, cada una con `totals`, `available` y `committed` por plazo de liquidación (`t0`–`t3`) y `available_for_withdrawal`. `totals` = `available` + `committed` y es solo efectivo. Vuelto usa `t0` (lo liquidado hoy).
+- **`get_portfolio`** (`country`: `argentina` o `estados_Unidos`; se piden los dos y se suman): `positions[]` con `quantity`, `unit_price`, `lot_price`, `committed`, `daily_change_pct` (ya en %) y `asset` (`symbol`, `description`, `market`, `type`, `currency`, `units_per_lot`, `country`, `term`).
+- **Valor de una posición**: `quantity × unit_price`, respetando `units_per_lot`. Si `lot_price` coincide con `unit_price`, la cotización es por lote (bonos por 100 nominales) y se divide por `units_per_lot`.
+- **Tipos**: se agrupan en Acciones, CEDEARs, Bonos, ONs, FCI, Cauciones y Otros (lo desconocido va a Otros).
+- **Fuera de alcance**: el precio promedio de compra y el resultado por posición no vienen en `get_portfolio`. Vuelto no los muestra ni los estima.
+
+La normalización está en `src/features/iol/normalize.ts`, con tests sobre esta estructura.
