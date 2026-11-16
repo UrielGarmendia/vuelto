@@ -1,4 +1,5 @@
-import { CloudOff, Plus, Search } from 'lucide-react';
+import { CloudOff, Plus, Search, Sparkles } from 'lucide-react';
+import { useCopilot } from '../features/copilot/store';
 import { useSync } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
 import { Wordmark } from '../ui/Wordmark';
@@ -6,6 +7,7 @@ import { useSearch } from './nav';
 
 export function TopBar() {
   const openNew = useTxSheet((s) => s.openNew);
+  const openCopilot = useCopilot((s) => s.openCopilot);
   const openSearch = () => useSearch.getState().set(true);
   return (
     <div className="flex h-15 items-center justify-between gap-4 lg:h-16 lg:border-b lg:border-line">
@@ -19,13 +21,30 @@ export function TopBar() {
         <kbd className="ml-auto font-sans text-[12px]">/</kbd>
       </button>
       <Reconnect />
+      <span className="-mr-2 flex items-center lg:hidden">
+        <button
+          type="button"
+          onClick={openCopilot}
+          aria-label="Copiloto de carga"
+          className="grid size-11 place-items-center rounded-full text-hue"
+        >
+          <Sparkles aria-hidden className="size-5" />
+        </button>
+        <button
+          type="button"
+          onClick={openSearch}
+          aria-label="Buscar"
+          className="grid size-11 place-items-center rounded-full text-muted"
+        >
+          <Search aria-hidden className="size-5" />
+        </button>
+      </span>
       <button
         type="button"
-        onClick={openSearch}
-        aria-label="Buscar"
-        className="-mr-2 grid size-11 place-items-center rounded-full text-muted lg:hidden"
+        onClick={openCopilot}
+        className="rel hidden min-h-[42px] items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold lg:inline-flex"
       >
-        <Search aria-hidden className="size-5" />
+        <Sparkles aria-hidden className="size-4 text-hue" /> Copiloto
       </button>
       <button
         type="button"

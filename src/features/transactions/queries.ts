@@ -5,7 +5,7 @@ export type TxDraft = Pick<
   Transaction,
   'type' | 'amountCents' | 'currency' | 'date' | 'categoryId' | 'accountId' | 'note'
 > &
-  Partial<Pick<Transaction, 'toAccountId' | 'rateAtDate' | 'split'>>;
+  Partial<Pick<Transaction, 'toAccountId' | 'rateAtDate' | 'split' | 'receiptBlobId'>>;
 
 export async function saveTransaction(
   draft: TxDraft,

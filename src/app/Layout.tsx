@@ -27,6 +27,9 @@ import { UpdatePrompt } from './UpdatePrompt';
 import { viewTransitions } from './viewTransitions';
 
 // Own chunk (Radix + form); it starts loading on first render, well before the first tap on +.
+const CopilotSheet = lazy(() =>
+  import('../features/copilot/CopilotSheet').then((m) => ({ default: m.CopilotSheet })),
+);
 const TransactionSheet = lazy(() =>
   import('../features/transactions/TransactionSheet').then((m) => ({
     default: m.TransactionSheet,
@@ -101,6 +104,7 @@ export function Layout() {
       <UpdatePrompt />
       <Suspense>
         <TransactionSheet />
+        <CopilotSheet />
       </Suspense>
     </>
   );
