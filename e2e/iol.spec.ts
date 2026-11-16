@@ -98,3 +98,18 @@ test('without Google, IOL asks to sign in first', async ({ page }) => {
   await expect(page.getByText(/necesita el inicio de sesión con Google/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Conectar IOL' })).toHaveCount(0);
 });
+
+test('an expired or reused authorization shows a clear error with Reintentar', async ({
+  page,
+}, info) => {
+  await page.goto('/ajustes/cuentas#iol-error=failed');
+  const alert = page.getByRole('alert').filter({ hasText: 'IOL no aceptó la autorización' });
+  await expect(alert).toBeVisible();
+  await expect(page).toHaveURL(/\/ajustes\/cuentas$/);
+  await page.screenshot({ path: `e2e/__screenshots__/${info.project.name}/iol-error.png` });
+
+  await alert.getByRole('button', { name: 'Reintentar' }).click();
+  const card = page.getByRole('region', { name: /IOL — Inversiones/ });
+  await expect(card).toContainText('Vinculada');
+  await expect(alert).toBeHidden();
+});

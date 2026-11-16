@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { create } from 'zustand';
+import { activateNewestWorker } from '../../app/serviceWorker';
 import { db, newMeta } from '../../db/db';
 import type { Account } from '../../db/types';
 import type { ExternalAccountProvider, Snapshot } from '../external/provider';
@@ -45,21 +46,52 @@ async function post(path: string, body: unknown) {
   return data;
 }
 
+const RESUME_KEY = 'vuelto-iol-resume';
+
+/** True once after a reload that `connectIol` started; the card then picks the flow back up. */
+export function takeIolResume(): boolean {
+  try {
+    const pending = sessionStorage.getItem(RESUME_KEY) === '1';
+    sessionStorage.removeItem(RESUME_KEY);
+    return pending;
+  } catch {
+    return false;
+  }
+}
+
 /** Step 1: our server prepares IOL's authorization page; the browser goes there. */
 export async function connectIol(): Promise<void> {
+  // IOL sends the user back to /api/iol/callback: an outdated service worker would answer that
+  // with the app shell and the connection would be lost, so the newest one takes over first.
+  let swapped: boolean;
+  try {
+    swapped = await activateNewestWorker();
+  } catch (err) {
+    console.error(err);
+    throw new IolError('No se pudo preparar la app para conectar IOL. Probá de nuevo.');
+  }
+  if (swapped) {
+    try {
+      sessionStorage.setItem(RESUME_KEY, '1');
+    } catch {
+      // Without sessionStorage the user just taps the button again after the reload.
+    }
+    location.reload();
+    return;
+  }
   const { url } = await post('/api/iol/start', {});
   if (!url) throw new IolError('IOL no respondió');
   location.assign(url);
 }
 
 /** Step 2, back from IOL: the sealed connection arrives in the URL fragment. */
-export async function takeIolFromUrl(): Promise<'connected' | 'error' | null> {
+export async function takeIolFromUrl(): Promise<'connected' | 'denied' | 'failed' | null> {
   const hash = new URLSearchParams(location.hash.slice(1));
   const blob = hash.get('iol');
-  const failed = hash.has('iol-error');
-  if (!blob && !failed) return null;
+  const failure = hash.get('iol-error');
+  if (!blob && failure === null) return null;
   history.replaceState(history.state, '', location.pathname + location.search);
-  if (!blob) return 'error';
+  if (!blob) return failure === 'denied' ? 'denied' : 'failed';
   const existing = await findIolAccount();
   const external = { provider: 'iol' as const, blob, connectedAt: Date.now() };
   if (existing) {

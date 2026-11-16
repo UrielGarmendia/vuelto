@@ -8,7 +8,20 @@ import { useRates } from '../currency/rates';
 import { dayChange, snapshotTotal, type Position, type Snapshot } from '../external/provider';
 import { availability } from '../sync/google';
 import { useSync } from '../sync/useSync';
-import { connectIol, disconnectIol, IolError, takeIolFromUrl, useIol, useIolStatus } from './iol';
+import {
+  connectIol,
+  disconnectIol,
+  IolError,
+  takeIolFromUrl,
+  takeIolResume,
+  useIol,
+  useIolStatus,
+} from './iol';
+
+const failures = {
+  denied: 'Cancelaste la autorización en IOL, así que no se conectó.',
+  failed: 'IOL no aceptó la autorización: puede haber vencido o ya se usó. Empezá de nuevo.',
+};
 
 const ago = new Intl.RelativeTimeFormat('es-AR', { numeric: 'auto' });
 function since(ms: number) {
@@ -42,15 +55,26 @@ export function IolCard() {
   const rateKind = usePrefs((s) => s.rateKind);
   const rate = useRates()?.values[rateKind];
   const [confirm, setConfirm] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
-  // Back from IOL's authorization page (a fresh load, or a fragment change on the same page).
+  const connect = () => {
+    setFailure(null);
+    void connectIol().catch((e: unknown) => {
+      if (!(e instanceof IolError)) console.error(e);
+      setFailure(e instanceof IolError ? e.message : 'No se pudo conectar IOL.');
+    });
+  };
+
+  // Back from IOL's authorization page (a fresh load, or a fragment change on the same page),
+  // or reloaded by connectIol after a service worker update: then the flow continues.
   useEffect(() => {
     const take = () =>
       void takeIolFromUrl().then((r) => {
         if (r === 'connected') {
           toast('IOL conectado');
           void useIolStatus.getState().refresh();
-        } else if (r === 'error') toast('No se pudo conectar IOL. Probá de nuevo.');
+        } else if (r) setFailure(failures[r]);
+        else if (takeIolResume()) connect();
       });
     take();
     addEventListener('hashchange', take);
@@ -80,11 +104,7 @@ export function IolCard() {
         {signedIn ? (
           <button
             type="button"
-            onClick={() =>
-              void connectIol().catch((e: unknown) =>
-                toast(e instanceof IolError ? e.message : 'No se pudo conectar IOL'),
-              )
-            }
+            onClick={connect}
             className="rel go mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold"
           >
             <Link2 aria-hidden className="size-4" /> Conectar IOL
@@ -103,6 +123,21 @@ export function IolCard() {
               'Conectar IOL necesita el inicio de sesión con Google, que todavía no está disponible en esta instalación.'
             )}
           </p>
+        )}
+        {failure && (
+          <div
+            role="alert"
+            className="mt-4 flex items-center gap-3 rounded-[14px] border border-line bg-flat-2 px-4 py-3"
+          >
+            <p className="flex-1 text-[13.5px] leading-snug text-muted">{failure}</p>
+            <button
+              type="button"
+              onClick={connect}
+              className="rel min-h-10 shrink-0 rounded-full px-4 text-[13.5px] font-semibold text-hue"
+            >
+              Reintentar
+            </button>
+          </div>
         )}
       </section>
     );
@@ -179,7 +214,7 @@ export function IolCard() {
           {status === 'reconnect' && (
             <button
               type="button"
-              onClick={() => void connectIol().catch(() => toast('No se pudo reconectar IOL'))}
+              onClick={connect}
               className="min-h-10 shrink-0 px-2 text-[13.5px] font-semibold text-hue"
             >
               Reconectar
@@ -188,6 +223,21 @@ export function IolCard() {
         </div>
       )}
 
+      {failure && (
+        <div
+          role="alert"
+          className="mt-4 flex items-center gap-3 rounded-[14px] border border-line bg-flat-2 px-4 py-3"
+        >
+          <p className="flex-1 text-[13.5px] leading-snug text-muted">{failure}</p>
+          <button
+            type="button"
+            onClick={connect}
+            className="rel min-h-10 shrink-0 rounded-full px-4 text-[13.5px] font-semibold text-hue"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
       <div className="mt-4 border-t border-line pt-3">
         {confirm ? (
           <div className="flex flex-wrap items-center gap-2">
