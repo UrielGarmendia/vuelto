@@ -81,6 +81,11 @@ export const router = createBrowserRouter([
               import('../features/goals/GoalsPage').then((m) => ({ Component: m.GoalsPage })),
           },
           {
+            path: 'ajustes/reglas',
+            lazy: () =>
+              import('../features/rules/RulesPage').then((m) => ({ Component: m.RulesPage })),
+          },
+          {
             path: 'ajustes/inicio',
             lazy: () =>
               import('../features/home/HomeWidgetsPage').then((m) => ({

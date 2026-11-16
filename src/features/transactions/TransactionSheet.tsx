@@ -9,11 +9,12 @@ import {
   Star,
   Users,
   Wallet,
+  Wand2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePrefs } from '../../app/prefs';
 import { db, newMeta } from '../../db/db';
-import type { Account, Category, Template, Transaction, TxType } from '../../db/types';
+import type { Account, Category, Rule, Template, Transaction, TxType } from '../../db/types';
 import {
   amountInputToCents,
   applyAmountKey,
@@ -29,6 +30,7 @@ import { Sheet, SheetDragZone } from '../../ui/Sheet';
 import { toast } from '../../ui/toast';
 import { budgetsFor, crossedThreshold } from '../budgets/budgets';
 import { rateLabels, useRates } from '../currency/rates';
+import { matchRule, plain, ruleKeyword, saveRule } from '../rules/rules';
 import { createTransaction, updateGroup } from './create';
 import { saveTransaction, splitShare, type TxDraft } from './queries';
 import type { Frequency } from './schedule';
@@ -78,12 +80,14 @@ export function TransactionSheet() {
         .toArray(),
     [],
   );
+  const rules = useLiveQuery(() => db.rules.filter((r) => !r.deleted).toArray(), []);
   const ready =
     editing !== undefined &&
     (editing === null) === !editingId &&
     !!categories &&
     !!accounts &&
-    !!templates;
+    !!templates &&
+    !!rules;
 
   return (
     <Sheet
@@ -98,6 +102,7 @@ export function TransactionSheet() {
           categories={categories}
           accounts={accounts}
           templates={templates}
+          rules={rules}
           onDone={close}
         />
       )}
@@ -110,12 +115,14 @@ function TxForm({
   categories,
   accounts,
   templates,
+  rules,
   onDone,
 }: {
   editing?: Transaction;
   categories: Category[];
   accounts: Account[];
   templates: Template[];
+  rules: Rule[];
   onDone: () => void;
 }) {
   const lastUsed = useLastUsed();
@@ -144,6 +151,9 @@ function TxForm({
   const [favorite, setFavorite] = useState(false);
   const [applyAll, setApplyAll] = useState(false);
   const [people, setPeople] = useState(editing?.split?.people ?? 1);
+  // A rule may pick the category from the note, until the user picks one by hand.
+  const [picked, setPicked] = useState(!!editing);
+  const [ruleHit, setRuleHit] = useState<Rule | undefined>();
   const editingId = editing?.id;
 
   const visibleCategories = categories.filter((c) => c.type === type);
@@ -169,6 +179,24 @@ function TxForm({
       );
   }
 
+  function pickCategory(id: string) {
+    setPicked(true);
+    setRuleHit(undefined);
+    setCategoryId(id);
+  }
+
+  function changeNote(text: string) {
+    setNote(text);
+    if (picked || type === 'transfer') return;
+    const rule = matchRule(text, rules);
+    const category = rule && categories.find((c) => c.id === rule.categoryId);
+    if (!rule || !category) return setRuleHit(undefined);
+    if (category.type !== type) setType(category.type);
+    setCategoryId(category.id);
+    if (rule.accountId && known(rule.accountId)) setAccountId(rule.accountId);
+    setRuleHit(rule);
+  }
+
   function applyTemplate(t: Template) {
     setType(t.type);
     if (t.amountCents) setAmount(centsToAmountInput(t.amountCents));
@@ -191,7 +219,11 @@ function TxForm({
       categoryId: type === 'transfer' ? undefined : categoryId,
       accountId: account.id,
       toAccountId: type === 'transfer' ? destination?.id : undefined,
-      note,
+      // A rule's tag joins the note, where tags live.
+      note:
+        ruleHit?.tag && categoryId === ruleHit.categoryId && !note.includes(`#${ruleHit.tag}`)
+          ? `${note.trim()} #${ruleHit.tag}`.trim()
+          : note,
       split: splitting ? { totalCents: typed, people } : undefined,
     };
     try {
@@ -222,6 +254,30 @@ function TxForm({
       accountId: account.id,
     });
     onDone();
+    // Correcting a category teaches: offer a rule for the note's keyword.
+    const keyword = ruleKeyword(note);
+    const category = categories.find((c) => c.id === categoryId);
+    if (
+      editingId &&
+      type !== 'transfer' &&
+      category &&
+      editing?.categoryId !== categoryId &&
+      keyword &&
+      !rules.some((r) => !r.deleted && plain(r.match) === keyword)
+    ) {
+      toast(
+        `¿Usar siempre ${category.name} para «${keyword}»?`,
+        {
+          label: 'Sí',
+          onClick: () =>
+            void saveRule({ match: keyword, categoryId: category.id }).then(() =>
+              toast('Regla creada'),
+            ),
+        },
+        8000,
+      );
+      return;
+    }
     const budgetNote =
       type === 'expense' && !editingId && categoryId
         ? await budgetMessage(categoryId, date, arsCents(draft), categories)
@@ -370,7 +426,7 @@ function TxForm({
             <CategoryGrid
               categories={visibleCategories}
               selected={categoryId}
-              onSelect={setCategoryId}
+              onSelect={pickCategory}
             />
           )}
 
@@ -527,13 +583,19 @@ function TxForm({
                 autoFocus={!editing}
                 type="text"
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => changeNote(e.target.value)}
                 placeholder="Nota (opcional). Usá #etiquetas"
                 aria-label="Nota"
                 maxLength={140}
                 enterKeyHint="done"
                 className="well min-h-11 w-full rounded-[14px] px-4 text-[16px] placeholder:text-faint focus-visible:outline-2 focus-visible:outline-hue"
               />
+              {ruleHit && categoryId === ruleHit.categoryId && (
+                <p role="status" className="mt-1.5 px-1 text-[12.5px] text-muted">
+                  <Wand2 aria-hidden className="mr-1 inline size-3.5 align-[-2px] text-hue" />
+                  Categoría por la regla «{ruleHit.match}»
+                </p>
+              )}
             </div>
           )}
 

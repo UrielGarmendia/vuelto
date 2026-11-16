@@ -1,7 +1,7 @@
 import { db as defaultDb, newMeta, type VueltoDB } from './db';
 import type { Account, Category } from './types';
 
-type Table = 'categories' | 'accounts';
+type Table = 'categories' | 'accounts' | 'rules';
 
 export type CategoryDraft = Pick<Category, 'name' | 'icon' | 'color' | 'type'>;
 export type AccountDraft = Pick<

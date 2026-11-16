@@ -8,6 +8,7 @@ import {
   Sun,
   Tags,
   Target,
+  Wand2,
   WalletCards,
 } from 'lucide-react';
 import { GoogleSection } from '../sync/GoogleSection';
@@ -40,6 +41,7 @@ export function SettingsPage() {
   const persisted = useLiveQuery(() => db.kv.get('storagePersisted'));
   const counts = useLiveQuery(async () => ({
     categories: await db.categories.filter((c) => !c.deleted && !c.archived).count(),
+    rules: await db.rules.filter((r) => !r.deleted).count(),
     accounts: await db.accounts.filter((a) => !a.deleted && !a.archived).count(),
   }));
 
@@ -122,6 +124,12 @@ export function SettingsPage() {
                   label: 'Metas de ahorro',
                   icon: PiggyBank,
                   count: undefined,
+                },
+                {
+                  to: '/ajustes/reglas',
+                  label: 'Reglas de categorías',
+                  icon: Wand2,
+                  count: counts?.rules,
                 },
                 {
                   to: '/ajustes/recurrentes',
