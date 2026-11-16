@@ -24,6 +24,8 @@ El `client_id` quedó en `.env.local` (ignorado por git) como `IOL_CLIENT_ID`.
 
 `IOL_REDIRECT_URI` solo hace falta en desarrollo (`http://localhost:3000/api/iol/callback`); en producción se usa el de Vercel por defecto.
 
+`IOL_MCP_URL` es opcional. Por defecto el endpoint MCP es `https://mcp.invertironline.com`, el `resource` que declara `https://mcp.invertironline.com/.well-known/oauth-protected-resource` (la raíz, no `/mcp`). Si IOL lo cambia, se ajusta acá sin tocar código.
+
 ## Cómo funciona
 
 1. **Conectar** (`POST /api/iol/start`): exige la sesión de Google. Arma la URL de autorización de IOL con PKCE; el `code_verifier` y el `sub` de Google viajan cifrados en `state` (vencen en 10 minutos).
@@ -31,6 +33,13 @@ El `client_id` quedó en `.env.local` (ignorado por git) como `IOL_CLIENT_ID`.
 3. El blob se guarda en la cuenta "IOL — Inversiones" (tipo inversión). Con login de Google viaja a Drive con el catálogo, así la PC también lo tiene.
 4. **Lectura** (`POST /api/iol/balance` y `/api/iol/portfolio`): el servidor verifica el token de Google con Google (`tokeninfo`: emitido para nuestro client ID y sin vencer), abre el blob, exige que su `sub` sea el mismo usuario, renueva el token de IOL si hace falta (y devuelve un blob nuevo si IOL rotó el refresh token) y llama a la herramienta MCP.
 5. El servidor no guarda nada. El blob vence a los 90 días; después pide reconectar.
+
+Cada llamada abre su propia sesión MCP: `initialize` → `notifications/initialized` → `tools/call`, con `Mcp-Session-Id`, `MCP-Protocol-Version` y `Accept: application/json, text/event-stream` (acepta respuestas JSON y SSE).
+
+## Logs (Vercel → Runtime Logs)
+
+- Cada respuesta no exitosa de IOL deja `IOL MCP <paso> failed` con la URL, el status, los headers relevantes y los primeros 500 caracteres del cuerpo. Nunca el token.
+- Al conectar, el callback hace un `tools/list` y deja `IOL MCP tools: …` con los nombres disponibles. Si falta alguna de la allowlist, agrega `IOL MCP lacks expected tools: …`. Si el listado falla, la conexión sigue igual.
 
 ## Seguridad
 
