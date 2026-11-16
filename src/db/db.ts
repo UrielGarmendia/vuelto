@@ -6,7 +6,9 @@ import type {
   Goal,
   KV,
   Meta,
+  NetWorthDay,
   Recurring,
+  Rule,
   StoredBlob,
   Template,
   Transaction,
@@ -23,6 +25,8 @@ export class VueltoDB extends Dexie {
   blobs!: EntityTable<StoredBlob, 'id'>;
   kv!: EntityTable<KV, 'key'>;
   templates!: EntityTable<Template, 'id'>;
+  netWorth!: EntityTable<NetWorthDay, 'id'>;
+  rules!: EntityTable<Rule, 'id'>;
 
   constructor(name = 'vuelto') {
     super(name);
@@ -39,6 +43,11 @@ export class VueltoDB extends Dexie {
     });
     // v2: one-tap templates for the entry sheet.
     this.version(2).stores({ templates: 'id, order, synced, updatedAt' });
+    // v3: a daily net worth row (id = date) and categorization rules.
+    this.version(3).stores({
+      netWorth: 'id, date, synced, updatedAt',
+      rules: 'id, order, synced, updatedAt',
+    });
     this.on('populate', (tx) => seed(tx));
   }
 }

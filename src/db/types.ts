@@ -98,3 +98,31 @@ export interface KV {
   key: string;
   value: unknown;
 }
+
+/** One day of net worth, in pesos. The id is the date, so each day has one row on every device. */
+export interface NetWorthDay extends Meta {
+  date: string; // YYYY-MM-DD
+  /** Each own account's balance in its currency (linked accounts excluded). */
+  accounts: { id: string; cents: number; currency: Currency }[];
+  /** Accounts plus cash at IOL, before card debt. */
+  availableCents: number;
+  /** Positions at IOL. */
+  investedCents: number;
+  /** Credit card debt, as a positive number. */
+  debtCents: number;
+  /** available + invested − debt. */
+  totalCents: number;
+  /** ARS per dollar used that day; without it the dollars are left out. */
+  usdRate?: number;
+  totalUsdCents?: number;
+}
+
+/** "If the note contains `match`, use this category (and maybe account and tag)". */
+export interface Rule extends Meta {
+  match: string;
+  categoryId: string;
+  accountId?: string;
+  tag?: string;
+  order: number;
+  enabled: 0 | 1;
+}

@@ -11,6 +11,8 @@ export const CATALOG_TABLES = [
   'recurring',
   'goals',
   'templates',
+  'netWorth',
+  'rules',
 ] as const;
 const CATALOG_FILE = 'vuelto-catalog.json';
 const yearFile = (year: string) => `vuelto-tx-${year}.json`;

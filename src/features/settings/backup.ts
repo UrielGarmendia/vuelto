@@ -1,7 +1,7 @@
 import { db as defaultDb, type VueltoDB } from '../../db/db';
 import type { Transaction } from '../../db/types';
 
-// Tables added later (templates) are optional, so older backups still restore.
+// Tables added later (templates, netWorth, rules) are optional, so older backups still restore.
 const TABLES = [
   'transactions',
   'categories',
@@ -10,6 +10,8 @@ const TABLES = [
   'recurring',
   'goals',
   'templates',
+  'netWorth',
+  'rules',
 ] as const;
 type TableName = (typeof TABLES)[number];
 
