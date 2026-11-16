@@ -85,6 +85,21 @@ test.describe('with the service worker', () => {
     await page.goto('/ajustes');
     await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
   });
+  test('navigations to /api/ reach the server, not the app shell', async ({ page, context }) => {
+    await context.route('**/api/iol/callback**', (route) =>
+      route.fulfill({ contentType: 'text/plain', body: 'from the server' }),
+    );
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    // Control: app routes do come from the service worker.
+    expect((await page.goto('/ajustes'))?.fromServiceWorker()).toBe(true);
+
+    const res = await page.goto('/api/iol/callback?code=abc&state=xyz');
+    expect(res?.fromServiceWorker()).toBe(false);
+    await expect(page.locator('body')).toHaveText('from the server');
+  });
 });
 
 test('returns to Inicio from Ajustes', async ({ page }) => {
