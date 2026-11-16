@@ -4,7 +4,7 @@ import { GET } from '../iol/callback.js';
 import { googleUser, mask } from './google.js';
 import { env, HttpError } from './http.js';
 import { blobFromTokens, withIol, type IolBlob } from './iol.js';
-import { ALLOWED_TOOLS, callTool, MCP_URL } from './mcp.js';
+import { ALLOWED_TOOLS, callTool, DEFAULT_MCP_URL, listTools, McpAuthError } from './mcp.js';
 import { seal, unseal } from './seal.js';
 
 const KEY = Buffer.alloc(32, 7).toString('base64');
@@ -58,10 +58,14 @@ describe('allowlist', () => {
   });
 });
 
-/** A fake MCP server: initialize gives a session, tools/call the given result, JSON or SSE. */
+/**
+ * A fake IOL MCP server at the resource root, shaped like Streamable HTTP: initialize gives a
+ * session, the notification gets 202 with no body, tools/list the tools IOL offers and
+ * tools/call the given result, as JSON or SSE.
+ */
 function mcpServer(result: unknown, { sse = false } = {}) {
   return vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-    expect(String(url)).toBe(MCP_URL);
+    expect(String(url)).toBe('https://mcp.invertironline.com');
     const msg = JSON.parse(String(init?.body)) as { id?: number; method: string };
     if (!msg.id) return new Response(null, { status: 202 });
     const body = {
@@ -69,8 +73,14 @@ function mcpServer(result: unknown, { sse = false } = {}) {
       id: msg.id,
       result:
         msg.method === 'initialize'
-          ? { protocolVersion: '2025-06-18', capabilities: {} }
-          : { content: [{ type: 'text', text: JSON.stringify(result) }] },
+          ? {
+              protocolVersion: '2025-06-18',
+              capabilities: { tools: {} },
+              serverInfo: { name: 'iol', version: '1' },
+            }
+          : msg.method === 'tools/list'
+            ? { tools: [...ALLOWED_TOOLS, ...FORBIDDEN].map((name) => ({ name })) }
+            : { content: [{ type: 'text', text: JSON.stringify(result) }] },
     };
     return sse
       ? new Response(`event: message\ndata: ${JSON.stringify(body)}\n\n`, {
@@ -110,6 +120,77 @@ describe('callTool', () => {
       expect(headers['Mcp-Session-Id']).toBe('s1');
       expect(headers['MCP-Protocol-Version']).toBe('2025-06-18');
     }
+  });
+
+  it('uses IOL_MCP_URL when set', async () => {
+    vi.stubEnv('IOL_MCP_URL', 'https://mcp.example.com/v2 ');
+    const server = vi.fn(async () =>
+      Response.json({ jsonrpc: '2.0', id: 1, result: { content: [] } }),
+    );
+    await callTool('tok', 'get_balance', {}, server as unknown as typeof fetch);
+    expect(String(server.mock.calls[0]?.at(0))).toBe('https://mcp.example.com/v2');
+    expect(DEFAULT_MCP_URL).toBe('https://mcp.invertironline.com');
+  });
+
+  it('logs each failed step with status, headers and body, never the token', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const notFound = vi.fn(async () =>
+        Response.json(
+          { error: 'not found' },
+          { status: 404, headers: { 'x-other': 'skip', 'mcp-session-id': 's9' } },
+        ),
+      );
+      await expect(
+        callTool('secret-token', 'get_balance', {}, notFound as unknown as typeof fetch),
+      ).rejects.toMatchObject({ status: 502, message: 'IOL respondió 404 en initialize' });
+      const [title, detail] = log.mock.calls[0] as [string, string];
+      expect(title).toBe('IOL MCP initialize failed');
+      expect(JSON.parse(detail)).toEqual({
+        url: 'https://mcp.invertironline.com',
+        status: 404,
+        headers: { 'content-type': 'application/json', 'mcp-session-id': 's9' },
+        body: '{"error":"not found"}',
+      });
+
+      // A failure after initialize names its own step.
+      const server = mcpServer({});
+      const failsOnCall = vi.fn(async (url: string, init?: RequestInit) =>
+        String(init?.body).includes('tools/call')
+          ? new Response('x'.repeat(800), { status: 500 })
+          : server(url, init),
+      );
+      await expect(
+        callTool('secret-token', 'get_balance', {}, failsOnCall as unknown as typeof fetch),
+      ).rejects.toMatchObject({ message: 'IOL respondió 500 en tools/call' });
+      const [title2, detail2] = log.mock.calls[1] as [string, string];
+      expect(title2).toBe('IOL MCP tools/call failed');
+      expect((JSON.parse(detail2) as { body: string }).body).toHaveLength(500);
+
+      expect(JSON.stringify(log.mock.calls)).not.toContain('secret-token');
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('still asks for a refresh when IOL rejects the token', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unauthorized = vi.fn(async () => new Response('', { status: 401 }));
+    await expect(
+      callTool('tok', 'get_balance', {}, unauthorized as unknown as typeof fetch),
+    ).rejects.toBeInstanceOf(McpAuthError);
+    vi.restoreAllMocks();
+  });
+
+  it('lists the tool names IOL offers', async () => {
+    const server = mcpServer({});
+    expect(await listTools('tok', server as typeof fetch)).toEqual(
+      expect.arrayContaining(['get_balance', 'get_portfolio']),
+    );
+    const methods = server.mock.calls.map(
+      ([, init]) => (JSON.parse(String(init?.body)) as { method: string }).method,
+    );
+    expect(methods).toEqual(['initialize', 'notifications/initialized', 'tools/list']);
   });
 });
 
@@ -207,6 +288,41 @@ describe('callback', () => {
       expect(location(await callback('error=access_denied'))).toBe(
         '/ajustes/cuentas#iol-error=denied',
       );
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('logs the tools IOL offers on connect, and connects even if listing them fails', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mcp = mcpServer({});
+    let mcpDown = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/token'))
+          return Response.json({
+            access_token: 'iol-access',
+            refresh_token: 'r',
+            expires_in: 3600,
+          });
+        return mcpDown ? new Response('gone', { status: 404 }) : mcp(url, init);
+      }),
+    );
+    try {
+      const state = () => seal({ v: 'verifier', sub: 'u1', exp: Date.now() + 60_000 }, KEY);
+      const ok = await callback(`code=good&state=${encodeURIComponent(await state())}`);
+      expect(location(ok)).toMatch(/^\/ajustes\/cuentas#iol=/);
+      expect(info).toHaveBeenCalledWith(expect.stringContaining('get_balance, get_portfolio'));
+      expect(error).not.toHaveBeenCalled();
+
+      mcpDown = true;
+      const still = await callback(`code=good&state=${encodeURIComponent(await state())}`);
+      expect(location(still)).toMatch(/^\/ajustes\/cuentas#iol=/);
+      expect(error).toHaveBeenCalledWith('IOL MCP tools/list failed', expect.any(String));
+      expect(JSON.stringify([...info.mock.calls, ...error.mock.calls])).not.toContain('iol-access');
     } finally {
       vi.unstubAllGlobals();
       vi.restoreAllMocks();

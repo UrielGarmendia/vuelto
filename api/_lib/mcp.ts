@@ -13,36 +13,126 @@ export function assertAllowed(name: string): asserts name is AllowedTool {
     throw new HttpError(403, `Herramienta no permitida: ${name}`);
 }
 
-export const MCP_URL = 'https://mcp.invertironline.com/mcp';
+/** The `resource` that IOL's protected-resource metadata declares: the root, not /mcp. */
+export const DEFAULT_MCP_URL = 'https://mcp.invertironline.com';
+export const mcpUrl = () => process.env.IOL_MCP_URL?.trim() || DEFAULT_MCP_URL;
 const PROTOCOL_VERSION = '2025-06-18';
 
 /** IOL rejected the access token: refresh it and try again. */
 export class McpAuthError extends Error {}
 
+type Step = 'initialize' | 'initialized' | 'tools/list' | 'tools/call';
+
 interface RpcResponse {
   result?: {
+    protocolVersion?: string;
+    tools?: { name: string }[];
     content?: { type: string; text?: string }[];
     structuredContent?: unknown;
     isError?: boolean;
   };
-  error?: { message?: string };
+  error?: { code?: number; message?: string };
+}
+
+const LOGGED_HEADERS = [
+  'content-type',
+  'mcp-session-id',
+  'mcp-protocol-version',
+  'www-authenticate',
+];
+
+/** What a failed exchange looked like, for the runtime logs. Never includes our token. */
+function logFailure(step: Step, url: string, res: Response, body: string, note?: string) {
+  const headers: Record<string, string> = {};
+  for (const h of LOGGED_HEADERS) {
+    const v = res.headers.get(h);
+    if (v) headers[h] = v;
+  }
+  console.error(
+    `IOL MCP ${step} failed${note ? ` (${note})` : ''}`,
+    JSON.stringify({ url, status: res.status, headers, body: body.slice(0, 500) }),
+  );
 }
 
 /** Streamable HTTP answers either plain JSON or an SSE stream; take the JSON-RPC message. */
-async function readRpc(res: Response): Promise<RpcResponse> {
-  const text = await res.text();
-  if (!(res.headers.get('content-type') ?? '').includes('text/event-stream'))
-    return JSON.parse(text) as RpcResponse;
+function parseRpc(text: string, contentType: string): RpcResponse {
+  if (!contentType.includes('text/event-stream')) return JSON.parse(text) as RpcResponse;
   const data = text
     .split(/\r?\n/)
     .filter((l) => l.startsWith('data:'))
     .map((l) => l.slice(5).trim());
   const last = data.reverse().find((d) => d.includes('"jsonrpc"'));
-  if (!last) throw new Error('Respuesta MCP vacía');
+  if (!last) throw new Error('no JSON-RPC message in the stream');
   return JSON.parse(last) as RpcResponse;
 }
 
-/** Minimal MCP client: initialize, then one tools/call. Returns the tool's parsed result. */
+/**
+ * One MCP session per invocation: initialize, then notifications/initialized, forwarding the
+ * session id and the negotiated protocol version. Returns a function for the next request.
+ */
+async function openSession(accessToken: string, fetcher: typeof fetch) {
+  const url = mcpUrl();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+  };
+  let id = 0;
+
+  const send = async (step: Step, method: string, params?: unknown) => {
+    const notice = step === 'initialized';
+    const message = notice
+      ? { jsonrpc: '2.0', method }
+      : { jsonrpc: '2.0', id: ++id, method, ...(params ? { params } : {}) };
+    const res = await fetcher(url, {
+      method: 'POST',
+      headers: { ...headers },
+      body: JSON.stringify(message),
+    });
+    const text = await res.text().catch(() => '');
+    if (!res.ok) {
+      logFailure(step, url, res, text);
+      if (res.status === 401) throw new McpAuthError('IOL rechazó el token');
+      throw new HttpError(502, `IOL respondió ${res.status} en ${step}`);
+    }
+    if (notice) return { res, rpc: {} as RpcResponse };
+    let rpc: RpcResponse;
+    try {
+      rpc = parseRpc(text, res.headers.get('content-type') ?? '');
+    } catch {
+      logFailure(step, url, res, text, 'unreadable answer');
+      throw new HttpError(502, `IOL respondió algo ilegible en ${step}`);
+    }
+    if (rpc.error) {
+      logFailure(step, url, res, text, 'JSON-RPC error');
+      throw new HttpError(502, rpc.error.message ?? `Error de IOL en ${step}`);
+    }
+    return { res, rpc };
+  };
+
+  const init = await send('initialize', 'initialize', {
+    protocolVersion: PROTOCOL_VERSION,
+    capabilities: {},
+    clientInfo: { name: 'vuelto', version: '1.0.0' },
+  });
+  const session = init.res.headers.get('mcp-session-id');
+  if (session) headers['Mcp-Session-Id'] = session;
+  // Every request after initialize must carry the negotiated version.
+  headers['MCP-Protocol-Version'] = init.rpc.result?.protocolVersion ?? PROTOCOL_VERSION;
+  await send('initialized', 'notifications/initialized');
+
+  return async (step: 'tools/list' | 'tools/call', params?: unknown) =>
+    (await send(step, step, params)).rpc;
+}
+
+/** Names of the tools IOL offers to this token (no account data). */
+export async function listTools(accessToken: string, fetcher: typeof fetch = fetch) {
+  const request = await openSession(accessToken, fetcher);
+  const rpc = await request('tools/list');
+  return (rpc.result?.tools ?? []).map((t) => t.name);
+}
+
+/** Minimal MCP client: a fresh session, then one allowed tools/call. Returns the parsed result. */
 export async function callTool(
   accessToken: string,
   name: string,
@@ -50,47 +140,13 @@ export async function callTool(
   fetcher: typeof fetch = fetch,
 ): Promise<unknown> {
   assertAllowed(name);
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-    Accept: 'application/json, text/event-stream',
-  };
-  const post = async (body: unknown) => {
-    const res = await fetcher(MCP_URL, {
-      method: 'POST',
-      headers: { ...headers },
-      body: JSON.stringify(body),
-    });
-    if (res.status === 401) throw new McpAuthError('IOL rechazó el token');
-    if (!res.ok && res.status !== 202) throw new HttpError(502, `IOL respondió ${res.status}`);
-    return res;
-  };
-
-  const init = await post({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'initialize',
-    params: {
-      protocolVersion: PROTOCOL_VERSION,
-      capabilities: {},
-      clientInfo: { name: 'vuelto', version: '1.0.0' },
-    },
-  });
-  const session = init.headers.get('mcp-session-id');
-  if (session) headers['Mcp-Session-Id'] = session;
-  const hello = (await readRpc(init)) as { result?: { protocolVersion?: string } };
-  // Every request after initialize must carry the negotiated version.
-  headers['MCP-Protocol-Version'] = hello.result?.protocolVersion ?? PROTOCOL_VERSION;
-  await post({ jsonrpc: '2.0', method: 'notifications/initialized' });
-
-  const rpc = await readRpc(
-    await post({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args } }),
-  );
-  if (rpc.error || rpc.result?.isError)
-    throw new HttpError(
-      502,
-      rpc.error?.message ?? rpc.result?.content?.[0]?.text ?? 'Error de IOL',
-    );
+  const request = await openSession(accessToken, fetcher);
+  const rpc = await request('tools/call', { name, arguments: args });
+  if (rpc.result?.isError) {
+    const message = rpc.result.content?.find((c) => c.type === 'text')?.text;
+    console.error(`IOL MCP tools/call ${name} returned an error`, (message ?? '').slice(0, 500));
+    throw new HttpError(502, message ?? 'Error de IOL');
+  }
   if (rpc.result?.structuredContent !== undefined) return rpc.result.structuredContent;
   const text = rpc.result?.content?.find((c) => c.type === 'text')?.text ?? 'null';
   try {

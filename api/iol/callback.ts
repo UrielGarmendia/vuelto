@@ -1,5 +1,6 @@
 import { env } from '../_lib/http.js';
 import { blobFromTokens, exchangeCode } from '../_lib/iol.js';
+import { ALLOWED_TOOLS, listTools } from '../_lib/mcp.js';
 import { unseal } from '../_lib/seal.js';
 
 const back = (fragment: string) =>
@@ -16,10 +17,23 @@ export async function GET(req: Request) {
       env('IOL_TOKEN_KEY'),
     );
     const tokens = await exchangeCode(params.get('code') ?? '', state.v);
+    await logTools(tokens.access_token!);
     const { sealed } = await blobFromTokens(tokens, state.sub);
     return back(`iol=${sealed}`);
   } catch (err) {
     console.error(err);
     return back('iol-error=failed');
+  }
+}
+
+/** Confirms in the logs which tools IOL offers this token; never blocks the connection. */
+async function logTools(accessToken: string) {
+  try {
+    const names = await listTools(accessToken);
+    console.info(`IOL MCP tools: ${names.join(', ') || '(none)'}`);
+    const missing = ALLOWED_TOOLS.filter((t) => !names.includes(t));
+    if (missing.length) console.error(`IOL MCP lacks expected tools: ${missing.join(', ')}`);
+  } catch (err) {
+    console.error('IOL MCP tools/list failed', err instanceof Error ? err.message : err);
   }
 }

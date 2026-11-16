@@ -17,4 +17,9 @@ export default tseslint.config(
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
+  {
+    // Server functions report to Vercel's runtime logs.
+    files: ['api/**/*.ts'],
+    rules: { 'no-console': ['error', { allow: ['info', 'warn', 'error'] }] },
+  },
 );
