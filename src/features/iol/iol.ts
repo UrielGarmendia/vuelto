@@ -1,14 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { create } from 'zustand';
 import { activateNewestWorker } from '../../app/serviceWorker';
+import { recordNetWorth } from '../networth/networth';
 import { db, newMeta } from '../../db/db';
 import type { Account } from '../../db/types';
 import type { ExternalAccountProvider, Snapshot } from '../external/provider';
 import { useSync } from '../sync/useSync';
 import {
+  normalizeAum,
   normalizeBalance,
   normalizePortfolio,
   normalizePriceHistory,
+  type AumPoint,
   type PricePoint,
 } from './normalize';
 
@@ -181,6 +184,42 @@ export async function priceHistory(
   }
 }
 
+export interface HoldingsHistory {
+  at: number;
+  partial: boolean;
+  /** Pesos (Argentina) and dollars (US account), in cents of each. */
+  ARG: AumPoint[];
+  USA: AumPoint[];
+}
+const HOLDINGS_KEY = 'iol-aum';
+const HOLDINGS_TTL = 12 * 60 * 60 * 1000;
+
+/**
+ * IOL's own day-by-day record of the holdings, a year back, to draw the net worth curve
+ * before Vuelto's first day. While IOL is still filling it in ("Partial") it is asked again
+ * on the next visit. Undefined when there is none.
+ */
+export async function holdingsHistory(): Promise<HoldingsHistory | undefined> {
+  const cached = (await db.kv.get(HOLDINGS_KEY))?.value as HoldingsHistory | undefined;
+  if (cached && !cached.partial && Date.now() - cached.at < HOLDINGS_TTL) return cached;
+  if (!(await findIolAccount())) return undefined;
+  try {
+    const arg = normalizeAum(await iolRead('/api/iol/aum?country=ARG&days=366'));
+    const usa = normalizeAum(await iolRead('/api/iol/aum?country=USA&days=366'));
+    const history: HoldingsHistory = {
+      at: Date.now(),
+      partial: arg.partial || usa.partial,
+      ARG: arg.points,
+      USA: usa.points,
+    };
+    await db.kv.put({ key: HOLDINGS_KEY, value: history });
+    return history;
+  } catch (err) {
+    console.error(err);
+    return cached;
+  }
+}
+
 export const iolProvider: ExternalAccountProvider = {
   id: 'iol',
   name: 'IOL',
@@ -214,6 +253,8 @@ export const useIolStatus = create<IolState>()((set, get) => ({
     try {
       await iolProvider.fetchSnapshot();
       set({ status: 'idle' });
+      // Fresh IOL figures update today's net worth.
+      void recordNetWorth().catch((err: unknown) => console.error(err));
     } catch (err) {
       const e = err instanceof IolError ? err : new IolError('No se pudo actualizar IOL');
       if (!(err instanceof IolError)) console.error(err);

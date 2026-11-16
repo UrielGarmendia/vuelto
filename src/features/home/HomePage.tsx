@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
 import { usePrefs, withAllWidgets, type HomeWidget } from '../../app/prefs';
 import { GoalsWidget } from '../goals/GoalsWidget';
+import { NetWorthWidget } from '../networth/NetWorthWidget';
 import { db } from '../../db/db';
 import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
@@ -221,6 +222,7 @@ export function HomePage() {
       ) : null,
     accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
     goals: <GoalsWidget />,
+    networth: <NetWorthWidget />,
     recent:
       txs.length === 0 ? (
         <FirstSteps />

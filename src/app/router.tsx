@@ -88,6 +88,13 @@ export const router = createBrowserRouter([
               })),
           },
           {
+            path: 'patrimonio',
+            lazy: () =>
+              import('../features/networth/NetWorthPage').then((m) => ({
+                Component: m.NetWorthPage,
+              })),
+          },
+          {
             path: 'inversiones',
             lazy: () =>
               import('../features/investments/InvestmentsPage').then((m) => ({

@@ -12,6 +12,7 @@ export const homeWidgetNames = {
   insight: 'Dato del mes',
   accounts: 'Cuentas',
   goals: 'Metas de ahorro',
+  networth: 'Evolución del patrimonio',
   recent: 'Últimos movimientos',
 } as const;
 export type HomeWidget = keyof typeof homeWidgetNames;

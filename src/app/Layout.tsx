@@ -10,6 +10,7 @@ import {
 } from 'react-router';
 import { isOnboarded } from '../features/onboarding/onboarded';
 import { runRecurring } from '../features/transactions/create';
+import { recordNetWorth } from '../features/networth/networth';
 import { useSyncTriggers } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
 import { todayISO } from '../lib/dates';
@@ -131,12 +132,18 @@ function useShortcuts() {
   });
 }
 
-/** Repeating movements that came due are created when the app opens or comes back to the front. */
+/**
+ * When the app opens or comes back to the front: repeating movements that came due are
+ * created, then today's net worth is recorded.
+ */
 function useRecurring() {
   useEffect(() => {
     const run = () => {
       if (document.visibilityState !== 'visible') return;
-      runRecurring(todayISO()).catch((err) => console.error(err));
+      // Recurring movements land first, so today's net worth already counts them.
+      runRecurring(todayISO())
+        .then(() => recordNetWorth())
+        .catch((err) => console.error(err));
     };
     run();
     document.addEventListener('visibilitychange', run);
