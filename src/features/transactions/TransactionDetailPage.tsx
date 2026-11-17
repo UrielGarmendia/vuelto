@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pencil, SearchX, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
 import { useFilters } from './filters';
@@ -149,6 +149,8 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
         </ul>
       )}
 
+      {tx.receiptBlobId && <ReceiptPhoto id={tx.receiptBlobId} />}
+
       {confirmGroup ? (
         <div className="mt-4 grid gap-2.5" role="group" aria-label="Eliminar cuotas">
           <p className="text-center text-[14px] text-muted">
@@ -197,5 +199,37 @@ export function TxDetail({ tx, onDeleted }: { tx: Transaction; onDeleted?: () =>
         </div>
       )}
     </div>
+  );
+}
+
+/** The receipt photo kept with the movement (only on the device that took it). */
+function ReceiptPhoto({ id }: { id: string }) {
+  const stored = useLiveQuery(() => db.blobs.get(id), [id]);
+  const url = useMemo(
+    () =>
+      stored ? URL.createObjectURL(new Blob([stored.bytes], { type: stored.type })) : undefined,
+    [stored],
+  );
+  useEffect(
+    () => () => {
+      if (url) URL.revokeObjectURL(url);
+    },
+    [url],
+  );
+  if (stored === undefined) return null;
+  return (
+    <figure className="mt-4">
+      {url ? (
+        <a href={url} target="_blank" rel="noreferrer">
+          <img
+            src={url}
+            alt="Foto del ticket"
+            className="max-h-[320px] w-full rounded-[16px] bg-flat-2 object-contain"
+          />
+        </a>
+      ) : (
+        <p className="text-[13px] text-faint">La foto del ticket quedó en el otro dispositivo.</p>
+      )}
+    </figure>
   );
 }

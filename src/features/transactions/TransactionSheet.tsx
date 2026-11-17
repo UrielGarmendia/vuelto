@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowDown,
   CalendarDays,
+  Camera,
   ChevronDown,
   CreditCard,
   NotebookPen,
@@ -30,6 +31,10 @@ import { Sheet, SheetDragZone } from '../../ui/Sheet';
 import { toast } from '../../ui/toast';
 import { budgetsFor, crossedThreshold } from '../budgets/budgets';
 import { rateLabels, useRates } from '../currency/rates';
+import { compressImage } from '../receipt/compress';
+import { readText } from '../receipt/ocr';
+import { keepPhoto } from '../receipt/photos';
+import { draftFromReceipt } from '../receipt/receipt';
 import { matchRule, plain, ruleKeyword, saveRule } from '../rules/rules';
 import { createTransaction, updateGroup } from './create';
 import { saveTransaction, splitShare, type TxDraft } from './queries';
@@ -154,6 +159,9 @@ function TxForm({
   // A rule may pick the category from the note, until the user picks one by hand.
   const [picked, setPicked] = useState(!!editing);
   const [ruleHit, setRuleHit] = useState<Rule | undefined>();
+  const [photo, setPhoto] = useState<Blob>();
+  const [keepPhotoChecked, setKeepPhoto] = useState(false);
+  const [readingTicket, setReadingTicket] = useState(false);
   const editingId = editing?.id;
 
   const visibleCategories = categories.filter((c) => c.type === type);
@@ -197,6 +205,37 @@ function TxForm({
     setRuleHit(rule);
   }
 
+  /** A receipt photo, read on the device, fills the form for review. */
+  async function readTicket(file: File) {
+    setReadingTicket(true);
+    try {
+      const image = await compressImage(file);
+      const d = draftFromReceipt(await readText(image), {
+        categories,
+        accounts,
+        rules,
+        today: todayISO(),
+        defaultAccountId: account?.id,
+      });
+      setType('expense');
+      if (d.amountCents) setAmount(centsToAmountInput(d.amountCents));
+      setDate(d.date);
+      if (d.note) {
+        setNote(d.note);
+        setShowNote(true);
+      }
+      if (d.categoryId) pickCategory(d.categoryId);
+      if (d.accountId) setAccountId(d.accountId);
+      setPhoto(image);
+      toast(d.amountCents ? 'Ticket leído: revisalo y guardá' : 'No encontré el total: completalo');
+    } catch (err) {
+      console.error(err);
+      toast('No pude leer el ticket. Probá con otra foto o cargalo a mano.');
+    } finally {
+      setReadingTicket(false);
+    }
+  }
+
   function applyTemplate(t: Template) {
     setType(t.type);
     if (t.amountCents) setAmount(centsToAmountInput(t.amountCents));
@@ -227,6 +266,8 @@ function TxForm({
       split: splitting ? { totalCents: typed, people } : undefined,
     };
     try {
+      // The photo stays on this device only (blobs are not synced).
+      if (photo && keepPhotoChecked) draft.receiptBlobId = await keepPhoto(photo);
       if (editingId) {
         await saveTransaction(draft, editingId);
         if (applyAll && editing?.installment)
@@ -562,6 +603,25 @@ function TxForm({
             )}
 
             {!editing && (
+              <label className={`${chip} ${photo ? 'text-hue' : ''}`}>
+                <Camera aria-hidden className="size-4" />
+                <span>{readingTicket ? 'Leyendo…' : photo ? 'Ticket leído' : 'Ticket'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label="Leer un ticket"
+                  disabled={readingTicket}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) void readTicket(file);
+                  }}
+                  className="absolute inset-0 opacity-0"
+                />
+              </label>
+            )}
+
+            {!editing && (
               <button
                 type="button"
                 aria-pressed={favorite}
@@ -597,6 +657,18 @@ function TxForm({
                 </p>
               )}
             </div>
+          )}
+
+          {photo && (
+            <label className="mx-4 mb-2 flex min-h-11 items-center gap-3 text-[13.5px]">
+              <input
+                type="checkbox"
+                checked={keepPhotoChecked}
+                onChange={(e) => setKeepPhoto(e.target.checked)}
+                className="size-5 accent-[var(--color-hue)]"
+              />
+              Guardar la foto con el movimiento
+            </label>
           )}
 
           {editing?.installment && (

@@ -8,8 +8,9 @@ export interface Card extends CopilotDraft {
   amount: string;
   /** The category the reading proposed, to notice a correction. */
   proposedCategoryId?: string;
-  /** A photo to keep with the movement (from a receipt). */
+  /** The receipt photo this card came from, and whether to keep it with the movement. */
   photo?: Blob;
+  keepPhoto?: boolean;
 }
 
 export const toCard = (d: CopilotDraft): Card => ({

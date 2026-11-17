@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Mic, Sparkles, Trash2, WandSparkles } from 'lucide-react';
+import { Camera, Mic, Sparkles, Trash2, WandSparkles } from 'lucide-react';
 import { useState } from 'react';
 import { usePrefs } from '../../app/prefs';
 import { db } from '../../db/db';
@@ -11,6 +11,10 @@ import { toast } from '../../ui/toast';
 import { useOnline } from '../../ui/useOnline';
 import { useRates } from '../currency/rates';
 import { plain, ruleKeyword, saveRule } from '../rules/rules';
+import { compressImage } from '../receipt/compress';
+import { readText } from '../receipt/ocr';
+import { keepPhoto } from '../receipt/photos';
+import { draftFromReceipt } from '../receipt/receipt';
 import { createTransaction } from '../transactions/create';
 import { useLastUsed } from '../transactions/store';
 import { problems, toCard, type Card } from './cards';
@@ -93,15 +97,35 @@ function Copilot({
   const [cards, setCards] = useState<Card[]>([]);
   const [listening, setListening] = useState<SpeechRecognitionLike | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reading, setReading] = useState<number | null>(null);
+  const ctx = () => ({
+    categories,
+    accounts,
+    rules,
+    today: todayISO(),
+    defaultAccountId: lastAccount,
+  });
+
+  async function readPhoto(file: File) {
+    setReading(0);
+    try {
+      const photo = await compressImage(file);
+      const text = await readText(photo, setReading);
+      setCards((c) => [...c, { ...toCard(draftFromReceipt(text, ctx())), photo }]);
+    } catch (err) {
+      console.error(err);
+      toast(
+        navigator.onLine
+          ? 'No pude leer el ticket. Probá con otra foto o cargalo a mano.'
+          : 'La primera lectura de un ticket necesita conexión para bajar el español.',
+      );
+    } finally {
+      setReading(null);
+    }
+  }
 
   const read = () => {
-    const drafts = parseMessage(text, {
-      categories,
-      accounts,
-      rules,
-      today: todayISO(),
-      defaultAccountId: lastAccount,
-    });
+    const drafts = parseMessage(text, ctx());
     setCards((c) => [...c, ...drafts.map(toCard)]);
     setText('');
   };
@@ -136,8 +160,8 @@ function Copilot({
     try {
       for (const c of cards) {
         const account = accounts.find((a) => a.id === c.accountId)!;
-        const receiptBlobId = c.photo ? crypto.randomUUID() : undefined;
-        if (c.photo && receiptBlobId) await db.blobs.add({ id: receiptBlobId, blob: c.photo });
+        // Photos stay on this device (blobs are not synced): they weigh too much for Drive.
+        const receiptBlobId = c.photo && c.keepPhoto ? await keepPhoto(c.photo) : undefined;
         const tagged =
           c.tag && !c.note.includes(`#${c.tag}`) ? `${c.note} #${c.tag}`.trim() : c.note;
         await createTransaction(
@@ -204,6 +228,23 @@ function Copilot({
           className="well w-full resize-none rounded-[18px] px-4 py-3 text-[16px] leading-relaxed placeholder:text-faint focus-visible:outline-2 focus-visible:outline-hue"
         />
         <div className="flex items-center gap-2">
+          <label
+            aria-label="Leer un ticket"
+            className="rel relative grid size-12 shrink-0 cursor-pointer place-items-center rounded-full text-muted has-focus-visible:outline-2 has-focus-visible:outline-hue"
+          >
+            <Camera aria-hidden className="size-5" />
+            <input
+              type="file"
+              accept="image/*"
+              disabled={reading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) void readPhoto(file);
+              }}
+              className="absolute inset-0 opacity-0"
+            />
+          </label>
           {Speech && (
             <button
               type="button"
@@ -225,6 +266,11 @@ function Copilot({
             Leer
           </button>
         </div>
+        {reading !== null && (
+          <p role="status" className="text-[13px] text-muted">
+            Leyendo el ticket en tu dispositivo… {Math.round(reading * 100)} %
+          </p>
+        )}
         {listening && (
           <p role="status" className="text-[13px] text-muted">
             Escuchando… hablá y después tocá «Leer».
@@ -468,6 +514,17 @@ function CardEditor({
         </label>
       </div>
 
+      {c.photo && (
+        <label className="mt-3 flex min-h-11 items-center gap-3 text-[13.5px]">
+          <input
+            type="checkbox"
+            checked={!!c.keepPhoto}
+            onChange={(e) => onChange({ keepPhoto: e.target.checked })}
+            className="size-5 accent-[var(--color-hue)]"
+          />
+          Guardar la foto con el movimiento
+        </label>
+      )}
       {todo.length > 0 && <p className="mt-3 text-[13px] text-over">Falta {todo.join(', ')}.</p>}
       {offerRule && (
         <button

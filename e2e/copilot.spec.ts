@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from './fixtures';
 
 const open = async (page: Page) => {
@@ -30,7 +31,7 @@ for (const theme of ['light', 'dark'] as const) {
       .fill(
         'nafta 35 lucas y sube 2 lucas\nheladera en 12 cuotas, 1 palo y medio con la visa\n100 verdes que me debía juan',
       );
-    await sheet.getByRole('button', { name: 'Leer' }).click();
+    await sheet.getByRole('button', { name: 'Leer', exact: true }).click();
 
     const cards = sheet
       .getByRole('region', { name: 'Movimientos para revisar' })
@@ -73,7 +74,7 @@ test('correcting a card offers a rule, so the next reading gets it right', async
   await page.goto('/');
   let sheet = await open(page);
   await sheet.getByLabel('¿Qué gastaste o cobraste?').fill('birra 5k');
-  await sheet.getByRole('button', { name: 'Leer' }).click();
+  await sheet.getByRole('button', { name: 'Leer', exact: true }).click();
   const card = sheet.getByRole('article');
   await expect(card.getByLabel('Categoría').locator('option:checked')).toHaveText('Salidas');
   await card.getByLabel('Categoría').selectOption({ label: 'Comida afuera' });
@@ -82,9 +83,84 @@ test('correcting a card offers a rule, so the next reading gets it right', async
   await card.getByRole('button', { name: 'Descartar' }).click();
 
   await sheet.getByLabel('¿Qué gastaste o cobraste?').fill('birra 8k');
-  await sheet.getByRole('button', { name: 'Leer' }).click();
+  await sheet.getByRole('button', { name: 'Leer', exact: true }).click();
   sheet = page.getByRole('dialog', { name: 'Copiloto de carga' });
   await expect(
     sheet.getByRole('article').getByLabel('Categoría').locator('option:checked'),
   ).toHaveText('Comida afuera');
+});
+
+// On-device OCR replaced by a fake that "reads" a made-up Coto ticket, so no language data
+// is downloaded during the tests.
+const TICKET = `COTO C.I.C.S.A.
+CUIT 30-54808315-6
+Fecha 14/11/26 Hora 18:32
+LECHE ENTERA 1L        1.250,00
+SUBTOTAL               8.630,49
+TOTAL $                8.000,00
+TARJETA VISA`;
+async function fakeOcr(page: Page) {
+  await page.route('**/assets/tesseract-*.js', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `export default { createWorker: async () => ({
+        recognize: async () => ({ data: { text: ${JSON.stringify(TICKET)} } }),
+        terminate: async () => {},
+      }) };`,
+    }),
+  );
+}
+// A real image, so compression has something to decode.
+const PNG = readFileSync('public/pwa-64x64.png');
+const photo = { name: 'ticket.png', mimeType: 'image/png', buffer: PNG };
+
+test('a receipt photo becomes a card, read on the device, and can keep its photo', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+  });
+  await fakeOcr(page);
+  await page.goto('/movimientos');
+  const sheet = await open(page);
+  await sheet.getByLabel('Leer un ticket').setInputFiles(photo);
+  const card = sheet.getByRole('article');
+  await expect(card.getByLabel('Monto')).toHaveValue('8000');
+  await expect(card.getByLabel('Categoría').locator('option:checked')).toHaveText('Supermercado');
+  await expect(card.getByLabel('Cuenta').locator('option:checked')).toHaveText(
+    'Tarjeta de crédito',
+  );
+  await expect(card.getByLabel('Fecha')).toHaveValue(/-11-14$/);
+  await card.getByLabel('Guardar la foto con el movimiento').check();
+  await sheet.getByRole('button', { name: 'Guardar' }).click();
+  await expect(sheet).toBeHidden();
+
+  await page
+    .getByRole('region', { name: 'Lista de movimientos' })
+    .getByRole('link')
+    .first()
+    .click();
+  await expect(page.getByRole('img', { name: 'Foto del ticket' })).toBeVisible();
+});
+
+test('the entry sheet fills itself from a receipt photo', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+  });
+  await fakeOcr(page);
+  await page.goto('/movimientos');
+  await page.getByRole('button', { name: 'Cargar movimiento' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel('Leer un ticket').setInputFiles(photo);
+  await expect(sheet.getByLabel(/^Monto: 8\.000 pesos/)).toBeVisible();
+  await expect(sheet.getByRole('radio', { name: 'Supermercado' })).toBeChecked();
+  await expect(sheet.getByLabel('Nota')).toHaveValue('Coto C.i.c.s.a.');
+  await sheet.getByRole('button', { name: 'Guardar gasto' }).click();
+  await expect(sheet).toBeHidden();
 });
