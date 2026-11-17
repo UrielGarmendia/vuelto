@@ -89,9 +89,11 @@ export interface Goal extends Meta {
   deadline?: string;
 }
 
+/** A receipt photo, as bytes: Blobs in IndexedDB are unreliable on WebKit. Never synced. */
 export interface StoredBlob {
   id: string;
-  blob: Blob;
+  bytes: ArrayBuffer;
+  type: string;
 }
 
 export interface KV {
