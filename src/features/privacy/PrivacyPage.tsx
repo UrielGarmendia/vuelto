@@ -5,7 +5,8 @@ const sections: { title: string; body: string[] }[] = [
   {
     title: 'Qué se guarda en tu dispositivo',
     body: [
-      'Tus movimientos, categorías, cuentas, presupuestos, recurrentes, favoritos y preferencias se guardan en el navegador de tu dispositivo (IndexedDB y localStorage). No hay un servidor de Vuelto con tus datos.',
+      'Tus movimientos, categorías, cuentas, presupuestos, recurrentes, favoritos, reglas, la evolución de tu patrimonio y tus preferencias se guardan en el navegador de tu dispositivo (IndexedDB y localStorage). No hay un servidor de Vuelto con tus datos.',
+      'Las fotos de tickets que elegís guardar quedan solo en ese dispositivo: no van a tu Drive ni a los backups.',
       'Podés exportarlos o borrarlos cuando quieras desde Ajustes.',
     ],
   },
@@ -21,7 +22,15 @@ const sections: { title: string; body: string[] }[] = [
     title: 'Qué ve IOL',
     body: [
       'Solo si conectás tu cuenta de InvertirOnline. La autorización se hace en el sitio de IOL; Vuelto nunca ve tu usuario ni tu contraseña.',
-      'Vuelto pide únicamente tu saldo, tu portafolio y cotizaciones, en modo lectura. No opera ni mueve dinero. El permiso de IOL se guarda cifrado en tu dispositivo (y en tu Drive si iniciaste sesión) y se puede desconectar en cualquier momento.',
+      'Vuelto pide únicamente tu saldo, tu portafolio, cotizaciones, el historial de precios de tus activos y la evolución de tu cuenta, en modo lectura. No opera ni mueve dinero. El permiso de IOL se guarda cifrado en tu dispositivo (y en tu Drive si iniciaste sesión) y se puede desconectar en cualquier momento.',
+    ],
+  },
+  {
+    title: 'Copiloto y tickets',
+    body: [
+      'El copiloto lee lo que escribís o dictás en tu dispositivo, sin enviarlo a ningún lado. Dictar usa el reconocimiento de voz de tu navegador o sistema, que puede procesar el audio en sus servidores (Google en Chrome, Apple en Safari).',
+      'Los tickets también se leen en tu dispositivo: la foto no sale de él. La primera vez se descargan el lector y los datos del idioma español desde cdn.jsdelivr.net.',
+      'Opcional, solo si la instalación lo tiene configurado y tu email está habilitado: «Mejorar con IA» envía únicamente lo que el dispositivo no pudo resolver (ese texto o esa foto) y los nombres de tus categorías, cuentas y reglas a una función de Vuelto, que lo reenvía a Anthropic para leerlo. Vuelto no guarda ni registra ese contenido; Anthropic lo trata según su política de datos de API. Nada se envía sin que toques el botón.',
     ],
   },
   {
