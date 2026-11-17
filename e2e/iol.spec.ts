@@ -100,7 +100,7 @@ test('connects IOL, shows the portfolio and the net worth, and disconnects', asy
   });
 
   await page.goto('/');
-  const balance = page.getByRole('region', { name: 'Patrimonio' });
+  const balance = page.getByRole('region', { name: 'Patrimonio', exact: true });
   await expect(balance.getByRole('img', { name: '$ 1.000.000' })).toBeVisible();
   // IOL's cash counts as available; invested is only the positions.
   await expect(balance).toContainText('Disponible$ 100.000incluye $ 100.000 en IOL');
