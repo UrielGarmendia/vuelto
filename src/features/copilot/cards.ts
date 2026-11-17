@@ -34,3 +34,7 @@ export function problems(c: Card, accounts: Account[]): string[] {
   } else if (!c.categoryId) out.push('la categoría');
   return out;
 }
+
+/** A card the user should look at: something is missing or the reading was unsure. */
+export const isDoubtful = (c: Card, accounts: Account[]) =>
+  problems(c, accounts).length > 0 || c.confidence < 0.7;

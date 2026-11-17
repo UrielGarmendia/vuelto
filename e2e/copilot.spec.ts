@@ -49,6 +49,8 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(usd).toContainText('Revisá');
     await expect(usd).toContainText('una cuenta en dólares');
     await expect(sheet.getByRole('button', { name: 'Guardar todo (4)' })).toBeDisabled();
+    // Without the AI configured nothing of it shows.
+    await expect(sheet.getByRole('button', { name: /Mejorar con IA/ })).toHaveCount(0);
     await page.screenshot({
       path: `e2e/__screenshots__/${info.project.name}/copiloto-${theme}.png`,
       fullPage: false,
@@ -163,4 +165,82 @@ test('the entry sheet fills itself from a receipt photo', async ({ page }) => {
   await expect(sheet.getByLabel('Nota')).toHaveValue('Coto C.i.c.s.a.');
   await sheet.getByRole('button', { name: 'Guardar gasto' }).click();
   await expect(sheet).toBeHidden();
+});
+
+test('with the AI enabled, "Mejorar con IA" reads only what the device left unsure', async ({
+  page,
+  context,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+    localStorage.setItem(
+      'vuelto-google',
+      JSON.stringify({
+        state: {
+          profile: { sub: 'u1', email: 'ana@example.com', name: 'Ana' },
+          token: { value: 'fake', expiresAt: Date.now() + 3_600_000 },
+        },
+        version: 0,
+      }),
+    );
+  });
+  await context.route('https://www.googleapis.com/**', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { files: [] } })
+      : route.fulfill({ json: { id: 'f1', name: 'x', version: '1' } }),
+  );
+  await context.route('**/api/ai/status', (route) =>
+    route.fulfill({ json: { enabled: true, remaining: 5 } }),
+  );
+  const sent: string[] = [];
+  await context.route('**/api/ai/copilot', (route) => {
+    const body = route.request().postDataJSON() as {
+      text: string;
+      catalog: {
+        categories: { id: string; name: string }[];
+        accounts: { id: string; name: string }[];
+      };
+    };
+    sent.push(body.text);
+    const id = (list: { id: string; name: string }[], name: string) =>
+      list.find((x) => x.name === name)!.id;
+    return route.fulfill({
+      json: {
+        movements: [
+          {
+            type: 'expense',
+            amount: 7000,
+            currency: 'ARS',
+            categoryId: id(body.catalog.categories, 'Ropa'),
+            accountId: id(body.catalog.accounts, 'Banco'),
+            toAccountId: null,
+            date: new Date().toISOString().slice(0, 10),
+            installments: null,
+            note: 'Medias',
+            confidence: 0.9,
+          },
+        ],
+        quota: 'sealed',
+        remaining: 4,
+      },
+    });
+  });
+
+  await page.goto('/');
+  const sheet = await open(page);
+  await sheet.getByLabel('¿Qué gastaste o cobraste?').fill('coto 10k y unas medias 7 lucas');
+  await sheet.getByRole('button', { name: 'Leer', exact: true }).click();
+  const cards = sheet.getByRole('article');
+  await expect(cards).toHaveCount(2);
+  // The supermarket was read on the device; only the socks need help.
+  await sheet.getByRole('button', { name: /Mejorar con IA \(1\)/ }).click();
+  await expect(cards.nth(1).getByLabel('Categoría').locator('option:checked')).toHaveText('Ropa');
+  await expect(cards.nth(1).getByLabel('Nota')).toHaveValue('Medias');
+  expect(sent).toEqual(['unas medias 7 lucas']);
+  await expect(sheet.getByRole('button', { name: /Mejorar con IA/ })).toHaveCount(0);
+  await sheet.getByRole('button', { name: 'Guardar todo (2)' }).click();
+  await expect(page.getByText('2 movimientos guardados')).toBeVisible();
 });

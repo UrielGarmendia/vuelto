@@ -31,6 +31,7 @@ import { Sheet, SheetDragZone } from '../../ui/Sheet';
 import { toast } from '../../ui/toast';
 import { budgetsFor, crossedThreshold } from '../budgets/budgets';
 import { rateLabels, useRates } from '../currency/rates';
+import { AssistError, catalogOf, improvePhoto, useAssist } from '../copilot/assist';
 import { compressImage } from '../receipt/compress';
 import { readText } from '../receipt/ocr';
 import { keepPhoto } from '../receipt/photos';
@@ -162,6 +163,7 @@ function TxForm({
   const [photo, setPhoto] = useState<Blob>();
   const [keepPhotoChecked, setKeepPhoto] = useState(false);
   const [readingTicket, setReadingTicket] = useState(false);
+  const assist = useAssist();
   const editingId = editing?.id;
 
   const visibleCategories = categories.filter((c) => c.type === type);
@@ -227,13 +229,43 @@ function TxForm({
       if (d.categoryId) pickCategory(d.categoryId);
       if (d.accountId) setAccountId(d.accountId);
       setPhoto(image);
-      toast(d.amountCents ? 'Ticket leído: revisalo y guardá' : 'No encontré el total: completalo');
+      if (d.amountCents) toast('Ticket leído: revisalo y guardá');
+      else offerAssist(image, 'No encontré el total: completalo');
     } catch (err) {
       console.error(err);
-      toast('No pude leer el ticket. Probá con otra foto o cargalo a mano.');
+      offerAssist(file, 'No pude leer el ticket: cargalo a mano');
     } finally {
       setReadingTicket(false);
     }
+  }
+
+  /** When the device could not read a receipt, the AI (if on) can try. */
+  function offerAssist(image: Blob, message: string) {
+    if (!assist?.enabled || !navigator.onLine) return void toast(message);
+    toast(
+      message,
+      {
+        label: 'Leer con IA',
+        onClick: () =>
+          void improvePhoto(image, catalogOf(categories, accounts, rules), todayISO())
+            .then((d) => {
+              if (d.amountCents) setAmount(centsToAmountInput(d.amountCents));
+              setDate(d.date);
+              if (d.note) {
+                setNote(d.note);
+                setShowNote(true);
+              }
+              if (d.categoryId) pickCategory(d.categoryId);
+              if (d.accountId) setAccountId(d.accountId);
+              setPhoto(image);
+              toast('Ticket leído con IA: revisalo y guardá');
+            })
+            .catch((err: unknown) =>
+              toast(err instanceof AssistError ? err.message : 'La IA no respondió.'),
+            ),
+      },
+      8000,
+    );
   }
 
   function applyTemplate(t: Template) {

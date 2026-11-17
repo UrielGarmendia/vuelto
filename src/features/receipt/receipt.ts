@@ -112,3 +112,15 @@ export function draftFromReceipt(text: string, ctx: ParseContext): CopilotDraft 
     source: merchant ? `Ticket de ${merchant}` : 'Ticket',
   };
 }
+
+/** A receipt the device could not read at all: an empty expense to fill in or improve. */
+export const unreadTicket = (today: string): CopilotDraft => ({
+  type: 'expense',
+  amountCents: 0,
+  currency: 'ARS',
+  date: today,
+  note: '',
+  confidence: 0,
+  missing: ['amount', 'category', 'account'],
+  source: 'Ticket sin leer',
+});

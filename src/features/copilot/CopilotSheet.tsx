@@ -14,10 +14,11 @@ import { plain, ruleKeyword, saveRule } from '../rules/rules';
 import { compressImage } from '../receipt/compress';
 import { readText } from '../receipt/ocr';
 import { keepPhoto } from '../receipt/photos';
-import { draftFromReceipt } from '../receipt/receipt';
+import { draftFromReceipt, unreadTicket } from '../receipt/receipt';
 import { createTransaction } from '../transactions/create';
 import { useLastUsed } from '../transactions/store';
-import { problems, toCard, type Card } from './cards';
+import { AssistError, catalogOf, improvePhoto, improveText, useAssist } from './assist';
+import { isDoubtful, problems, toCard, type Card } from './cards';
 import { parseMessage } from './parse';
 import { useCopilot } from './store';
 
@@ -98,6 +99,8 @@ function Copilot({
   const [listening, setListening] = useState<SpeechRecognitionLike | null>(null);
   const [saving, setSaving] = useState(false);
   const [reading, setReading] = useState<number | null>(null);
+  const [improving, setImproving] = useState(false);
+  const assist = useAssist();
   const ctx = () => ({
     categories,
     accounts,
@@ -114,10 +117,13 @@ function Copilot({
       setCards((c) => [...c, { ...toCard(draftFromReceipt(text, ctx())), photo }]);
     } catch (err) {
       console.error(err);
+      // Still a card: to fill in by hand (with the photo), or for the AI to read.
+      const photo = file.size < 8_000_000 ? file : undefined;
+      setCards((c) => [...c, { ...toCard(unreadTicket(ctx().today)), photo }]);
       toast(
         navigator.onLine
-          ? 'No pude leer el ticket. Probá con otra foto o cargalo a mano.'
-          : 'La primera lectura de un ticket necesita conexión para bajar el español.',
+          ? 'No pude leer el ticket: completalo a mano.'
+          : 'Leer un ticket la primera vez necesita conexión: completalo a mano.',
       );
     } finally {
       setReading(null);
@@ -148,6 +154,29 @@ function Copilot({
     rec.start();
     setListening(rec);
   };
+
+  const doubtful = cards.filter((c) => isDoubtful(c, accounts));
+  const canAssist = !!assist?.enabled && online && doubtful.length > 0;
+
+  /** Sends only what the device left unsure to the server, and swaps those cards. */
+  async function improve() {
+    setImproving(true);
+    const catalog = catalogOf(categories, accounts, rules);
+    const today = todayISO();
+    try {
+      for (const c of doubtful) {
+        const drafts = c.photo
+          ? [await improvePhoto(c.photo, catalog, today)]
+          : await improveText(c.source, catalog, today);
+        const next = drafts.map((d) => ({ ...toCard(d), photo: c.photo, keepPhoto: c.keepPhoto }));
+        setCards((all) => all.flatMap((x) => (x.key === c.key ? next : [x])));
+      }
+    } catch (err) {
+      toast(err instanceof AssistError ? err.message : 'La IA no respondió. Probá de nuevo.');
+    } finally {
+      setImproving(false);
+    }
+  }
 
   const update = (key: string, patch: Partial<Card>) =>
     setCards((all) => all.map((c) => (c.key === key ? { ...c, ...patch } : c)));
@@ -280,6 +309,22 @@ function Copilot({
 
       {cards.length > 0 && (
         <section aria-label="Movimientos para revisar" className="grid grid-cols-1 gap-3">
+          {canAssist && (
+            <button
+              type="button"
+              disabled={improving}
+              onClick={() => void improve()}
+              className="rel flex min-h-12 items-center justify-center gap-2 rounded-[16px] text-[14.5px] font-semibold text-hue disabled:opacity-60"
+            >
+              <Sparkles aria-hidden className="size-4" />
+              {improving ? 'Mejorando…' : `Mejorar con IA (${doubtful.length})`}
+              {assist?.remaining !== undefined && !improving && (
+                <span className="text-[12.5px] font-normal text-muted">
+                  · quedan {assist.remaining} hoy
+                </span>
+              )}
+            </button>
+          )}
           {cards.map((c) => (
             <CardEditor
               key={c.key}
