@@ -51,6 +51,17 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        // A recognisable name for the on-device OCR, loaded only when reading a receipt.
+        chunkFileNames: (chunk) =>
+          chunk.moduleIds.some((id) => id.includes('/tesseract.js/'))
+            ? 'assets/tesseract-[hash].js'
+            : 'assets/[name]-[hash].js',
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}', 'api/**/*.test.ts'],
