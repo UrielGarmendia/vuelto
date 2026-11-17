@@ -40,4 +40,4 @@ it('every function loads under plain Node like on Vercel', () => {
     if (!m.GET && !m.POST) throw new Error(u + ' exports no handler');
   }`;
   execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
-});
+}, 30_000); // compiling every function and loading the SDK takes a while under a full run
