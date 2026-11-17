@@ -5,6 +5,8 @@ interface TokenInfo {
   azp?: string;
   aud?: string;
   exp?: string;
+  email?: string;
+  email_verified?: string;
   error_description?: string;
 }
 
@@ -22,6 +24,16 @@ export async function googleUser(
   fetcher: typeof fetch = fetch,
   now = Date.now(),
 ): Promise<string> {
+  return (await googleIdentity(req, clientId, fetcher, now)).sub;
+}
+
+/** Like `googleUser`, plus the verified email (lowercase) when the token carries one. */
+export async function googleIdentity(
+  req: Request,
+  clientId: string,
+  fetcher: typeof fetch = fetch,
+  now = Date.now(),
+): Promise<{ sub: string; email?: string }> {
   const token = /^Bearer (.+)$/.exec(req.headers.get('authorization') ?? '')?.[1];
   if (!token) throw new HttpError(401, 'Falta la sesión de Google');
   const res = await fetcher(
@@ -38,5 +50,6 @@ export async function googleUser(
   }
   if (!info.exp || Number(info.exp) * 1000 < now)
     throw new HttpError(401, 'Sesión de Google vencida');
-  return info.sub;
+  const email = info.email_verified === 'true' ? info.email?.toLowerCase() : undefined;
+  return { sub: info.sub, email };
 }

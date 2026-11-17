@@ -1,12 +1,14 @@
 // @vitest-environment node
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, expect, it } from 'vitest';
 
-const out = mkdtempSync(join(tmpdir(), 'vuelto-api-'));
+// Inside the project, so packages (the Anthropic SDK, zod) resolve from node_modules as on Vercel.
+const cache = join(process.cwd(), 'node_modules', '.cache');
+mkdirSync(cache, { recursive: true });
+const out = mkdtempSync(join(cache, 'vuelto-api-'));
 afterAll(() => rmSync(out, { recursive: true, force: true }));
 
 // Vercel runs each compiled file with plain Node ESM, where a bad specifier only fails at import time.
@@ -27,9 +29,12 @@ it('every function loads under plain Node like on Vercel', () => {
   );
   writeFileSync(join(out, 'package.json'), '{"type":"module"}');
 
-  const entries = readdirSync(join(out, 'iol')).filter((f) => f.endsWith('.js'));
-  expect(entries.length).toBeGreaterThan(0);
-  const urls = entries.map((f) => pathToFileURL(join(out, 'iol', f)).href);
+  const urls = ['iol', 'ai'].flatMap((dir) =>
+    readdirSync(join(out, dir))
+      .filter((f) => f.endsWith('.js'))
+      .map((f) => pathToFileURL(join(out, dir, f)).href),
+  );
+  expect(urls.length).toBeGreaterThan(5);
   const script = `for (const u of ${JSON.stringify(urls)}) {
     const m = await import(u);
     if (!m.GET && !m.POST) throw new Error(u + ' exports no handler');
