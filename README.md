@@ -17,12 +17,16 @@ App de gastos personales para el celular, la tablet y la compu. Funciona offline
 - **Estadísticas:** proyección de fin de mes, dona por categoría, 12 meses con el promedio de los últimos 3, calendario de gasto y día de la semana.
 - **Dinero real:** transferencias, cuotas (borrar una o todas), recurrentes que se cargan solos, presupuestos por categoría con aviso al 80 % y al 100 %, gastos compartidos, metas de ahorro y cuentas en dólares con la cotización del día (oficial, blue o MEP).
 - **Sincronización opcional** con Google Drive (`appDataFolder`), sin servidor propio. Paso a paso en [`docs/google-setup.md`](docs/google-setup.md).
-- **IOL — Inversiones** en modo lectura vía el conector MCP oficial: saldo, portafolio y patrimonio total. Ver [`docs/iol-setup.md`](docs/iol-setup.md).
+- **IOL — Inversiones** en modo lectura vía el conector MCP oficial: efectivo por cuenta, todas las posiciones agrupadas por tipo, distribución por tipo y por mercado (Argentina / EE.UU.), variación del día y el gráfico de precio de cada activo. Ver [`docs/iol-setup.md`](docs/iol-setup.md).
+- **Evolución del patrimonio:** una foto diaria (disponible, invertido y deuda de tarjeta), completada hacia atrás con la historia de IOL, en pesos o dólares.
+- **Copiloto de carga:** «super 23 lucas con mp», «nafta 35 lucas y sube 2 lucas»… se escribe o se dicta, y se revisa en tarjetas antes de guardar. Lee lucas, palos, verdes, cuotas y fechas relativas en el dispositivo, sin servidor y sin conexión.
+- **Reglas de categorías:** «si la nota dice uber → Transporte», con prueba en vivo; cada corrección ofrece crear una regla.
+- **Ticket con foto:** lee total, fecha, comercio y medio de pago en el dispositivo y, si querés, guarda la foto con el movimiento. Opcionalmente, «Mejorar con IA» para lo que no se pudo leer: ver [`docs/ai-setup.md`](docs/ai-setup.md).
 - Búsqueda global (`Ctrl+K` o `/`), atajos (`N` nuevo, `Esc` cerrar), tema claro y oscuro, "Reducir animaciones" y backup en JSON o CSV.
 
 ## Stack
 
-Vite · React 19 · TypeScript · Tailwind CSS v4 · Dexie (IndexedDB) · Zustand · Motion · React Router · Radix Dialog · TanStack Virtual · vite-plugin-pwa · Vitest · Playwright. Funciones de Vercel en `api/` para IOL.
+Vite · React 19 · TypeScript · Tailwind CSS v4 · Dexie (IndexedDB) · Zustand · Motion · React Router · Radix Dialog · TanStack Virtual · Tesseract.js · vite-plugin-pwa · Vitest · Playwright. Funciones de Vercel en `api/` para IOL y la IA opcional.
 
 El dinero se maneja siempre en centavos enteros (`src/lib/money.ts`).
 
@@ -48,12 +52,16 @@ Para los e2e hace falta instalar los navegadores una vez: `npx playwright instal
 
 Todas opcionales. Sin ellas, la app funciona solo en el dispositivo.
 
-| Variable                | Para qué                                        |
-| ----------------------- | ----------------------------------------------- |
-| `VITE_GOOGLE_CLIENT_ID` | Login con Google y sincronización con Drive     |
-| `GOOGLE_CLIENT_ID`      | Lo mismo, del lado de las funciones de IOL      |
-| `IOL_CLIENT_ID`         | Cliente registrado en IOL                       |
-| `IOL_TOKEN_KEY`         | Clave (32 bytes en base64) que sella los tokens |
+| Variable                | Para qué                                            |
+| ----------------------- | --------------------------------------------------- |
+| `VITE_GOOGLE_CLIENT_ID` | Login con Google y sincronización con Drive         |
+| `GOOGLE_CLIENT_ID`      | Lo mismo, del lado de las funciones de IOL          |
+| `IOL_CLIENT_ID`         | Cliente registrado en IOL                           |
+| `IOL_TOKEN_KEY`         | Clave (32 bytes en base64) que sella los tokens     |
+| `ANTHROPIC_API_KEY`     | «Mejorar con IA» (opcional, ver `docs/ai-setup.md`) |
+| `ALLOWED_AI_EMAILS`     | Emails habilitados para la IA                       |
+| `COPILOT_DAILY_LIMIT`   | Usos de IA por persona y día (30 por defecto)       |
+| `COPILOT_MODEL`         | Modelo (por defecto `claude-haiku-5-5`)             |
 
 ## Deploy
 
