@@ -244,3 +244,64 @@ test('with the AI enabled, "Mejorar con IA" reads only what the device left unsu
   await sheet.getByRole('button', { name: 'Guardar todo (2)' }).click();
   await expect(page.getByText('2 movimientos guardados')).toBeVisible();
 });
+
+test('with a single account (Naranja X) there is no account to choose anywhere', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+  });
+  await page.goto('/movimientos');
+  await expect(page.getByRole('button', { name: 'Cargar movimiento' })).toBeVisible();
+  // Only "Naranja X" stays: the other default accounts are archived.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const open = indexedDB.open('vuelto');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('accounts', 'readwrite');
+          const store = tx.objectStore('accounts');
+          const all = store.getAll();
+          all.onsuccess = () => {
+            for (const a of all.result as { name: string; kind: string }[]) {
+              if (a.name === 'Efectivo') store.put({ ...a, name: 'Naranja X', kind: 'wallet' });
+              else store.put({ ...a, archived: 1 });
+            }
+          };
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+        };
+      }),
+  );
+  await page.reload();
+
+  await page.getByRole('button', { name: 'Cargar movimiento' }).click();
+  const entry = page.getByRole('dialog');
+  await expect(entry.getByRole('radio', { name: 'Supermercado' })).toBeVisible();
+  await expect(entry.getByLabel('Cuenta')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(entry).toBeHidden();
+
+  const sheet = await open(page);
+  await sheet
+    .getByLabel('¿Qué gastaste o cobraste?')
+    .fill('heladera en 12 cuotas, 1 palo y medio con la visa\nvendí un escape por 350000');
+  await sheet.getByRole('button', { name: 'Leer', exact: true }).click();
+  const cards = sheet.getByRole('article');
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(0).getByLabel('Cuenta')).toHaveCount(0);
+  await expect(cards.nth(0).getByLabel('Nota')).toHaveValue('Heladera');
+  // The income lands in "Otros", flagged for review.
+  await expect(cards.nth(1).getByLabel('Categoría').locator('option:checked')).toHaveText('Otros');
+  await expect(cards.nth(1)).toContainText('Revisá');
+  await sheet.getByRole('button', { name: 'Guardar todo (2)' }).click();
+  await expect(page.getByText('2 movimientos guardados')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Lista de movimientos' })).toContainText(
+    'Heladera · Naranja X',
+  );
+});

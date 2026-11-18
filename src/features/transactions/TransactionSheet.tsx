@@ -542,7 +542,8 @@ function TxForm({
               </label>
             </div>
 
-            {type !== 'transfer' && (
+            {/* With a single account there is nothing to choose. */}
+            {type !== 'transfer' && accounts.length > 1 && (
               <label className={chip}>
                 <Wallet aria-hidden className="size-4 text-muted" />
                 <span>{account?.name ?? 'Cuenta'}</span>

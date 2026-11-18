@@ -109,17 +109,21 @@ function Copilot({
     defaultAccountId: lastAccount,
   });
 
+  /** With a single account, every card uses it. */
+  const own = (c: Card): Card =>
+    accounts.length === 1 && !c.accountId ? { ...c, accountId: accounts[0]!.id } : c;
+
   async function readPhoto(file: File) {
     setReading(0);
     try {
       const photo = await compressImage(file);
       const text = await readText(photo, setReading);
-      setCards((c) => [...c, { ...toCard(draftFromReceipt(text, ctx())), photo }]);
+      setCards((c) => [...c, own({ ...toCard(draftFromReceipt(text, ctx())), photo })]);
     } catch (err) {
       console.error(err);
       // Still a card: to fill in by hand (with the photo), or for the AI to read.
       const photo = file.size < 8_000_000 ? file : undefined;
-      setCards((c) => [...c, { ...toCard(unreadTicket(ctx().today)), photo }]);
+      setCards((c) => [...c, own({ ...toCard(unreadTicket(ctx().today)), photo })]);
       toast(
         navigator.onLine
           ? 'No pude leer el ticket: completalo a mano.'
@@ -132,7 +136,7 @@ function Copilot({
 
   const read = () => {
     const drafts = parseMessage(text, ctx());
-    setCards((c) => [...c, ...drafts.map(toCard)]);
+    setCards((c) => [...c, ...drafts.map((d) => own(toCard(d)))]);
     setText('');
   };
 
@@ -168,7 +172,9 @@ function Copilot({
         const drafts = c.photo
           ? [await improvePhoto(c.photo, catalog, today)]
           : await improveText(c.source, catalog, today);
-        const next = drafts.map((d) => ({ ...toCard(d), photo: c.photo, keepPhoto: c.keepPhoto }));
+        const next = drafts.map((d) =>
+          own({ ...toCard(d), photo: c.photo, keepPhoto: c.keepPhoto }),
+        );
         setCards((all) => all.flatMap((x) => (x.key === c.key ? next : [x])));
       }
     } catch (err) {
@@ -376,6 +382,8 @@ function CardEditor({
   onDiscard: () => void;
 }) {
   const [learned, setLearned] = useState(false);
+  // With a single account there is nothing to choose.
+  const single = accounts.length === 1;
   const todo = problems(c, accounts);
   const doubtful = todo.length > 0 || c.confidence < 0.7;
   const account = accounts.find((a) => a.id === c.accountId);
@@ -474,28 +482,30 @@ function CardEditor({
             </select>
           </label>
         )}
-        <label className="grid gap-1">
-          <span className="text-[12.5px] text-muted">
-            {c.type === 'transfer' ? 'Desde' : 'Cuenta'}
-          </span>
-          <select
-            value={c.accountId ?? ''}
-            onChange={(e) => {
-              const a = accounts.find((x) => x.id === e.target.value);
-              onChange({ accountId: a?.id, currency: a?.currency ?? c.currency });
-            }}
-            aria-label={c.type === 'transfer' ? 'Desde' : 'Cuenta'}
-            className={field}
-          >
-            <option value="">Elegí una</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-                {a.currency !== 'ARS' ? ` (${a.currency})` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!single && (
+          <label className="grid gap-1">
+            <span className="text-[12.5px] text-muted">
+              {c.type === 'transfer' ? 'Desde' : 'Cuenta'}
+            </span>
+            <select
+              value={c.accountId ?? ''}
+              onChange={(e) => {
+                const a = accounts.find((x) => x.id === e.target.value);
+                onChange({ accountId: a?.id, currency: a?.currency ?? c.currency });
+              }}
+              aria-label={c.type === 'transfer' ? 'Desde' : 'Cuenta'}
+              className={field}
+            >
+              <option value="">Elegí una</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                  {a.currency !== 'ARS' ? ` (${a.currency})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {c.type === 'transfer' ? (
           <label className="grid gap-1">
             <span className="text-[12.5px] text-muted">Hacia</span>
@@ -516,7 +526,7 @@ function CardEditor({
             </select>
           </label>
         ) : (
-          <label className="grid gap-1">
+          <label className={`grid gap-1 ${single ? 'col-span-2' : ''}`}>
             <span className="text-[12.5px] text-muted">Fecha</span>
             <input
               type="date"
