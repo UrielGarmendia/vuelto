@@ -126,17 +126,25 @@ const blank = (text: string, spans: (Span | undefined)[]) =>
     text,
   );
 
-/** Accounts named in the text, in order of appearance. */
+/**
+ * Accounts named in the text, in order of appearance, and where every account word was said
+ * (also "visa" without a card), so the note leaves them out.
+ */
 function mentionedAccounts(text: string, accounts: readonly Account[]) {
   const usable = accounts.filter((a) => !a.deleted && !a.archived && !a.external);
   const hits: { account: Account; at: number; span: Span }[] = [];
+  const said: Span[] = [];
   const seen = new Set<string>();
-  const add = (account: Account, phrase: string) => {
-    // Index in the padded text = position of the phrase in `text`.
+  // Index in the padded text = position of the phrase in `text`.
+  const spanOfPhrase = (phrase: string) => {
     const at = words(text).indexOf(` ${phrase} `);
-    if (at < 0 || seen.has(account.id)) return;
+    return at < 0 ? undefined : { start: at, end: at + phrase.length };
+  };
+  const add = (account: Account, phrase: string) => {
+    const span = spanOfPhrase(phrase);
+    if (!span || seen.has(account.id)) return;
     seen.add(account.id);
-    hits.push({ account, at, span: { start: at, end: at + phrase.length } });
+    hits.push({ account, at: span.start, span });
   };
   // A name said as such ("Naranja X", "Banco Galicia") first.
   for (const a of usable) {
@@ -146,12 +154,17 @@ function mentionedAccounts(text: string, accounts: readonly Account[]) {
   for (const { words: list, pick } of ACCOUNT_WORDS) {
     const phrase = list.find((w) => hasPhrase(text, w));
     if (!phrase) continue;
+    const span = spanOfPhrase(phrase);
+    if (span) said.push(span);
     const named = usable.find((a) => fold(a.name).includes(phrase));
     const account = named ?? usable.find((a) => pick(a, fold(a.name)));
     if (account) add(account, phrase);
   }
-  return hits.sort((a, b) => a.at - b.at);
+  return { hits: hits.sort((a, b) => a.at - b.at), said: [...said, ...hits.map((h) => h.span)] };
 }
+
+/** Income categories that fit "anything else", for an income nothing else explains. */
+const CATCH_ALL_INCOME = ['otros', 'otros ingresos', 'varios', 'otro'];
 
 function readType(text: string, accountsNamed: number): TxType {
   if (INCOME_WORDS.some((w) => hasPhrase(text, w))) return 'income';
@@ -234,7 +247,7 @@ function parsePiece(source: string, ctx: ParseContext): CopilotDraft {
   const date = readDate(blank(text, [installments.span]), ctx.today);
   const rest = blank(text, [installments.span, date.span]);
   const amount = findAmounts(rest)[0];
-  const named = mentionedAccounts(rest, ctx.accounts);
+  const { hits: named, said } = mentionedAccounts(rest, ctx.accounts);
   const type = readType(rest, named.length);
   const missing: Missing[] = [];
   let confidence = 0.95;
@@ -253,6 +266,8 @@ function parsePiece(source: string, ctx: ParseContext): CopilotDraft {
   }
   const usable = ctx.accounts.filter((a) => !a.deleted && !a.archived && !a.external);
   const currency = amount?.currency ?? (named[0]?.account.currency === 'USD' ? 'USD' : 'ARS');
+  // With a single account there is nothing to choose.
+  if (!accountId && usable.length === 1) accountId = usable[0]!.id;
   if (!accountId) {
     // Dollars want a dollar account; otherwise the last one used.
     const fallback =
@@ -274,7 +289,17 @@ function parsePiece(source: string, ctx: ParseContext): CopilotDraft {
   }
   if (!account || account.currency !== currency) missing.push('account');
 
-  const { categoryId, rule } = type === 'transfer' ? {} : readCategory(source, rest, type, ctx);
+  const read = type === 'transfer' ? {} : readCategory(source, rest, type, ctx);
+  const rule = read.rule;
+  let categoryId = read.categoryId;
+  if (type === 'income' && !categoryId) {
+    // An income with no clear category goes to "Otros", flagged for review.
+    categoryId = ctx.categories.find(
+      (c) =>
+        c.type === 'income' && !c.deleted && !c.archived && CATCH_ALL_INCOME.includes(fold(c.name)),
+    )?.id;
+    if (categoryId) confidence = Math.min(confidence, 0.6);
+  }
   if (type !== 'transfer' && !categoryId) missing.push('category');
   if (rule?.accountId && !named.length && usable.some((a) => a.id === rule.accountId))
     accountId = rule.accountId;
@@ -294,7 +319,7 @@ function parsePiece(source: string, ctx: ParseContext): CopilotDraft {
       ...(amount ? [{ start: amount.start, end: amount.end }] : []),
       ...(installments.span ? [installments.span] : []),
       ...(date.span ? [date.span] : []),
-      ...named.map((h) => h.span),
+      ...said,
     ]),
     tag: rule?.tag,
     confidence: Math.max(0, Math.min(1, Math.round(confidence * 100) / 100)),

@@ -246,3 +246,32 @@ describe('rules come first', () => {
     expect(d.confidence).toBeLessThan(0.7);
   });
 });
+
+describe('one account only (Naranja X, no credit card)', () => {
+  const solo = { ...ctx, accounts: [acc('Naranja X', 'wallet')], defaultAccountId: undefined };
+
+  it('always uses it, without lowering the confidence', () => {
+    expect(one('coto 10k', solo)).toMatchObject({ accountId: 'Naranja X', confidence: 0.95 });
+    expect(one('ayer birra 12k en efectivo', solo).accountId).toBe('Naranja X');
+  });
+
+  it('keeps the words it understood out of the note, even a card it does not have', () => {
+    const d = one('heladera en 12 cuotas, 1 palo y medio con la visa', solo);
+    expect(d).toMatchObject({ note: 'Heladera', accountId: 'Naranja X', amountCents: 150_000_000 });
+    expect(one('super 5k con mp', solo).note).toBe('Super');
+    expect(one('ayer birra con los pibes 12k en efectivo', solo).note).toBe('Birra con los pibes');
+  });
+});
+
+describe('income with no clear category', () => {
+  it('goes to "Otros", flagged for review', () => {
+    const d = one('vendí un escape por 350000');
+    expect(d).toMatchObject({ type: 'income', categoryId: 'Otros', missing: [] });
+    expect(d.confidence).toBeLessThan(0.7);
+    // A clear one stays as it is.
+    expect(one('cobré el sueldo, 2,3 palos')).toMatchObject({
+      categoryId: 'Sueldo',
+      confidence: 0.85,
+    });
+  });
+});
