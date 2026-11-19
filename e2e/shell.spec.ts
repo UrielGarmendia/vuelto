@@ -208,3 +208,19 @@ test('back links name the screen they return to, even after a reload', async ({ 
   await page.getByRole('link', { name: /Reglas de categorías/ }).click();
   await expect(page.locator('main').getByRole('link', { name: 'Ajustes' })).toBeVisible();
 });
+
+test('every page carries the security headers, with no third-party CDN allowed', async ({
+  page,
+}) => {
+  const res = (await page.goto('/'))!;
+  const headers = res.headers();
+  const csp = headers['content-security-policy']!;
+  expect(csp).toContain("default-src 'self'");
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).not.toContain('jsdelivr');
+  expect(csp).not.toContain("'unsafe-eval'");
+  expect(headers['x-content-type-options']).toBe('nosniff');
+  expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  expect(headers['permissions-policy']).toContain('camera=(self)');
+  expect(headers['permissions-policy']).toContain('microphone=(self)');
+});

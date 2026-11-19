@@ -305,3 +305,47 @@ test('with a single account (Naranja X) there is no account to choose anywhere',
     'Heladera · Naranja X',
   );
 });
+
+test('a receipt is read for real on the device, with the reader served by the app', async ({
+  page,
+}) => {
+  test.setTimeout(120_000); // the engine and Spanish data load once (~6 MB)
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+  });
+  const outside: string[] = [];
+  page.on('request', (r) => {
+    if (!r.url().startsWith('http://localhost')) outside.push(r.url());
+  });
+  await page.goto('/movimientos');
+  // A clean, made-up ticket drawn on a canvas.
+  const png = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 900;
+    c.height = 520;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#000';
+    g.font = 'bold 46px monospace';
+    ['KIOSCO EL SOL', 'Fecha 14/11/26', 'ALFAJOR    1.200,00', 'TOTAL $    1.200,00'].forEach(
+      (line, i) => g.fillText(line, 40, 90 + i * 110),
+    );
+    return c.toDataURL('image/png').split(',')[1]!;
+  });
+  const sheet = await open(page);
+  await sheet
+    .getByLabel('Leer un ticket')
+    .setInputFiles({
+      name: 'ticket.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(png, 'base64'),
+    });
+  const card = sheet.getByRole('article');
+  await expect(card.getByLabel('Monto')).toHaveValue('1200', { timeout: 90_000 });
+  await expect(card.getByLabel('Nota')).toHaveValue(/Kiosco El Sol/i);
+  expect(outside.filter((u) => !u.includes('dolarapi.com'))).toEqual([]);
+});
