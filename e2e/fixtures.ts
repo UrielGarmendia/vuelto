@@ -38,4 +38,4 @@ export const test = base.extend({
   },
 });
 
-export { expect, type Page } from '@playwright/test';
+export { expect, type BrowserContext, type Page } from '@playwright/test';

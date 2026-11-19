@@ -11,6 +11,7 @@ import {
   Wand2,
   WalletCards,
 } from 'lucide-react';
+import { LockSection } from '../lock/LockSection';
 import { GoogleSection } from '../sync/GoogleSection';
 import { DollarSection } from './DollarSection';
 import { Link } from 'react-router';
@@ -54,6 +55,7 @@ export function SettingsPage() {
           <Section title="Cuenta">
             <GoogleSection />
           </Section>
+          <LockSection />
           <Section title="Apariencia">
             <fieldset className="p-3">
               <legend className="sr-only">Tema</legend>

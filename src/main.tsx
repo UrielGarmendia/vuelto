@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { router } from './app/router';
+import { LockGate } from './features/lock/LockGate';
 import { db, requestPersistentStorage } from './db/db';
 import './styles.css';
 
@@ -17,6 +18,8 @@ history.scrollRestoration = 'manual';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <LockGate>
+      <RouterProvider router={router} />
+    </LockGate>
   </StrictMode>,
 );
