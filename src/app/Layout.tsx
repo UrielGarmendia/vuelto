@@ -20,6 +20,7 @@ import { InstallBanner } from './InstallBanner';
 import { useApplyPrefs, usePrefs } from './prefs';
 import { Sidebar } from './Sidebar';
 import { TabBar } from './TabBar';
+import { notePath } from '../ui/backTarget';
 import { useSearch } from './nav';
 import { SearchPalette } from './SearchPalette';
 import { TopBar } from './TopBar';
@@ -63,6 +64,8 @@ export function RequireOnboarded({ children }: { children: React.ReactNode }) {
 export function Layout() {
   const outlet = useOutlet();
   const { pathname } = useLocation();
+  // Back links name the screen they return to.
+  notePath(pathname);
   const [params, setParams] = useSearchParams();
 
   // Manifest shortcut "Nuevo gasto" opens /?nuevo=gasto.

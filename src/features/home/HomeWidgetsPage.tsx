@@ -10,7 +10,7 @@ export function HomeWidgetsPage() {
   const save = usePrefs((s) => s.setHomeWidgets);
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/" label="Inicio" />
+      <BackLink to="/" />
       <h1 className="mt-2 text-[22px] font-bold">Personalizar Inicio</h1>
       <p id="widgets-hint" className="mt-1 mb-4 text-[14px] text-muted">
         Arrastrá desde la manija para cambiar el orden (con teclado: Espacio agarra y las flechas

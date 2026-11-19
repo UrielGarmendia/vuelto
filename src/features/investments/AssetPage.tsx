@@ -65,7 +65,7 @@ export function AssetPage() {
   if (!s || !p || !category) {
     return (
       <div className="mx-auto max-w-[720px] pt-1">
-        <BackLink to="/inversiones" label="Inversiones" />
+        <BackLink to="/inversiones" />
         <h1 className="mt-2 text-[22px] font-bold">{symbol}</h1>
         <p className="mt-2 text-[15px] text-muted">
           Este activo ya no está en tu portafolio de IOL.
@@ -82,7 +82,7 @@ export function AssetPage() {
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/inversiones" label="Inversiones" />
+      <BackLink to="/inversiones" />
       <header className="mt-2">
         <p className="flex items-center gap-2 text-[13px] text-muted">
           <span

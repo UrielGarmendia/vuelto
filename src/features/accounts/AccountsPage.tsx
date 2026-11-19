@@ -53,7 +53,7 @@ export function AccountsPage() {
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/ajustes" label="Ajustes" />
+      <BackLink to="/ajustes" />
       <h1 className="mt-2 text-[22px] font-bold">Cuentas</h1>
       <p id="accounts-hint" className="mt-2 mb-3 text-[13.5px] text-faint">
         Tocá una cuenta para editarla. Arrastrá desde la manija para reordenar (con teclado: Enter

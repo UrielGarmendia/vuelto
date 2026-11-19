@@ -191,3 +191,20 @@ test('the entry sheet fits a narrow screen: every option and category name is wh
   expect(problems).toEqual([]);
   await expect(sheet.getByRole('radio', { name: 'Celular e internet' })).toBeVisible();
 });
+
+test('back links name the screen they return to, even after a reload', async ({ page }) => {
+  await setPrefs(page, { installDismissed: true });
+  await page.goto('/');
+  await page.getByRole('region', { name: 'Disponible' }).getByRole('link').click();
+  await expect(page.getByRole('heading', { name: 'Patrimonio', level: 1 })).toBeVisible();
+  const back = page.locator('main').getByRole('link', { name: 'Inicio' });
+  await expect(back).toBeVisible();
+  await page.reload();
+  await expect(back).toBeVisible();
+  await back.click();
+  await expect(page.getByText('Disponible', { exact: true })).toBeVisible();
+
+  await page.goto('/ajustes');
+  await page.getByRole('link', { name: /Reglas de categorías/ }).click();
+  await expect(page.locator('main').getByRole('link', { name: 'Ajustes' })).toBeVisible();
+});

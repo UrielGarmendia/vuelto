@@ -19,7 +19,7 @@ export function GoalsPage() {
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/ajustes" label="Ajustes" />
+      <BackLink to="/ajustes" />
       <h1 className="mt-2 text-[22px] font-bold">Metas de ahorro</h1>
       <p className="mt-1 text-[14.5px] text-muted">
         Separá plata para algo puntual y mirá cuánto te falta. No mueve tus cuentas.

@@ -53,7 +53,7 @@ export function BudgetsPage() {
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/ajustes" label="Ajustes" />
+      <BackLink to="/ajustes" />
       <h1 className="mt-2 text-[22px] font-bold">Presupuestos</h1>
       <p className="mt-1 text-[14.5px] leading-snug text-muted">
         Para {monthName(month)}. Cada presupuesto sigue vigente los meses siguientes hasta que lo

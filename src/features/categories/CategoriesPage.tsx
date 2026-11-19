@@ -40,7 +40,7 @@ export function CategoriesPage() {
 
   return (
     <div className="mx-auto max-w-[720px] pt-1">
-      <BackLink to="/ajustes" label="Ajustes" />
+      <BackLink to="/ajustes" />
       <h1 className="mt-2 text-[22px] font-bold">Categorías</h1>
 
       <div
