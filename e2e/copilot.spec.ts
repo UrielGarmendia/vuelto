@@ -337,13 +337,11 @@ test('a receipt is read for real on the device, with the reader served by the ap
     return c.toDataURL('image/png').split(',')[1]!;
   });
   const sheet = await open(page);
-  await sheet
-    .getByLabel('Leer un ticket')
-    .setInputFiles({
-      name: 'ticket.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(png, 'base64'),
-    });
+  await sheet.getByLabel('Leer un ticket').setInputFiles({
+    name: 'ticket.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(png, 'base64'),
+  });
   const card = sheet.getByRole('article');
   await expect(card.getByLabel('Monto')).toHaveValue('1200', { timeout: 90_000 });
   await expect(card.getByLabel('Nota')).toHaveValue(/Kiosco El Sol/i);
