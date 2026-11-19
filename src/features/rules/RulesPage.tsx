@@ -32,7 +32,7 @@ export function RulesPage() {
   return (
     <div className="mx-auto max-w-[720px] pt-1">
       <BackLink to="/ajustes" label="Ajustes" />
-      <h1 className="mt-2 text-[22px] font-bold">Reglas</h1>
+      <h1 className="mt-2 text-[22px] font-bold">Reglas de categorías</h1>
       <p className="mt-1 text-[14.5px] leading-relaxed text-muted">
         Si la nota contiene un texto, Vuelto elige la categoría por vos al cargar. Gana la primera
         regla de la lista que coincida.
