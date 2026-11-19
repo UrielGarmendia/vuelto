@@ -152,16 +152,21 @@ export function normalizePriceHistory(raw: unknown): PricePoint[] {
 
 export interface AumPoint {
   date: string;
+  /** Everything held at IOL that day (cash included), in peso cents. */
   cents: number;
+  /** The same in MEP dollar cents, when IOL says it. */
+  mepCents?: number;
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}/;
-const VALUE_KEYS = ['aum', 'total', 'value', 'amount', 'balance', 'net_worth', 'valorizado'];
+/** IOL's own fields first; the rest are guesses for answers shaped differently. */
+const VALUE_KEYS = ['valuation_ars', 'aum', 'total', 'value', 'amount', 'balance', 'valorizado'];
 
 /**
- * get_aum_evolution: business-day snapshots of the holdings, plus a status that says
- * "Partial" while IOL is still filling in missing dates. The exact field names are not
- * documented, so dates and amounts are looked for by shape.
+ * get_aum_evolution: `{ snapshots: [{ date, valuation_ars, valuation_mep,
+ * exchange_rate_mep, daily_deposit_ars, client_id, … }], missing_dates, status }`. The
+ * valuation includes cash (it jumps on a deposit). "Partial" means IOL is still filling in
+ * dates. Ids are never taken for amounts.
  */
 export function normalizeAum(raw: unknown): { points: AumPoint[]; partial: boolean } {
   const dateOf = (o: Record<string, unknown>) =>
@@ -169,12 +174,15 @@ export function normalizeAum(raw: unknown): { points: AumPoint[]; partial: boole
   const points = findRows(raw, (o) => dateOf(o) !== undefined)
     .flatMap((o): AumPoint[] => {
       const key = VALUE_KEYS.find((k) => num(o[k]) !== undefined);
-      const value = key
-        ? num(o[key])
-        : Object.values(o)
-            .map(num)
-            .find((v) => v !== undefined);
-      return value === undefined ? [] : [{ date: dateOf(o)!.slice(0, 10), cents: cents(value) }];
+      if (!key) return [];
+      const mep = num(o.valuation_mep);
+      return [
+        {
+          date: dateOf(o)!.slice(0, 10),
+          cents: cents(o[key]),
+          ...(mep !== undefined ? { mepCents: cents(mep) } : {}),
+        },
+      ];
     })
     .sort((a, b) => a.date.localeCompare(b.date));
   const status = JSON.stringify(raw ?? '').match(/"status"\s*:\s*"([^"]*)"/)?.[1] ?? '';

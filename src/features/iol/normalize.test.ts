@@ -305,26 +305,53 @@ describe('price history', () => {
 });
 
 describe('holdings history', () => {
-  it('finds dated amounts and the partial status, whatever the field names', () => {
+  // The shape IOL really answers with (made-up numbers).
+  const snapshot = (date: string, ars: number, mep: number) => ({
+    client_id: 1234567,
+    country: 'ARG',
+    date,
+    valuation_ars: ars,
+    valuation_mep: mep,
+    valuation_ccl: mep * 0.95,
+    exchange_rate_mep: ars / mep,
+    exchange_rate_ccl: 1700,
+    daily_deposit_ars: 0,
+    daily_deposit_usd: 0,
+    daily_withdrawal_ars: 0,
+    daily_withdrawal_usd: 0,
+    has_caution_tomadora: false,
+  });
+
+  it('reads the peso and MEP valuation of each day, never the client id', () => {
     expect(
       normalizeAum({
-        status: 'Partial',
-        missing_dates: ['2026-11-03'],
         snapshots: [
-          { date: '2026-11-04', aum: 1500.5 },
-          { date: '2026-11-02', aum: 1000 },
+          snapshot('2026-11-04', 2_132_965.27, 1352.83),
+          snapshot('2026-11-02', 1_101_912.7, 712.11),
         ],
+        missing_dates: [],
+        status: 'Complete',
       }),
     ).toEqual({
       points: [
-        { date: '2026-11-02', cents: 100_000 },
-        { date: '2026-11-04', cents: 150_050 },
+        { date: '2026-11-02', cents: 110_191_270, mepCents: 71_211 },
+        { date: '2026-11-04', cents: 213_296_527, mepCents: 135_283 },
       ],
-      partial: true,
+      partial: false,
     });
+  });
+
+  it('knows when IOL is still filling in, and skips rows without an amount', () => {
     expect(
-      normalizeAum({ data: [{ fecha: '2026-10-01T00:00:00', monto: 7 }], status: 'Complete' }),
-    ).toEqual({ points: [{ date: '2026-10-01', cents: 700 }], partial: false });
+      normalizeAum({
+        snapshots: [
+          { date: '2026-11-04', aum: 1500.5 },
+          { date: '2026-11-05', client_id: 9 },
+        ],
+        missing_dates: ['2026-11-03'],
+        status: 'Partial',
+      }),
+    ).toEqual({ points: [{ date: '2026-11-04', cents: 150_050 }], partial: true });
     expect(normalizeAum(null)).toEqual({ points: [], partial: false });
   });
 });

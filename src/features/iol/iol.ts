@@ -187,11 +187,12 @@ export async function priceHistory(
 export interface HoldingsHistory {
   at: number;
   partial: boolean;
-  /** Pesos (Argentina) and dollars (US account), in cents of each. */
+  /** Each account's daily valuation, in pesos and MEP dollars. */
   ARG: AumPoint[];
   USA: AumPoint[];
 }
-const HOLDINGS_KEY = 'iol-aum';
+// v2: earlier copies took a client id for the amount.
+const HOLDINGS_KEY = 'iol-aum-v2';
 const HOLDINGS_TTL = 12 * 60 * 60 * 1000;
 
 /**
