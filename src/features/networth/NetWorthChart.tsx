@@ -17,23 +17,33 @@ const yearFmt = new Intl.DateTimeFormat('es-AR', {
 });
 
 /**
- * Stacked areas over time: available at the bottom, invested on top, card debt below zero.
- * Dragging a finger (or the pointer) over it reads out that day.
+ * Stacked areas over time: available at the bottom, invested on top, card debt (only with
+ * cards) below zero. The scale fits the values, not zero, so a change is visible. Dragging
+ * a finger (or the pointer) over it reads out that day.
  */
 export function NetWorthChart({
   points,
   currency,
+  showDebt,
   height = 220,
 }: {
   points: readonly Point[];
   currency: Currency;
+  showDebt: boolean;
   height?: number;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 360;
   const H = height;
-  const top = Math.max(1, ...points.map((p) => Math.max(0, p.available) + p.invested));
-  const bottom = Math.min(0, ...points.map((p) => Math.min(0, p.available) - p.debt));
+  const stackTop = (p: Point) => Math.max(0, p.available) + p.invested;
+  const lowest = (p: Point) =>
+    showDebt && p.debt > 0 ? Math.min(0, p.available) - p.debt : stackTop(p);
+  const hi = Math.max(...points.map(stackTop));
+  const lo = Math.min(...points.map(lowest));
+  // A margin around the values; never below zero when everything is above it.
+  const pad = (hi - lo) * 0.15 || Math.abs(hi) * 0.05 || 100;
+  const top = hi + pad;
+  const bottom = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
   const span = top - bottom || 1;
   const t0 = fromISODate(points[0]!.date).getTime();
   const t1 = fromISODate(points[points.length - 1]!.date).getTime();
@@ -85,29 +95,33 @@ export function NetWorthChart({
         onPointerDown={pick}
         onPointerLeave={() => setHover(null)}
       >
-        <line
-          x1="0"
-          x2={W}
-          y1={y(0)}
-          y2={y(0)}
-          stroke="var(--color-line)"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
+        {bottom <= 0 && (
+          <line
+            x1="0"
+            x2={W}
+            y1={y(0)}
+            y2={y(0)}
+            stroke="var(--color-line)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
         <path d={area(() => 0, avail)} fill={LAYER_COLORS.available} fillOpacity="0.55" />
         <path
           d={area(avail, (p) => avail(p) + p.invested)}
           fill={LAYER_COLORS.invested}
           fillOpacity="0.55"
         />
-        <path
-          d={area(
-            (p) => Math.min(0, p.available) - p.debt,
-            (p) => Math.min(0, p.available),
-          )}
-          fill={LAYER_COLORS.debt}
-          fillOpacity="0.55"
-        />
+        {showDebt && (
+          <path
+            d={area(
+              (p) => Math.min(0, p.available) - p.debt,
+              (p) => Math.min(0, p.available),
+            )}
+            fill={LAYER_COLORS.debt}
+            fillOpacity="0.55"
+          />
+        )}
         {hover !== null && (
           <line
             x1={x(shown)}
@@ -121,12 +135,12 @@ export function NetWorthChart({
           />
         )}
       </svg>
-      <dl className="mt-3 grid grid-cols-3 gap-2 text-[12.5px]">
+      <dl className={`mt-3 grid gap-2 text-[12.5px] ${showDebt ? 'grid-cols-3' : 'grid-cols-2'}`}>
         {(
           [
             ['Disponible', shown.available, LAYER_COLORS.available],
             ['Invertido', shown.invested, LAYER_COLORS.invested],
-            ['Deuda', shown.debt, LAYER_COLORS.debt],
+            ...(showDebt ? [['Deuda', shown.debt, LAYER_COLORS.debt] as const] : []),
           ] as const
         ).map(([label, cents, color]) => (
           <div key={label} className="min-w-0">

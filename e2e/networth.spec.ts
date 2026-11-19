@@ -39,6 +39,9 @@ async function seed(page: Page) {
           all.onsuccess = () => {
             const cash = (all.result as { name: string }[]).find((a) => a.name === 'Efectivo')!;
             accounts.put({ ...cash, initialBalanceCents: 130_000_000 });
+            // No card in use, so the debt series has nothing to show.
+            for (const a of all.result as { kind: string }[])
+              if (a.kind === 'credit') accounts.put({ ...a, archived: 1 });
           };
           tx.oncomplete = () => {
             open.result.close();
@@ -73,6 +76,10 @@ for (const theme of ['light', 'dark'] as const) {
     // Three months: from 1.000.000 forty days ago to 1.300.000 today.
     await expect(chart).toContainText('+$ 300.000');
     await expect(chart).toContainText('+30,00 %');
+    // The curve starts 40 days ago, inside three months: the label says from when.
+    await expect(chart).toContainText('Variación desde el');
+    // No credit card in use: no debt series.
+    await expect(chart.getByText('Deuda')).toHaveCount(0);
     await page.screenshot({
       path: `e2e/__screenshots__/${info.project.name}/patrimonio-${theme}.png`,
       fullPage: true,
@@ -85,3 +92,16 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(chart.getByRole('img', { name: /de US\$ 1\.000/ })).toBeVisible();
   });
 }
+
+test('with a single day, net worth says where its history starts', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'vuelto-prefs',
+      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+    );
+  });
+  await page.goto('/patrimonio');
+  const chart = page.getByRole('region', { name: 'Curva del patrimonio' });
+  await expect(chart).toContainText('Tu historia arranca el');
+  await expect(chart.getByRole('img')).toHaveCount(0);
+});

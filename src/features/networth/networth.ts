@@ -142,14 +142,16 @@ export function netWorthSeries({
     });
   }
 
-  if (history && (currency === 'ARS' ? true : !!rate)) {
+  if (history) {
     const byDate = new Map<string, number>();
-    const add = (date: string, cents: number) => byDate.set(date, (byDate.get(date) ?? 0) + cents);
-    for (const p of history.ARG)
-      add(p.date, currency === 'ARS' ? p.cents : Math.round(p.cents / rate!));
-    if (currency === 'USD' || rate)
-      for (const p of history.USA)
-        add(p.date, currency === 'USD' ? p.cents : Math.round(p.cents * rate!));
+    for (const p of [...history.ARG, ...history.USA]) {
+      // In dollars, IOL's own MEP valuation of that day; without it, today's rate.
+      const value =
+        currency === 'ARS'
+          ? p.cents
+          : (p.mepCents ?? (rate ? Math.round(p.cents / rate) : undefined));
+      if (value !== undefined) byDate.set(p.date, (byDate.get(p.date) ?? 0) + value);
+    }
     for (const [date, invested] of byDate) {
       if (date < from || date > today || (first && date >= first)) continue;
       points.push({ date, available: 0, invested, debt: 0, total: invested, own: false });
@@ -158,14 +160,20 @@ export function netWorthSeries({
   return points.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Change between the first and last full days of the curve; undefined with fewer than two. */
+/**
+ * Change between the first and last full days of the curve. With fewer than two of those,
+ * IOL's history alone (`iolOnly`); undefined when neither has two days.
+ */
 export function periodChange(points: readonly Point[]) {
   const own = points.filter((p) => p.own);
-  if (own.length < 2) return undefined;
-  const a = own[0]!;
-  const b = own[own.length - 1]!;
+  const iol = points.filter((p) => !p.own);
+  const pair = own.length >= 2 ? own : iol.length >= 2 ? iol : undefined;
+  if (!pair) return undefined;
+  const a = pair[0]!;
+  const b = pair[pair.length - 1]!;
   return {
     cents: b.total - a.total,
     pct: a.total ? ((b.total - a.total) / Math.abs(a.total)) * 100 : undefined,
+    iolOnly: pair === iol,
   };
 }

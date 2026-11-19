@@ -117,10 +117,11 @@ describe('netWorthSeries', () => {
     at: 0,
     partial: false,
     ARG: [
-      { date: '2026-09-20', cents: 400_000 },
+      { date: '2026-09-18', cents: 300_000, mepCents: 300 },
+      { date: '2026-09-20', cents: 400_000, mepCents: 400 },
       { date: '2026-10-05', cents: 999 },
     ],
-    USA: [{ date: '2026-09-20', cents: 100 }],
+    USA: [{ date: '2026-09-20', cents: 100_000, mepCents: 100 }],
   };
 
   it('cuts the range and fills the days before Vuelto with IOL history', () => {
@@ -133,6 +134,7 @@ describe('netWorthSeries', () => {
       rate: 1000,
     });
     expect(all.map((p) => [p.date, p.total, p.own])).toEqual([
+      ['2026-09-18', 300_000, false],
       ['2026-09-20', 400_000 + 100_000, false],
       ['2026-10-01', 1_000_000, true],
       ['2026-11-10', 1_200_000, true],
@@ -156,6 +158,20 @@ describe('netWorthSeries', () => {
     ]);
   });
 
+  it('in dollars takes IOL’s own MEP valuation for its history', () => {
+    const usd = netWorthSeries({
+      days,
+      history,
+      range: 'Todo',
+      currency: 'USD',
+      today: '2026-11-16',
+    });
+    expect(usd.slice(0, 2).map((p) => [p.date, p.total])).toEqual([
+      ['2026-09-18', 300],
+      ['2026-09-20', 500],
+    ]);
+  });
+
   it('measures the change between the first and last full days', () => {
     const all = netWorthSeries({
       days,
@@ -165,7 +181,11 @@ describe('netWorthSeries', () => {
       today: '2026-11-16',
       rate: 1000,
     });
-    expect(periodChange(all)).toEqual({ cents: 500_000, pct: 50 });
-    expect(periodChange(all.slice(0, 2))).toBeUndefined();
+    expect(periodChange(all)).toEqual({ cents: 500_000, pct: 50, iolOnly: false });
+    // Fewer than two own days: IOL's history alone, and it says so.
+    const iol = periodChange(all.slice(0, 3))!;
+    expect(iol).toMatchObject({ cents: 200_000, iolOnly: true });
+    expect(iol.pct).toBeCloseTo(66.67, 1);
+    expect(periodChange(all.slice(0, 1))).toBeUndefined();
   });
 });
