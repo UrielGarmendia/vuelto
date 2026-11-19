@@ -1,11 +1,13 @@
 import { expect, test } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
+  // Only the first time: on later loads it would wipe what the test just changed.
   await page.addInitScript(() => {
-    localStorage.setItem(
-      'vuelto-prefs',
-      JSON.stringify({ state: { installDismissed: true }, version: 0 }),
-    );
+    if (!localStorage.getItem('vuelto-prefs'))
+      localStorage.setItem(
+        'vuelto-prefs',
+        JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+      );
   });
 });
 
