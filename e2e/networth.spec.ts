@@ -66,8 +66,10 @@ for (const theme of ['light', 'dark'] as const) {
     await seed(page);
     await page.reload();
 
-    const widget = page.getByRole('region', { name: 'Evolución del patrimonio' });
-    await expect(widget).toContainText('$ 1.300.000');
+    // The balance card carries this month's move and opens the history.
+    const widget = page.getByRole('region', { name: 'Disponible' });
+    await expect(widget).toContainText('Este mes');
+    await expect(widget).not.toContainText('Tarjeta');
     await widget.getByRole('link').click();
     await expect(page.getByRole('heading', { name: 'Patrimonio', level: 1 })).toBeVisible();
 

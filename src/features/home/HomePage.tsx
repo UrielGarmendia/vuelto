@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
 import { usePrefs, withAllWidgets, type HomeWidget } from '../../app/prefs';
 import { GoalsWidget } from '../goals/GoalsWidget';
-import { NetWorthWidget } from '../networth/NetWorthWidget';
+import { NetWorthTrend } from '../networth/NetWorthTrend';
 import { db } from '../../db/db';
 import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
@@ -85,6 +85,9 @@ export function HomePage() {
   const usdRate = rates?.values[rateKind];
   const { balanceCents, creditDebtCents } = totals(accounts, balances, usdRate);
   const available = balanceCents + creditDebtCents;
+  // Without an active card there is no debt to show.
+  const hasCards = accounts.some((a) => a.kind === 'credit');
+  const kpiCols = hasCards ? '@[20rem]:grid-cols-3' : '@[20rem]:grid-cols-2';
   // With IOL linked, the card shows net worth. IOL's cash counts as available money and only
   // its positions count as invested, the same split as the IOL card.
   const iolSnapshot = iol?.account ? iol.snapshot : undefined;
@@ -167,53 +170,58 @@ export function HomePage() {
       </section>
     ),
     balance: (
-      <section
-        aria-labelledby="available-label"
-        className="rel rounded-[24px] p-[22px] [container-type:inline-size]"
-      >
-        <p id="available-label" className="text-[14px] text-muted">
-          {invested === undefined ? 'Disponible' : 'Patrimonio'}
-        </p>
-        <Odometer
-          cents={bigCents}
-          className="wide mt-1.5 leading-[1.05] font-extrabold"
-          // Long amounts shrink to fit the card instead of overflowing it.
-          style={{ fontSize: fitSize(formatMoney(bigCents), 52) }}
-        />
-        {invested === undefined ? (
-          <>
-            {creditDebtCents > 0 && (
+      <section aria-labelledby="available-label">
+        {/* The whole card opens the net worth history. */}
+        <Link
+          to="/patrimonio"
+          viewTransition={viewTransitions}
+          className="rel block rounded-[24px] p-[22px] [container-type:inline-size]"
+        >
+          <p id="available-label" className="text-[14px] text-muted">
+            {invested === undefined ? 'Disponible' : 'Patrimonio'}
+          </p>
+          <Odometer
+            cents={bigCents}
+            className="wide mt-1.5 leading-[1.05] font-extrabold"
+            // Long amounts shrink to fit the card instead of overflowing it.
+            style={{ fontSize: fitSize(formatMoney(bigCents), 52) }}
+          />
+          {invested === undefined ? (
+            <>
+              {creditDebtCents > 0 && (
+                <p className="mt-1 text-[13px] text-faint">
+                  Después de pagar la tarjeta te quedan{' '}
+                  <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
+                </p>
+              )}
+              <dl className={`mt-4 grid gap-1.5 @[20rem]:gap-2.5 ${kpiCols}`}>
+                <Kpi label="Entró" cents={incomeCents} />
+                <Kpi label="Salió" cents={expenseCents} />
+                {hasCards && <Kpi label="Tarjeta" cents={creditDebtCents} />}
+              </dl>
+            </>
+          ) : (
+            <>
               <p className="mt-1 text-[13px] text-faint">
-                Después de pagar la tarjeta te quedan{' '}
-                <span className="tabular text-muted">{signedMoney(balanceCents)}</span>
+                Lo que tenés más lo invertido{hasCards ? ', menos la tarjeta' : ''}.
               </p>
-            )}
-            <dl className="mt-4 grid gap-1.5 @[20rem]:grid-cols-3 @[20rem]:gap-2.5">
-              <Kpi label="Entró" cents={incomeCents} />
-              <Kpi label="Salió" cents={expenseCents} />
-              <Kpi label="Tarjeta" cents={creditDebtCents} />
-            </dl>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 text-[13px] text-faint">
-              Lo que tenés más lo invertido, menos la tarjeta.
-            </p>
-            <dl className="mt-4 grid gap-1.5 @[20rem]:grid-cols-3 @[20rem]:gap-2.5">
-              <Kpi
-                label="Disponible"
-                cents={available + iolCash}
-                note={iolCash ? `incluye ${formatMoney(iolCash)} en IOL` : undefined}
-              />
-              <Kpi label="Invertido" cents={invested} />
-              <Kpi label="Tarjeta" cents={creditDebtCents} />
-            </dl>
-            <p className="mt-3 border-t border-line pt-3 text-[13px] text-muted">
-              Este mes entró <b className="tabular text-ink">{formatMoney(incomeCents)}</b> y salió{' '}
-              <b className="tabular text-ink">{formatMoney(expenseCents)}</b>.
-            </p>
-          </>
-        )}
+              <dl className={`mt-4 grid gap-1.5 @[20rem]:gap-2.5 ${kpiCols}`}>
+                <Kpi
+                  label="Disponible"
+                  cents={available + iolCash}
+                  note={iolCash ? `incluye ${formatMoney(iolCash)} en IOL` : undefined}
+                />
+                <Kpi label="Invertido" cents={invested} />
+                {hasCards && <Kpi label="Tarjeta" cents={creditDebtCents} />}
+              </dl>
+              <p className="mt-3 border-t border-line pt-3 text-[13px] text-muted">
+                Este mes entró <b className="tabular text-ink">{formatMoney(incomeCents)}</b> y
+                salió <b className="tabular text-ink">{formatMoney(expenseCents)}</b>.
+              </p>
+            </>
+          )}
+          <NetWorthTrend />
+        </Link>
       </section>
     ),
     insight:
@@ -227,7 +235,6 @@ export function HomePage() {
       ),
     accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
     goals: <GoalsWidget />,
-    networth: <NetWorthWidget />,
     recent:
       txs.length === 0 ? (
         <FirstSteps />
