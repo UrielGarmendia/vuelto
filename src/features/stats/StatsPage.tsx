@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
 import { fromISODate, todayISO } from '../../lib/dates';
-import { formatMoney } from '../../lib/money';
+import { formatMoney, shortMoney } from '../../lib/money';
 import { EmptyState } from '../../ui/EmptyState';
 import { PageHeader } from '../../ui/PageHeader';
 import { Skeleton } from '../../ui/Skeleton';
@@ -452,7 +452,7 @@ function WeekdayBars({ values }: { values: number[] }) {
         {order.map((d) => (
           <li key={d} className="grid justify-items-center gap-1.5">
             <span className="tabular text-[10.5px] whitespace-nowrap text-faint">
-              {values[d] ? `${Math.round(values[d]! / 100_000)} mil` : '—'}
+              {values[d] ? shortMoney(values[d]!) : '—'}
             </span>
             <span className="flex h-24 w-full max-w-10 items-end">
               <span

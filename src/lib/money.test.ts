@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, parseCents, splitInstallments, sumCents } from './money';
+import { formatMoney, parseCents, shortMoney, splitInstallments, sumCents } from './money';
 
 const nbsp = (s: string) => s.replace(/\u00a0/g, ' ');
 
@@ -87,5 +87,18 @@ describe('splitInstallments', () => {
   it('rejects invalid counts', () => {
     expect(() => splitInstallments(100, 0)).toThrow(RangeError);
     expect(() => splitInstallments(100, 1.5)).toThrow(RangeError);
+  });
+});
+
+describe('shortMoney', () => {
+  it('leaves small amounts whole and shortens the rest', () => {
+    expect(shortMoney(85_000)).toBe('$ 850');
+    expect(shortMoney(99_949)).toBe('$ 999');
+    expect(shortMoney(100_000)).toBe('1 mil');
+    expect(shortMoney(1_249_900)).toBe('12 mil');
+    expect(shortMoney(99_960_000)).toBe('1 M');
+    expect(shortMoney(123_000_000)).toBe('1,2 M');
+    expect(shortMoney(-50_000)).toBe('−$ 500');
+    expect(shortMoney(0)).toBe('$ 0');
   });
 });

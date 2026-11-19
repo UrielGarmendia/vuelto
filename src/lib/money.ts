@@ -74,3 +74,13 @@ export function arsCents(tx: { amountCents: number; currency: Currency; rateAtDa
   if (tx.currency === 'ARS') return tx.amountCents;
   return tx.rateAtDate ? Math.round(tx.amountCents * tx.rateAtDate) : 0;
 }
+
+/** Amounts for tight spots: under $ 1.000 as they are, then "12 mil" and "1,2 M". */
+export function shortMoney(cents: number): string {
+  const sign = cents < 0 ? '−' : '';
+  const v = Math.abs(cents) / 100;
+  if (v < 1000) return `${sign}$ ${Math.round(v)}`;
+  // 999.600 would round to "1000 mil": it is already a million.
+  if (v < 999_500) return `${sign}${Math.round(v / 1000)} mil`;
+  return `${sign}${(v / 1e6).toFixed(1).replace('.', ',').replace(/,0$/, '')} M`;
+}
