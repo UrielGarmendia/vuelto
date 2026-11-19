@@ -101,15 +101,28 @@ export function AssetPage() {
         <p className="wide mt-1 text-[clamp(26px,8vw,36px)] leading-tight font-extrabold">
           {p.price === undefined ? '—' : formatMoney(Math.round(p.price * 100), p.currency)}
         </p>
-        <p
-          className={`tabular mt-0.5 text-[14px] ${
-            !p.dayChangePct ? 'text-muted' : p.dayChangePct > 0 ? 'text-hue' : 'text-over'
-          }`}
-        >
-          {p.dayChangePct === undefined
-            ? 'Sin variación informada'
-            : `Hoy ${signedMoney(dayChangeCents(p), p.currency)} · ${pct(p.dayChangePct)}`}
-        </p>
+        {p.dayChangePct === undefined ? (
+          <p className="mt-0.5 text-[14px] text-muted">Sin variación informada</p>
+        ) : (
+          <dl
+            className={`tabular mt-1 grid gap-0.5 text-[14px] ${
+              p.dayChangePct > 0 ? 'text-hue' : p.dayChangePct < 0 ? 'text-over' : 'text-muted'
+            }`}
+          >
+            <div className="flex flex-wrap gap-x-1.5">
+              <dt className="text-muted">Precio hoy</dt>
+              <dd>
+                {p.price !== undefined &&
+                  `${signedMoney(Math.round(unitChange(p.price, p.dayChangePct) * 100), p.currency)} · `}
+                {pct(p.dayChangePct)}
+              </dd>
+            </div>
+            <div className="flex flex-wrap gap-x-1.5">
+              <dt className="text-muted">Tu posición hoy</dt>
+              <dd>{signedMoney(dayChangeCents(p), p.currency)}</dd>
+            </div>
+          </dl>
+        )}
 
         {charted && (
           <div role="radiogroup" aria-label="Rango" className="well mt-4 flex rounded-full p-1">
@@ -190,6 +203,10 @@ export function AssetPage() {
 }
 
 const day = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' });
+
+/** What one unit's price moved today, from today's price and its change in percent. */
+const unitChange = (price: number, changePct: number) =>
+  changePct <= -100 ? 0 : price - price / (1 + changePct / 100);
 
 /** Closing prices as an area, with the first and last values and the change between them. */
 function PriceChart({

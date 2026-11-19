@@ -241,6 +241,10 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('radio', { name: 'tres meses' }).click();
     await expect(page.getByRole('img', { name: /Precio de GGAL en tres meses/ })).toBeVisible();
     await expect(page.getByText('Peso en el portafolio')).toBeVisible();
+    // GGAL at $ 4.000, +2,5 % today: the price moved $ 97,56; ten of them, $ 975,61.
+    const price = page.getByRole('region', { name: 'Precio' });
+    await expect(price).toContainText('Precio hoy+$ 97,56 · +2,50 %');
+    await expect(price).toContainText('Tu posición hoy+$ 975,61');
     await page.screenshot({
       path: `e2e/__screenshots__/${info.project.name}/activo-${theme}.png`,
       fullPage: true,
