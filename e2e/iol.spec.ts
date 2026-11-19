@@ -107,6 +107,11 @@ test('connects IOL, shows the portfolio and the net worth, and disconnects', asy
   await expect(balance).toContainText('Invertido$ 900.000');
   await page.screenshot({ path: `e2e/__screenshots__/${info.project.name}/iol-inicio.png` });
 
+  // Only Argentine positions: no ring for a single market, a line instead.
+  await page.goto('/inversiones');
+  await expect(page.getByText('Todo invertido en Argentina.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Por mercado' })).toHaveCount(0);
+
   await page.goto('/ajustes/cuentas');
   await card.getByRole('button', { name: 'Desconectar' }).click();
   await card.getByRole('button', { name: 'Desconectar' }).click();

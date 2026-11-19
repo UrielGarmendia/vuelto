@@ -92,6 +92,10 @@ export function InvestmentsPage() {
     const c = p.country ?? 'ARG';
     byMarket.set(c, (byMarket.get(c) ?? 0) + ars(p));
   }
+  const markets = [...byMarket]
+    .filter(([, c]) => c > 0)
+    .map(([id, cents]) => ({ id, cents }))
+    .sort((a, b) => b.cents - a.cents);
 
   return (
     <div className="mx-auto max-w-[720px] pt-1 lg:max-w-[960px]">
@@ -159,22 +163,28 @@ export function InvestmentsPage() {
       </section>
 
       {invested > 0 && (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className={`mt-5 grid gap-4 ${markets.length > 1 ? 'sm:grid-cols-2' : ''}`}>
           <Split
             title="Por tipo"
             parts={sorted.map((g) => ({ id: g.type, cents: g.cents }))}
             color={(id) => CATEGORY_COLORS[id as AssetCategory]}
             name={(id) => id}
           />
-          <Split
-            title="Por mercado"
-            parts={[...byMarket]
-              .filter(([, c]) => c > 0)
-              .map(([id, cents]) => ({ id, cents }))
-              .sort((a, b) => b.cents - a.cents)}
-            color={(id) => MARKET_COLORS[id as 'ARG' | 'USA']}
-            name={(id) => MARKET_NAMES[id as 'ARG' | 'USA']}
-          />
+          {/* A ring with one slice says nothing: one market is a line of text. */}
+          {markets.length > 1 ? (
+            <Split
+              title="Por mercado"
+              parts={markets}
+              color={(id) => MARKET_COLORS[id as 'ARG' | 'USA']}
+              name={(id) => MARKET_NAMES[id as 'ARG' | 'USA']}
+            />
+          ) : (
+            markets[0] && (
+              <p className="px-1 text-[14px] text-muted">
+                Todo invertido en {MARKET_NAMES[markets[0].id]}.
+              </p>
+            )
+          )}
         </div>
       )}
 
