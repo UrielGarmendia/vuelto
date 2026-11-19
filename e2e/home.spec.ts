@@ -27,6 +27,8 @@ for (const theme of ['light', 'dark'] as const) {
     const balance = page.getByRole('region', { name: 'Disponible' });
     await expect(balance.getByRole('img', { name: '$ 477.250' })).toBeVisible();
     await expect(balance).toContainText('Salió$ 22.750');
+    // Four movements in a week are not enough to say anything yet.
+    await expect(page.getByText('Cargá un par de semanas y empiezo a darte datos.')).toBeVisible();
     await expect(page.getByRole('region', { name: 'Cómo viene el mes' })).toContainText(
       'gastado en',
     );

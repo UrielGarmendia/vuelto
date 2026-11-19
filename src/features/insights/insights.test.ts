@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../../db/types';
-import { categoryShifts, pickInsight, projectMonth, weekdayPeak } from './insights';
+import { categoryShifts, hasEnoughData, pickInsight, projectMonth, weekdayPeak } from './insights';
 
 let n = 0;
 const tx = (
@@ -82,5 +82,21 @@ describe('pickInsight', () => {
     const small = [tx('2026-11-07', 'cafe', 300_000), tx('2026-10-07', 'cafe', 100_000)];
     expect(pickInsight(small, '2026-11-10')).toMatchObject({ kind: 'weekday' });
     expect(pickInsight([], '2026-11-10')).toBeNull();
+  });
+});
+
+describe('hasEnoughData', () => {
+  const on = (date: string, i = 0) => tx(date, 'c', 1000, { id: `${date}-${i}` });
+
+  it('needs 20 movements or three different weeks', () => {
+    // Mon 2 Nov 2026 … : two weeks are not enough, three are.
+    expect(hasEnoughData([on('2026-11-02'), on('2026-11-09')])).toBe(false);
+    expect(hasEnoughData([on('2026-11-02'), on('2026-11-09'), on('2026-11-16')])).toBe(true);
+    // Sunday 8 belongs to the week of Monday 2.
+    expect(hasEnoughData([on('2026-11-02'), on('2026-11-08'), on('2026-11-09')])).toBe(false);
+    const busyWeek = Array.from({ length: 20 }, (_, i) => on('2026-11-16', i));
+    expect(hasEnoughData(busyWeek)).toBe(true);
+    expect(hasEnoughData(busyWeek.slice(1))).toBe(false);
+    expect(hasEnoughData(busyWeek.map((t) => ({ ...t, deleted: 1 as const })))).toBe(false);
   });
 });

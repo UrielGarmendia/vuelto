@@ -59,6 +59,20 @@ export function weekdayPeak(txs: readonly Transaction[], today: string, weeks = 
   return { weekday, ratio: byDay[weekday]! / (total / 7) };
 }
 
+/**
+ * Whether there is enough to say anything: at least 20 movements, or movements in three
+ * different weeks. Before that every comparison is noise.
+ */
+export function hasEnoughData(txs: readonly Transaction[]): boolean {
+  const live = txs.filter((tx) => !tx.deleted);
+  if (live.length >= 20) return true;
+  // Weeks start on Monday; the key is that Monday's date.
+  const weeks = new Set(
+    live.map((tx) => addDays(tx.date, -((fromISODate(tx.date).getDay() + 6) % 7))),
+  );
+  return weeks.size >= 3;
+}
+
 export type Insight =
   ({ kind: 'up' | 'down' } & CategoryShift) | { kind: 'weekday'; weekday: number; ratio: number };
 

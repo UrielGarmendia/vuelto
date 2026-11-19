@@ -17,7 +17,7 @@ import { toast } from '../../ui/toast';
 import { useRates } from '../currency/rates';
 import { cashTotal, investedTotal, snapshotTotal } from '../external/provider';
 import { useIol } from '../iol/iol';
-import { pickInsight, projectMonth, type Insight } from '../insights/insights';
+import { hasEnoughData, pickInsight, projectMonth, type Insight } from '../insights/insights';
 import { deleteTx, editTx } from '../transactions/actions';
 import { listTransactions } from '../transactions/queries';
 import { useTxSheet } from '../transactions/store';
@@ -217,9 +217,14 @@ export function HomePage() {
       </section>
     ),
     insight:
-      txs.length > 0 ? (
+      txs.length === 0 ? null : hasEnoughData(txs) ? (
         <InsightLine insight={pickInsight(txs, today)} catalog={catalog} month={month} />
-      ) : null,
+      ) : (
+        <p className="flex items-start gap-2.5 rounded-[20px] bg-flat px-[18px] py-4 text-[15px] leading-snug text-muted">
+          <Sparkles aria-hidden className="mt-0.5 size-[18px] shrink-0 text-hue" />
+          <span>Cargá un par de semanas y empiezo a darte datos.</span>
+        </p>
+      ),
     accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
     goals: <GoalsWidget />,
     networth: <NetWorthWidget />,
