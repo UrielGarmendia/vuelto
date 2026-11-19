@@ -28,7 +28,10 @@ test('a savings goal fills up and shows on Inicio', async ({ page }) => {
 });
 
 test('Inicio can hide and reorder its blocks', async ({ page }) => {
-  await page.goto('/ajustes/inicio');
+  // The pencil next to the month opens it.
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Personalizar Inicio' }).click();
+  await expect(page.getByRole('heading', { name: 'Personalizar Inicio' })).toBeVisible();
   const toggle = page.getByRole('switch', { name: 'Mostrar Dial del mes' });
   await page.locator('label', { has: toggle }).click();
   await expect(toggle).not.toBeChecked();

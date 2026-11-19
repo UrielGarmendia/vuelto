@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Pencil, Sparkles } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
@@ -279,7 +279,18 @@ export function HomePage() {
   return (
     <>
       <header className="pt-2">
-        <h1 className="text-[22px] font-bold">{capital(monthName)}</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[22px] font-bold">{capital(monthName)}</h1>
+          <Link
+            to="/ajustes/inicio"
+            viewTransition={viewTransitions}
+            aria-label="Personalizar Inicio"
+            title="Personalizar Inicio"
+            className="-mr-2 grid size-11 shrink-0 place-items-center rounded-full text-muted"
+          >
+            <Pencil aria-hidden className="size-[18px]" />
+          </Link>
+        </div>
         <p className="mt-1 max-w-[52ch] text-[15px] leading-snug text-muted">
           {headline(baseline.mode, { budget, projected, left, today, baseline, n, pace })}
         </p>
@@ -292,15 +303,6 @@ export function HomePage() {
             <Fragment key={w.id}>{blocks[w.id]}</Fragment>
           ))}
       </div>
-      <p className="pb-2 text-center">
-        <Link
-          to="/ajustes/inicio"
-          viewTransition={viewTransitions}
-          className="inline-flex min-h-11 items-center px-3 text-[13.5px] font-medium text-faint"
-        >
-          Personalizar Inicio
-        </Link>
-      </p>
     </>
   );
 }
