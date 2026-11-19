@@ -158,3 +158,36 @@ test('privacy page is public and Google login explains why it is off', async ({ 
   await expect(page.getByText(/todavía no está configurado/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Iniciar sesión con Google' })).toHaveCount(0);
 });
+
+test('the entry sheet fits a narrow screen: every option and category name is whole', async ({
+  page,
+}) => {
+  await setPrefs(page, { installDismissed: true });
+  await page.goto('/movimientos');
+  await page.getByRole('button', { name: 'Cargar movimiento' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('radio', { name: 'Supermercado' })).toBeVisible();
+  await page.waitForTimeout(600); // the sheet finishes sliding in
+  const problems = await sheet.evaluate((dialog) => {
+    const edge = dialog.getBoundingClientRect().right;
+    const out: string[] = [];
+    // Option chips (date, account, installments, repeat, split, note, ticket, favorite).
+    for (const el of dialog.querySelectorAll<HTMLElement>('label, button')) {
+      const r = el.getBoundingClientRect();
+      if (
+        r.width &&
+        r.right > edge + 1 &&
+        !el.closest('[role="radiogroup"][aria-label="Categoría"]') &&
+        !el.closest('.no-scrollbar')
+      )
+        out.push(`${el.textContent?.trim()} sale del borde`);
+    }
+    for (const span of dialog.querySelectorAll<HTMLElement>('[role="radio"] span')) {
+      if (span.scrollWidth > span.clientWidth + 1 || span.scrollHeight > span.clientHeight + 1)
+        out.push(`${span.textContent} cortado`);
+    }
+    return out;
+  });
+  expect(problems).toEqual([]);
+  await expect(sheet.getByRole('radio', { name: 'Celular e internet' })).toBeVisible();
+});

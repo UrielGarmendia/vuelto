@@ -503,7 +503,8 @@ function TxForm({
             />
           )}
 
-          <div className="no-scrollbar fade-x flex gap-2 overflow-x-auto px-4 pt-2 pb-2">
+          {/* Options wrap onto a second line instead of running off a narrow screen. */}
+          <div className="flex flex-wrap gap-2 px-4 pt-2 pb-2">
             <div
               className="well flex shrink-0 rounded-full p-1"
               role="radiogroup"
@@ -801,7 +802,7 @@ function CategoryGrid({
           className="group flex snap-start flex-col items-center gap-1.5 rounded-[18px] px-0.5 pt-2 pb-1.5 transition-[background-color,box-shadow] aria-checked:bg-sunk aria-checked:shadow-[var(--press)]"
         >
           <CategoryIcon icon={c.icon} color={c.color} />
-          <span className="w-full truncate text-center text-[11px] leading-tight font-medium text-muted group-aria-checked:text-ink">
+          <span className="line-clamp-2 w-full text-center text-[11px] leading-tight font-medium break-words text-muted group-aria-checked:text-ink">
             {c.name}
           </span>
         </button>
