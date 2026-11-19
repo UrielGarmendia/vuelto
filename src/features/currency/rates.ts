@@ -1,3 +1,4 @@
+import { toISODate } from '../../lib/dates';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect } from 'react';
 import { db } from '../../db/db';
@@ -35,6 +36,32 @@ export function parseRates(body: unknown, now = Date.now()): Rates | null {
   return Object.keys(values).length ? { values, fetchedAt: now } : null;
 }
 
+/** The last quote of each day (dolarapi has no daily change of its own). */
+export type RateHistory = Record<string, Rates['values']>;
+export const HISTORY_KEY = 'rates-history';
+
+/** Records a day's quote, keeping the last ten days. */
+export function withDay(history: RateHistory, day: string, values: Rates['values']): RateHistory {
+  const days = Object.entries({ ...history, [day]: values })
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-10);
+  return Object.fromEntries(days);
+}
+
+/** Today's value of one dollar against the closest earlier day on record. */
+export function dayChange(history: RateHistory, kind: RateKind, today: string) {
+  const days = Object.keys(history).sort();
+  const latest = [...days].reverse().find((d) => d <= today && history[d]?.[kind]);
+  const value = latest ? history[latest]![kind] : undefined;
+  const before = [...days].reverse().find((d) => d < (latest ?? today) && history[d]?.[kind]);
+  const prev = before ? history[before]![kind] : undefined;
+  return {
+    value,
+    prev,
+    pct: value !== undefined && prev ? ((value - prev) / prev) * 100 : undefined,
+  };
+}
+
 /** Fetches today's rates unless the stored ones are fresh; keeps the last good ones offline. */
 export async function refreshRates(now = Date.now()): Promise<Rates | null> {
   const stored = (await db.kv.get('rates'))?.value as Rates | undefined;
@@ -44,6 +71,11 @@ export async function refreshRates(now = Date.now()): Promise<Rates | null> {
     const parsed = res.ok ? parseRates(await res.json(), now) : null;
     if (parsed) {
       await db.kv.put({ key: 'rates', value: parsed });
+      const history = (await db.kv.get(HISTORY_KEY))?.value as RateHistory | undefined;
+      await db.kv.put({
+        key: HISTORY_KEY,
+        value: withDay(history ?? {}, toISODate(new Date(now)), parsed.values),
+      });
       return parsed;
     }
   } catch {

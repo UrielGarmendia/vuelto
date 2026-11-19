@@ -7,6 +7,7 @@ import { usePrefs, withAllWidgets, type HomeWidget, useMoneyVisibility } from '.
 import { GoalsWidget } from '../goals/GoalsWidget';
 import { NetWorthTrend } from '../networth/NetWorthTrend';
 import { monthSurplus, type Surplus } from './surplus';
+import { RatesWidget } from '../currency/RatesWidget';
 import { db } from '../../db/db';
 import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
@@ -238,6 +239,7 @@ export function HomePage() {
       ),
     accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
     goals: <GoalsWidget />,
+    rates: <RatesWidget />,
     surplus:
       txs.length > 0 ? <SurplusCard surplus={monthSurplus(txs, repeating ?? [], today)} /> : null,
     recent:

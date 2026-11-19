@@ -54,3 +54,48 @@ for (const theme of ['light', 'dark'] as const) {
     });
   });
 }
+
+test('the dollar block shows MEP and blue with their change since the day before', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('vuelto-prefs'))
+      localStorage.setItem(
+        'vuelto-prefs',
+        JSON.stringify({ state: { installDismissed: true }, version: 0 }),
+      );
+  });
+  await page.goto('/');
+  const block = page.getByRole('region', { name: 'Dólar' });
+  await expect(block).toContainText('MEP$ 1.210');
+  await expect(block).toContainText('Blue$ 1.230');
+  await expect(block).toContainText('sin dato de ayer');
+
+  // Yesterday's close on record: today shows how it moved.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const open = indexedDB.open('vuelto');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('kv', 'readwrite');
+          const store = tx.objectStore('kv');
+          const get = store.get('rates-history');
+          get.onsuccess = () => {
+            const d = new Date(Date.now() - 86_400_000);
+            const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            store.put({
+              key: 'rates-history',
+              value: { ...(get.result?.value ?? {}), [day]: { mep: 1200, blue: 1250 } },
+            });
+          };
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+        };
+      }),
+  );
+  await page.reload();
+  await expect(block).toContainText('▲ +0,83 %');
+  await expect(block).toContainText('▼ −1,60 %');
+});

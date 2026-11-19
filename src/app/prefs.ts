@@ -11,6 +11,7 @@ export const homeWidgetNames = {
   dial: 'Dial del mes',
   balance: 'Saldo',
   surplus: 'Lo que te sobra',
+  rates: 'Dólar',
   insight: 'Dato del mes',
   accounts: 'Cuentas',
   goals: 'Metas de ahorro',
