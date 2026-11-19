@@ -1,13 +1,64 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
+import { createReadStream, readFileSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/**
+ * The on-device receipt reader (worker, engine and Spanish data) served by the app itself,
+ * never from a CDN. Copied from node_modules at build time instead of living in git.
+ */
+const OCR_FILES: Record<string, string> = {
+  'tesseract/worker.min.js': 'node_modules/tesseract.js/dist/worker.min.js',
+  'tesseract/core/tesseract-core-lstm.wasm.js':
+    'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
+  'tesseract/core/tesseract-core-simd-lstm.wasm.js':
+    'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
+  'tesseract/core/tesseract-core-relaxedsimd-lstm.wasm.js':
+    'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
+  'tesseract/lang/spa.traineddata.gz':
+    'node_modules/@tesseract.js-data/spa/4.0.0_best_int/spa.traineddata.gz',
+};
+
+function ocrFiles(): Plugin {
+  return {
+    name: 'ocr-files',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const file = OCR_FILES[(req.url ?? '').slice(1).split('?')[0]!];
+        if (!file) return next();
+        res.setHeader(
+          'Content-Type',
+          file.endsWith('.gz') ? 'application/gzip' : 'text/javascript',
+        );
+        createReadStream(file).pipe(res);
+      });
+    },
+    generateBundle() {
+      for (const [fileName, file] of Object.entries(OCR_FILES))
+        this.emitFile({ type: 'asset', fileName, source: readFileSync(file) });
+    },
+  };
+}
+
+/** The security headers Vercel sends, also on `vite preview` so the e2e suite runs under them. */
+const securityHeaders = Object.fromEntries(
+  (
+    JSON.parse(readFileSync('vercel.json', 'utf8')) as {
+      headers: { source: string; headers: { key: string; value: string }[] }[];
+    }
+  ).headers
+    .find((h) => h.source === '/(.*)')!
+    .headers.map((h) => [h.key, h.value]),
+);
+
 export default defineConfig({
+  preview: { headers: securityHeaders },
   plugins: [
     react(),
     tailwindcss(),
+    ocrFiles(),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
@@ -44,7 +95,13 @@ export default defineConfig({
       },
       workbox: {
         // Only the latin font subset; the others are never needed for Spanish UI.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}', 'assets/archivo-latin-wdth-normal-*.woff2', 'assets/archivo-wide-latin-*.woff2'],
+        globPatterns: [
+          '**/*.{js,css,html,svg,png,ico}',
+          'assets/archivo-latin-wdth-normal-*.woff2',
+          'assets/archivo-wide-latin-*.woff2',
+        ],
+        // The receipt reader weighs ~14 MB: it loads only when a receipt is read.
+        globIgnores: ['tesseract/**'],
         navigateFallback: '/index.html',
         // OAuth callbacks and other functions must reach the server, never the app shell.
         navigateFallbackDenylist: [/^\/api\//],
