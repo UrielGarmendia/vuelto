@@ -19,12 +19,14 @@ export function netWorthOf({
   balances,
   snapshot,
   usdRate,
+  mepRate,
 }: {
   date: string;
   accounts: readonly Account[];
   balances: Map<string, number>;
   snapshot?: Snapshot;
   usdRate?: number;
+  mepRate?: number;
 }): NetWorthFields {
   // Linked accounts (IOL) are counted from their snapshot, not from movements.
   const own = accounts.filter((a) => !a.deleted && !a.external);
@@ -41,6 +43,7 @@ export function netWorthOf({
     debtCents: creditDebtCents,
     totalCents,
     ...(usdRate ? { usdRate, totalUsdCents: Math.round(totalCents / usdRate) } : {}),
+    ...(mepRate ? { mepRate } : {}),
   };
 }
 
@@ -50,6 +53,7 @@ const same = (a: NetWorthFields, b: NetWorthFields) =>
   a.debtCents === b.debtCents &&
   a.totalCents === b.totalCents &&
   a.usdRate === b.usdRate &&
+  a.mepRate === b.mepRate &&
   JSON.stringify(a.accounts) === JSON.stringify(b.accounts);
 
 /** Takes (or refreshes) today's row. At most one per date; unchanged days are not rewritten. */
@@ -61,13 +65,15 @@ export async function recordNetWorth(today = todayISO(), db: VueltoDB = defaultD
     db.kv.get('iol-snapshot'),
   ]);
   const linked = accounts.some((a) => a.external?.provider === 'iol' && !a.deleted);
-  const usdRate = (rates?.value as Rates | undefined)?.values[usePrefs.getState().rateKind];
+  const values = (rates?.value as Rates | undefined)?.values;
+  const usdRate = values?.[usePrefs.getState().rateKind];
   const row = netWorthOf({
     date: today,
     accounts,
     balances: accountBalances(accounts, txs),
     snapshot: linked ? (cached?.value as Snapshot | undefined) : undefined,
     usdRate,
+    mepRate: values?.mep,
   });
   const existing = await db.netWorth.get(today);
   if (existing && !existing.deleted && same(existing, row)) return;
@@ -129,7 +135,9 @@ export function netWorthSeries({
 
   const points: Point[] = [];
   for (const d of own) {
-    const k = currency === 'ARS' ? 1 : d.usdRate ? 1 / d.usdRate : 0;
+    // In dollars, the MEP of each day (older rows without it fall back to their rate).
+    const dollar = d.mepRate ?? d.usdRate;
+    const k = currency === 'ARS' ? 1 : dollar ? 1 / dollar : 0;
     if (!k) continue;
     const r = (c: number) => Math.round(c * k);
     points.push({

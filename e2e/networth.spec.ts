@@ -89,7 +89,7 @@ for (const theme of ['light', 'dark'] as const) {
 
     await page.getByRole('radio', { name: 'el último mes' }).click();
     await expect(chart).toContainText('−$ 200.000');
-    await page.getByRole('radio', { name: 'Dólares' }).click();
+    await page.getByRole('radio', { name: 'Dólares MEP' }).click();
     await page.getByRole('radio', { name: 'todo el período' }).click();
     await expect(chart.getByRole('img', { name: /de US\$ 1\.000/ })).toBeVisible();
   });

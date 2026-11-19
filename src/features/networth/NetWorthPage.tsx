@@ -83,7 +83,7 @@ export function NetWorthPage() {
           onChange={setCurrency}
           options={[
             { id: 'ARS', label: '$', name: 'Pesos' },
-            { id: 'USD', label: 'US$', name: 'Dólares' },
+            { id: 'USD', label: 'US$ MEP', name: 'Dólares MEP' },
           ]}
         />
       </div>

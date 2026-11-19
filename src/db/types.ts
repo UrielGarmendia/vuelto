@@ -117,6 +117,8 @@ export interface NetWorthDay extends Meta {
   /** ARS per dollar used that day; without it the dollars are left out. */
   usdRate?: number;
   totalUsdCents?: number;
+  /** The MEP dollar that day: the curve in dollars always uses it. */
+  mepRate?: number;
 }
 
 /** "If the note contains `match`, use this category (and maybe account and tag)". */

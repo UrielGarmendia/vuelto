@@ -34,7 +34,10 @@ export function InvestmentsPage() {
   const iol = useIol();
   const { status, message, refresh } = useIolStatus();
   const rateKind = usePrefs((s) => s.rateKind);
-  const rate = useRates()?.values[rateKind];
+  const rates = useRates()?.values;
+  const rate = rates?.[rateKind];
+  // Whether the portfolio grows in dollars: always against the MEP.
+  const mep = rates?.mep;
   const online = useOnline();
   const [sort, setSort] = useState<Sort>('value');
   usePullToRefresh(useCallback(() => void refresh(), [refresh]));
@@ -149,7 +152,9 @@ export function InvestmentsPage() {
           {formatMoney(total)}
         </p>
         <p className="tabular mt-0.5 text-[14px] text-muted">
-          {rate ? `≈ ${formatMoney(Math.round(total / rate), 'USD')}` : 'Sin cotización del dólar'}
+          {mep
+            ? `≈ ${formatMoney(Math.round(total / mep), 'USD')} MEP`
+            : 'Sin cotización del dólar MEP'}
         </p>
         <dl className="mt-4 grid grid-cols-2 gap-3 @[30rem]:grid-cols-3">
           <Figure label="Efectivo" value={formatMoney(cashTotal(s, rate))} />

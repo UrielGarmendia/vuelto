@@ -158,6 +158,17 @@ describe('netWorthSeries', () => {
     ]);
   });
 
+  it('in dollars prefers the MEP of each day over the chosen rate', () => {
+    const withMep = [{ ...day('2026-11-10', 1_200_000, 1000), mepRate: 1200 }];
+    const usd = netWorthSeries({
+      days: withMep,
+      range: 'Todo',
+      currency: 'USD',
+      today: '2026-11-16',
+    });
+    expect(usd[0]!.total).toBe(1_000);
+  });
+
   it('in dollars takes IOL’s own MEP valuation for its history', () => {
     const usd = netWorthSeries({
       days,

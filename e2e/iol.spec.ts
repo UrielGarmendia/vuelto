@@ -225,6 +225,8 @@ for (const theme of ['light', 'dark'] as const) {
     // 100.000 cash + 40.000 + 200.000 + 150.000 + 50.000 + 400 USD × 1.210
     await expect(total).toContainText('$ 1.024.000');
     await expect(total).toContainText('Invertido$ 924.000');
+    // 1.024.000 / 1.210 (MEP): does the portfolio grow in dollars?
+    await expect(total).toContainText('≈ US$ 846,28 MEP');
     await expect(page.getByRole('region', { name: 'Por tipo' })).toContainText('FCI');
     await expect(page.getByRole('region', { name: 'Por mercado' })).toContainText('EE.UU.');
 
