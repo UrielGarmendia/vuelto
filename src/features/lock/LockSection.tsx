@@ -6,15 +6,20 @@ import { enableLock, LOCK_MINUTES, lockAvailable, readLock, writeLock } from './
 const SWITCH =
   'well relative h-8 w-[52px] shrink-0 rounded-full transition-colors peer-checked:bg-hue peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-hue after:absolute after:top-1 after:left-1 after:size-6 after:rounded-full after:bg-[linear-gradient(145deg,var(--color-face-a),var(--color-face-b))] after:shadow-[var(--rise)] after:transition-transform after:duration-300 after:ease-[var(--ease-spring)] peer-checked:after:translate-x-5';
 
+// Asked once: on a later visit the section is there from the first frame, so a restored
+// scroll position is not pushed down when it appears.
+let known: boolean | undefined;
+const checked = lockAvailable().then((v) => (known = v));
+
 /** Ajustes → Seguridad. Absent on devices without their own unlock. */
 export function LockSection() {
-  const [available, setAvailable] = useState(false);
+  const [available, setAvailable] = useState(known ?? false);
   const [lock, setLock] = useState(readLock);
   const [busy, setBusy] = useState(false);
   const profile = useSync((s) => s.profile);
 
   useEffect(() => {
-    void lockAvailable().then(setAvailable);
+    void checked.then(setAvailable);
   }, []);
 
   if (!available) return null;
