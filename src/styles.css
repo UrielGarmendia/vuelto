@@ -38,6 +38,8 @@
   --color-positive: #8fd18a;
   --color-negative: #ff8a80;
   --color-idle: #26272b;
+  /* Dial marks for days without spending yet. */
+  --color-tick: #26272b;
 
   --radius-sm: 12px;
   --radius-md: 20px;
@@ -83,6 +85,8 @@
   --color-positive: #17692b;
   --color-negative: #ad2323;
   --color-idle: #d3d7dd;
+  /* 3.3:1 or more on the dial's light surfaces, as non-text graphics need. */
+  --color-tick: #747c88;
   --rise: 6px 7px 16px #c4cad3, -6px -6px 14px #ffffff;
   --press: inset 4px 4px 9px #c4cad3, inset -4px -4px 9px #ffffff;
   --go-a: #3577b3;

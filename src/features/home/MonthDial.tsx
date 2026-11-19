@@ -7,8 +7,8 @@ const tickColor: Record<TickState, string> = {
   under: 'var(--color-hue)',
   over: 'var(--color-over)',
   spent: 'var(--color-hue)',
-  quiet: 'var(--color-idle)',
-  ahead: 'var(--color-idle)',
+  quiet: 'var(--color-tick)',
+  ahead: 'var(--color-tick)',
 };
 
 const CX = 180;
