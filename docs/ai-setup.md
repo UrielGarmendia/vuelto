@@ -4,7 +4,7 @@ El copiloto («Contale a Vuelto») y la lectura de tickets funcionan **gratis y 
 
 - **Copiloto:** un parser de montos (`src/features/copilot/amount.ts`), las reglas del usuario y un diccionario argentino (`src/features/copilot/dictionary.ts`) arman tarjetas editables. Nada se guarda sin confirmar.
 - **Tickets:** Tesseract.js en español, cargado aparte solo al usar la cámara, más heurísticas para total, fecha, comercio y medio de pago (`src/features/receipt/`).
-  - La primera lectura descarga el lector y los datos del español desde `cdn.jsdelivr.net`; después quedan en caché.
+  - La primera lectura descarga el lector y los datos del español desde la propia app (`/tesseract/`, unos 6 MB); después quedan en caché. Ningún CDN de terceros.
 
 La IA es un **extra opcional**: si está configurada y tu email habilitado, aparece «Mejorar con IA» solo cuando la lectura local deja algo sin resolver o con baja confianza. En el ticket, aparece cuando la lectura local falla. Sin configurarla, no aparece nada de IA y todo funciona igual.
 

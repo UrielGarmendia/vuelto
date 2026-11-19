@@ -29,7 +29,7 @@ const sections: { title: string; body: string[] }[] = [
     title: 'Copiloto y tickets',
     body: [
       'El copiloto lee lo que escribís o dictás en tu dispositivo, sin enviarlo a ningún lado. Dictar usa el reconocimiento de voz de tu navegador o sistema, que puede procesar el audio en sus servidores (Google en Chrome, Apple en Safari).',
-      'Los tickets también se leen en tu dispositivo: la foto no sale de él. La primera vez se descargan el lector y los datos del idioma español desde cdn.jsdelivr.net.',
+      'Los tickets también se leen en tu dispositivo: la foto no sale de él. La primera vez se descargan el lector y los datos del idioma español desde la propia app, sin terceros.',
       'Opcional, solo si la instalación lo tiene configurado y tu email está habilitado: «Mejorar con IA» envía únicamente lo que el dispositivo no pudo resolver (ese texto o esa foto) y los nombres de tus categorías, cuentas y reglas a una función de Vuelto, que lo reenvía a Anthropic para leerlo. Vuelto no guarda ni registra ese contenido; Anthropic lo trata según su política de datos de API. Nada se envía sin que toques el botón.',
     ],
   },
