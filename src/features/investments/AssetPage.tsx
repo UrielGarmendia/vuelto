@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { formatMoney } from '../../lib/money';
 import { BackLink } from '../../ui/BackLink';
 import { Skeleton } from '../../ui/Skeleton';
@@ -27,6 +27,7 @@ type Chart =
 
 /** One asset: its price over time, what you hold and how much of the portfolio it is. */
 export function AssetPage() {
+  useMoneyVisibility();
   const { market = '', symbol = '' } = useParams();
   const iol = useIol();
   const rateKind = usePrefs((s) => s.rateKind);

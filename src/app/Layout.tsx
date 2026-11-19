@@ -113,7 +113,10 @@ export function Layout() {
   );
 }
 
-/** Keyboard: N opens a new movement; / or Ctrl+K search. Esc is handled by whatever is open. */
+/**
+ * Keyboard: N opens a new movement; / or Ctrl+K search; H hides or shows amounts. Esc is
+ * handled by whatever is open.
+ */
 function useShortcuts() {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -132,6 +135,9 @@ function useShortcuts() {
       } else if (e.key === '/') {
         e.preventDefault();
         useSearch.getState().set(true);
+      } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        usePrefs.getState().togglePrivateMode();
       }
     }
     window.addEventListener('keydown', onKeyDown);

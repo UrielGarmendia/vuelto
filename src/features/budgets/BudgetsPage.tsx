@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { db } from '../../db/db';
@@ -19,6 +20,7 @@ const monthName = (month: string) =>
 const tone = (ratio: number) => (ratio > 1 ? 'bg-negative' : ratio >= 0.8 ? 'bg-over' : 'bg-hue');
 
 export function BudgetsPage() {
+  useMoneyVisibility();
   const month = todayISO().slice(0, 7);
   const categories = useLiveQuery(
     () =>

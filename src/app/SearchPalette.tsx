@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from './prefs';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CornerDownLeft, Search } from 'lucide-react';
@@ -42,6 +43,7 @@ interface Item {
 
 /** One box to find movements, categories and screens (Ctrl+K, / or the search button). */
 export function SearchPalette() {
+  useMoneyVisibility();
   const open = useSearch((s) => s.open);
   const setOpen = useSearch((s) => s.set);
   return (

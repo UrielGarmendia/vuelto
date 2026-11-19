@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ReceiptText, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -16,6 +17,7 @@ import { TransactionList } from './TransactionList';
 import { useCatalog } from './useCatalog';
 
 export function TransactionsPage() {
+  useMoneyVisibility();
   const transactions = useLiveQuery(() => listTransactions(), []);
   const catalog = useCatalog();
   const openNew = useTxSheet((s) => s.openNew);

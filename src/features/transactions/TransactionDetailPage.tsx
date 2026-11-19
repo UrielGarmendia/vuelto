@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pencil, SearchX, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -17,6 +18,7 @@ import { useTxSheet } from './store';
 import { useCatalog } from './useCatalog';
 
 export function TransactionDetailPage() {
+  useMoneyVisibility();
   const { id = '' } = useParams();
   // `null` = loaded but missing, `undefined` = still loading.
   const tx = useLiveQuery(async () => (await db.transactions.get(id)) ?? null, [id]);

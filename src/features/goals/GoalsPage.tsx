@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { contribute, monthlyNeeded, saveGoal } from './goals';
 const monthYear = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' });
 
 export function GoalsPage() {
+  useMoneyVisibility();
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.deleted).toArray(), []);
   const [editing, setEditing] = useState<Goal | 'new' | null>(null);
 

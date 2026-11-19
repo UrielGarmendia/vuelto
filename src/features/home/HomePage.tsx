@@ -3,7 +3,7 @@ import { ChevronRight, Sparkles } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { viewTransitions } from '../../app/viewTransitions';
-import { usePrefs, withAllWidgets, type HomeWidget } from '../../app/prefs';
+import { usePrefs, withAllWidgets, type HomeWidget, useMoneyVisibility } from '../../app/prefs';
 import { GoalsWidget } from '../goals/GoalsWidget';
 import { NetWorthTrend } from '../networth/NetWorthTrend';
 import { db } from '../../db/db';
@@ -45,6 +45,7 @@ const plural = (s: string) => (s.endsWith('s') ? s : `${s}s`);
 const round100 = (cents: number) => Math.round(cents / 100) * 100;
 
 export function HomePage() {
+  useMoneyVisibility();
   const txs = useLiveQuery(() => listTransactions(), []);
   const accounts = useLiveQuery(
     () =>

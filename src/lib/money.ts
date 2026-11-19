@@ -21,6 +21,18 @@ function assertCents(cents: number): void {
   if (!Number.isSafeInteger(cents)) throw new RangeError(`Invalid cents value: ${cents}`);
 }
 
+let hidden = false;
+
+/**
+ * Private mode: every formatted amount becomes "$ ••••". Set from prefs; screens that show
+ * money subscribe with `useMoneyVisibility` so they redraw without remounting.
+ */
+export function setMoneyHidden(value: boolean): void {
+  hidden = value;
+}
+
+export const HIDDEN_AMOUNT = '••••';
+
 /** Formats integer cents. `decimals: 'auto'` hides ",00" on whole amounts. */
 export function formatMoney(
   cents: number,
@@ -28,6 +40,7 @@ export function formatMoney(
   { decimals = 'auto' }: { decimals?: boolean | 'auto' } = {},
 ): string {
   assertCents(cents);
+  if (hidden) return `${currency === 'USD' ? 'US$' : '$'}\u00a0${HIDDEN_AMOUNT}`;
   const show = decimals === 'auto' ? cents % 100 !== 0 : decimals;
   // Divide only for display; the value never goes back into arithmetic.
   return formatter(currency, show).format(cents / 100);
@@ -77,6 +90,7 @@ export function arsCents(tx: { amountCents: number; currency: Currency; rateAtDa
 
 /** Amounts for tight spots: under $ 1.000 as they are, then "12 mil" and "1,2 M". */
 export function shortMoney(cents: number): string {
+  if (hidden) return HIDDEN_AMOUNT;
   const sign = cents < 0 ? '−' : '';
   const v = Math.abs(cents) / 100;
   if (v < 1000) return `${sign}$ ${Math.round(v)}`;

@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
   animate,
@@ -49,6 +50,7 @@ export const TxRow = memo(function TxRow({
   current = false,
   onOpen,
 }: Props) {
+  useMoneyVisibility();
   const x = useMotionValue(0);
   // Action backgrounds only exist while swiping, keeping idle rows cheap.
   const [swiping, setSwiping] = useState(false);

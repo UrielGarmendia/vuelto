@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { RateKind } from '../features/currency/rates';
+import { setMoneyHidden } from '../lib/money';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -44,6 +45,9 @@ interface Prefs {
   setTheme: (theme: Theme) => void;
   setReduceMotion: (reduceMotion: boolean) => void;
   dismissInstall: () => void;
+  /** Private mode: amounts show as "••••" everywhere. */
+  privateMode: boolean;
+  togglePrivateMode: () => void;
 }
 
 // The storage key is also read by the inline script in index.html.
@@ -60,10 +64,22 @@ export const usePrefs = create<Prefs>()(
       setTheme: (theme) => set({ theme }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       dismissInstall: () => set({ installDismissed: true }),
+      privateMode: false,
+      togglePrivateMode: () => set((s) => ({ privateMode: !s.privateMode })),
     }),
     { name: 'vuelto-prefs' },
   ),
 );
+
+// The flag changes before React redraws, so every amount formatted in that redraw follows it.
+setMoneyHidden(usePrefs.getState().privateMode);
+usePrefs.subscribe((s) => setMoneyHidden(s.privateMode));
+
+/**
+ * Subscribes a component to private mode, so its amounts redraw when it changes. Called once
+ * per screen (its children redraw with it) and in memoized rows.
+ */
+export const useMoneyVisibility = () => usePrefs((s) => s.privateMode);
 
 const themeColor = { light: '#ECEEF1', dark: '#000000' } as const;
 

@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChartPie, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
@@ -30,6 +31,7 @@ const pctText = (p: number) => `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p)
 const OTHERS = 'otros';
 
 export function StatsPage() {
+  useMoneyVisibility();
   const txs = useLiveQuery(() => listTransactions(), []);
   const catalog = useCatalog();
   const today = todayISO();

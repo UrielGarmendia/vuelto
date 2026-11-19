@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Camera, Mic, Sparkles, Trash2, WandSparkles } from 'lucide-react';
 import { useState } from 'react';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { db } from '../../db/db';
 import type { Account, Category, Rule, TxType } from '../../db/types';
 import { todayISO } from '../../lib/dates';
@@ -45,6 +45,7 @@ const Speech =
 
 /** "Contale a Vuelto": write or say movements, review them as cards, save them all. */
 export function CopilotSheet() {
+  useMoneyVisibility();
   const { open, session, close } = useCopilot();
   const categories = useLiveQuery(
     () =>

@@ -3,7 +3,7 @@ import { GripVertical, Plus } from 'lucide-react';
 import { m, useDragControls, useReducedMotion, useSpring } from 'motion/react';
 import { Reorder } from 'motion/react-m';
 import { useCallback, useState, type PointerEvent } from 'react';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { setArchived } from '../../db/catalog';
 import { db } from '../../db/db';
 import type { Account } from '../../db/types';
@@ -18,6 +18,7 @@ import { AccountSheet } from './AccountSheet';
 import { accountKinds } from './kinds';
 
 export function AccountsPage() {
+  useMoneyVisibility();
   const [sheet, setSheet] = useState<{ open: boolean; account?: Account; session: number }>({
     open: false,
     session: 0,

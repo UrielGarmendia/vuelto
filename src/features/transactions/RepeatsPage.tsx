@@ -1,3 +1,4 @@
+import { useMoneyVisibility } from '../../app/prefs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Star, Trash2 } from 'lucide-react';
 import { db } from '../../db/db';
@@ -18,6 +19,7 @@ const every: Record<Recurring['frequency'], string> = {
 
 /** Repeating movements (pause or stop them) and one-tap favorites (remove them). */
 export function RepeatsPage() {
+  useMoneyVisibility();
   const rules = useLiveQuery(() => db.recurring.filter((r) => !r.deleted).toArray(), []);
   const templates = useLiveQuery(
     () =>

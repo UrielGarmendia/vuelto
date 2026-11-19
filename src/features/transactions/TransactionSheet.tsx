@@ -13,7 +13,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { db, newMeta } from '../../db/db';
 import type { Account, Category, Rule, Template, Transaction, TxType } from '../../db/types';
 import {
@@ -55,6 +55,7 @@ const repeatLabels: Record<Frequency, string> = {
 };
 
 export function TransactionSheet() {
+  useMoneyVisibility();
   const { open, editingId, session, close } = useTxSheet();
   // `null` = new transaction; `undefined` = still loading the one being edited.
   const editing = useLiveQuery(

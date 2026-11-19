@@ -1,7 +1,7 @@
 import { LineChart, RefreshCw, WifiOff } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { viewTransitions } from '../../app/viewTransitions';
 import { formatMoney } from '../../lib/money';
 import { BackLink } from '../../ui/BackLink';
@@ -30,6 +30,7 @@ type Sort = 'value' | 'change';
 
 /** Everything held at IOL: totals, how it splits, and every position. */
 export function InvestmentsPage() {
+  useMoneyVisibility();
   const iol = useIol();
   const { status, message, refresh } = useIolStatus();
   const rateKind = usePrefs((s) => s.rateKind);

@@ -1,4 +1,5 @@
-import { CloudOff, Plus, Search, Sparkles } from 'lucide-react';
+import { CloudOff, Eye, EyeOff, Plus, Search, Sparkles } from 'lucide-react';
+import { usePrefs } from './prefs';
 import { useCopilot } from '../features/copilot/store';
 import { useSync } from '../features/sync/useSync';
 import { useTxSheet } from '../features/transactions/store';
@@ -22,6 +23,7 @@ export function TopBar() {
       </button>
       <Reconnect />
       <span className="-mr-2 flex items-center lg:hidden">
+        <PrivacyToggle />
         <button
           type="button"
           onClick={openCopilot}
@@ -38,6 +40,9 @@ export function TopBar() {
         >
           <Search aria-hidden className="size-5" />
         </button>
+      </span>
+      <span className="hidden lg:ml-auto lg:block">
+        <PrivacyToggle />
       </span>
       <button
         type="button"
@@ -70,6 +75,27 @@ function Reconnect() {
       className="ml-auto flex min-h-9 items-center gap-1.5 rounded-full bg-flat px-3 text-[12.5px] font-medium text-muted"
     >
       <CloudOff aria-hidden className="size-3.5 text-over" /> Reconectar con Google
+    </button>
+  );
+}
+
+/** Hides every amount in the app (or shows them again); remembered between sessions. */
+function PrivacyToggle() {
+  const hidden = usePrefs((s) => s.privateMode);
+  const toggle = usePrefs((s) => s.togglePrivateMode);
+  const Icon = hidden ? EyeOff : Eye;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={hidden}
+      aria-label={hidden ? 'Mostrar montos' : 'Ocultar montos'}
+      title={hidden ? 'Mostrar montos (H)' : 'Ocultar montos (H)'}
+      className={`grid size-11 shrink-0 place-items-center rounded-full ${
+        hidden ? 'text-hue' : 'text-muted'
+      }`}
+    >
+      <Icon aria-hidden className="size-5" />
     </button>
   );
 }

@@ -35,6 +35,7 @@ export function Sidebar() {
       <p className="mt-auto px-3 pb-6 text-[12.5px] leading-relaxed text-faint">
         Atajos: <kbd className="font-sans text-muted">N</kbd> nuevo,{' '}
         <kbd className="font-sans text-muted">/</kbd> buscar,{' '}
+        <kbd className="font-sans text-muted">H</kbd> ocultar montos,{' '}
         <kbd className="font-sans text-muted">Esc</kbd> cerrar
       </p>
     </nav>

@@ -16,7 +16,7 @@ import { DollarSection } from './DollarSection';
 import { Link } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '../../db/db';
-import { usePrefs, type Theme } from '../../app/prefs';
+import { usePrefs, type Theme, useMoneyVisibility } from '../../app/prefs';
 import { PageHeader } from '../../ui/PageHeader';
 import { BackupSection } from './BackupSection';
 import { viewTransitions } from '../../app/viewTransitions';
@@ -37,6 +37,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function SettingsPage() {
+  useMoneyVisibility();
   const { theme, setTheme, reduceMotion, setReduceMotion } = usePrefs();
   const persisted = useLiveQuery(() => db.kv.get('storagePersisted'));
   const counts = useLiveQuery(async () => ({

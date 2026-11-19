@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import { usePrefs } from '../../app/prefs';
+import { usePrefs, useMoneyVisibility } from '../../app/prefs';
 import { db } from '../../db/db';
 import { fromISODate, todayISO, toISODate } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
@@ -25,6 +25,7 @@ const addDays = (iso: string, n: number) =>
 
 /** How net worth moved: a daily photo taken when the app opens, plus IOL's own history. */
 export function NetWorthPage() {
+  useMoneyVisibility();
   const days = useLiveQuery(() => db.netWorth.filter((d) => !d.deleted).toArray(), []);
   // Card debt only matters with an active card.
   const hasCards = useLiveQuery(
