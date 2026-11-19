@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "playwright test",
-    "generate-pwa-assets": "pwa-assets-generator"
+    "generate-pwa-assets": "pwa-assets-generator",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "repository": {
     "type": "git",
