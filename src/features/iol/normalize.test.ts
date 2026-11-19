@@ -10,6 +10,7 @@ import {
 } from '../external/provider';
 import {
   assetCategory,
+  cleanAssetName,
   normalizeAum,
   normalizeBalance,
   normalizePortfolio,
@@ -353,5 +354,21 @@ describe('holdings history', () => {
       }),
     ).toEqual({ points: [{ date: '2026-11-04', cents: 150_050 }], partial: true });
     expect(normalizeAum(null)).toEqual({ points: [], partial: false });
+  });
+});
+
+describe('cleanAssetName', () => {
+  it.each([
+    ['CEDEAR APPLE INC.', 'Apple Inc.'],
+    ['Cedear Coca-Cola Co', 'Coca-Cola Co'],
+    ['GRUPO FINANCIERO GALICIA', 'Grupo Financiero Galicia'],
+    ['YPF S.A.', 'YPF S.A.'],
+    ['BANCO DE GALICIA Y BUENOS AIRES', 'Banco de Galicia y Buenos Aires'],
+    ['CEDEAR ISHARES MSCI BRAZIL (IBI', 'Ishares Msci Brazil'],
+    ['SPDR S&P 500 ETF (SPY)', 'Spdr S&P 500 ETF (SPY)'],
+    ['BONO REP. ARGENTINA USD 2030 L.A', 'Bono Rep. Argentina USD 2030 L.A'],
+    ['', ''],
+  ])('%s → %s', (raw, clean) => {
+    expect(cleanAssetName(raw)).toBe(clean);
   });
 });

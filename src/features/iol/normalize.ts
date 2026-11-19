@@ -82,6 +82,41 @@ function positionValue(p: Record<string, unknown>, asset: Record<string, unknown
   return quotedPerLot ? (quantity * unit) / perLot : quantity * unit;
 }
 
+/** Words that stay lowercase inside a name, and short ones that are not acronyms. */
+const SMALL = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'en', 'of', 'the', 'and']);
+const PLAIN = new Set(['inc', 'co', 'cia', 'ltd', 'plc', 'corp', 'mas', 'sur', 'oro']);
+
+/**
+ * IOL's descriptions as people would write them: "CEDEAR APPLE INC." → "Apple Inc.",
+ * "GRUPO FINANCIERO GALICIA" → "Grupo Financiero Galicia", "... (IBI" (cut) → "...".
+ * Short all-caps words stay acronyms (YPF, ADR, ETF, SA).
+ */
+export function cleanAssetName(raw: string): string {
+  let s = raw.replace(/^\s*cedears?(?![\p{L}])[\s.:-]*/iu, '').trim();
+  const open = s.lastIndexOf('(');
+  if (open >= 0 && !s.slice(open).includes(')')) s = s.slice(0, open).trim();
+  s = s.replace(/[\s,;:-]+$/, '');
+  return s
+    .split(/\s+/)
+    .map((word, i) => {
+      const letters = word.replace(/[^\p{L}]/gu, '');
+      const lower = word.toLowerCase();
+      if (i > 0 && SMALL.has(lower)) return lower;
+      // Initials with dots (S.A., L.A) stay; an abbreviation like "REP." is a word.
+      const initials = /^(\p{L}\.)+\p{L}?\.?$/u.test(word);
+      const acronym =
+        initials ||
+        (letters.length > 0 &&
+          letters.length <= 3 &&
+          !word.includes('.') &&
+          letters === letters.toUpperCase() &&
+          !PLAIN.has(letters.toLowerCase()));
+      if (acronym || /\d/.test(word)) return word;
+      return lower.replace(/(^|-)(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
+    })
+    .join(' ');
+}
+
 /** Positions in get_portfolio (one country per call). */
 export function normalizePortfolio(raw: unknown): Position[] {
   const data = unwrap(raw, 'positions');
@@ -96,7 +131,7 @@ export function normalizePortfolio(raw: unknown): Position[] {
     return [
       {
         symbol: str(asset.symbol),
-        description: str(asset.description) || str(asset.symbol),
+        description: cleanAssetName(str(asset.description)) || str(asset.symbol),
         type: assetCategory(str(asset.type)),
         currency,
         quantity: num(p.quantity) ?? 0,
