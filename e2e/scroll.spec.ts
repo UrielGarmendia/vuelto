@@ -120,3 +120,15 @@ test('reopening or reloading the app starts at the top, not where it was left', 
     expect(await settledScroll(page), path).toBe(0);
   }
 });
+
+test('weekday spending keeps its natural height next to the calendar', async ({ page }) => {
+  await page.goto('/estadisticas');
+  const weekday = page.getByRole('region', { name: 'Por día de la semana' });
+  await expect(weekday).toBeVisible();
+  const box = (await weekday.boundingBox())!;
+  const content = await weekday.evaluate((el) =>
+    [...el.children].reduce((h, c) => h + c.getBoundingClientRect().height, 0),
+  );
+  // Padding and gaps only: no empty band below the bars.
+  expect(box.height - content).toBeLessThan(90);
+});

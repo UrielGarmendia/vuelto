@@ -441,7 +441,11 @@ function WeekdayBars({ values }: { values: number[] }) {
   const max = Math.max(...values, 1);
   const peak = values.indexOf(Math.max(...values));
   return (
-    <section aria-labelledby="weekday-label" className="rounded-[24px] bg-flat p-5">
+    <section
+      aria-labelledby="weekday-label"
+      // Natural height: stretched next to the calendar it was mostly empty.
+      className="rounded-[24px] bg-flat p-5 lg:self-start"
+    >
       <div className="flex items-baseline justify-between">
         <h2 id="weekday-label" className="text-[16px] font-semibold">
           Por día de la semana
