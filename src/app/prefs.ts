@@ -10,6 +10,7 @@ export type Theme = 'light' | 'dark' | 'system';
 export const homeWidgetNames = {
   dial: 'Dial del mes',
   balance: 'Saldo',
+  surplus: 'Lo que te sobra',
   insight: 'Dato del mes',
   accounts: 'Cuentas',
   goals: 'Metas de ahorro',

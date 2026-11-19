@@ -6,6 +6,7 @@ import { viewTransitions } from '../../app/viewTransitions';
 import { usePrefs, withAllWidgets, type HomeWidget, useMoneyVisibility } from '../../app/prefs';
 import { GoalsWidget } from '../goals/GoalsWidget';
 import { NetWorthTrend } from '../networth/NetWorthTrend';
+import { monthSurplus, type Surplus } from './surplus';
 import { db } from '../../db/db';
 import type { Budget, Category, Transaction } from '../../db/types';
 import { fromISODate, todayISO } from '../../lib/dates';
@@ -56,6 +57,7 @@ export function HomePage() {
     [],
   );
   const budgets = useLiveQuery(() => db.budgets.toArray(), []);
+  const repeating = useLiveQuery(() => db.recurring.toArray(), []);
   const catalog = useCatalog();
   const rates = useRates();
   const iol = useIol();
@@ -236,6 +238,8 @@ export function HomePage() {
       ),
     accounts: accounts.length > 0 ? <AccountStack accounts={accounts} balances={balances} /> : null,
     goals: <GoalsWidget />,
+    surplus:
+      txs.length > 0 ? <SurplusCard surplus={monthSurplus(txs, repeating ?? [], today)} /> : null,
     recent:
       txs.length === 0 ? (
         <FirstSteps />
@@ -501,4 +505,34 @@ function useMonthCelebration(txs?: Transaction[], budgets?: Budget[]) {
     }
     toast(`Cerraste ${monthNameOf(prev)} dentro del presupuesto. Bien ahí.`);
   }, [txs, budgets]);
+}
+
+/** What this month leaves over. Information only: Vuelto never moves money. */
+function SurplusCard({ surplus: s }: { surplus: Surplus }) {
+  const over = s.surplusCents > 0;
+  return (
+    <section aria-labelledby="surplus-label" className="rounded-[22px] bg-flat px-[18px] py-4">
+      <p id="surplus-label" className="text-[13.5px] text-muted">
+        {over ? 'Este mes te sobran' : s.surplusCents < 0 ? 'Este mes vas abajo' : 'Este mes'}
+      </p>
+      <p
+        className={`wide mt-0.5 text-[24px] leading-tight font-extrabold ${
+          over ? 'text-hue' : s.surplusCents < 0 ? 'text-over' : ''
+        }`}
+      >
+        {formatMoney(Math.abs(s.surplusCents))}
+      </p>
+      <p className="tabular mt-1 text-[12.5px] leading-snug text-faint">
+        Entró {formatMoney(s.incomeCents)}, salió {formatMoney(s.expenseCents)}
+        {s.pendingCents < 0 && `, faltan ${formatMoney(-s.pendingCents)} de lo que se repite`}
+        {s.pendingCents > 0 && `, entran ${formatMoney(s.pendingCents)} más de lo que se repite`}.
+      </p>
+      {over && (
+        <p className="mt-2 text-[13.5px] text-muted">
+          Podrías invertir hasta {formatMoney(s.surplusCents)}. Es solo una cuenta: Vuelto no mueve
+          plata.
+        </p>
+      )}
+    </section>
+  );
 }
